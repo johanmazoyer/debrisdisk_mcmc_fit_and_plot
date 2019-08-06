@@ -4,7 +4,7 @@
 #PBS -l select=1:ncpus=16
 #PBS -N plot_mcmc_results
 source activate astroconda
-cd /home/jmazoyer/codes_python/codes_mcmc_max/
+cd /home/jmazoyer/codes_python/codes_mcmc_hr4796/
 python plotfrombackend_hr4796_2g_hfixed_FM_Sphere.py
 python plotfrombackend_hr4796_3g_hfixed_FM_Sphere.py
 #python plotfrombackend_hr4796_2g_hfixed_FM_Hband_injected.py
