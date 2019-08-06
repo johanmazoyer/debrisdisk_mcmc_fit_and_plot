@@ -23,7 +23,6 @@ else:
     datadir='/home/jmazoyer/data_python/Aurora/160323_J_Spec/'
 
 
-
 os.environ["OMP_NUM_THREADS"] = "1"
 import distutils.dir_util
 import warnings
@@ -49,7 +48,6 @@ from check_gpi_satspots import check_gpi_satspots
 from emcee import EnsembleSampler
 from emcee import backends
 import contextlib
-
 
 from multiprocessing import cpu_count
 
