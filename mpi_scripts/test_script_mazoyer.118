@@ -5,5 +5,5 @@
 #PBS -N mcmc_maz_j
 source activate astroconda
 cd /home/jmazoyer/codes_python/codes_mcmc_max/
-python diskfit_hr4796_johan_second_2g_hfixed_FM_Jband_globalVar_realPSF_Aurora.py
+python diskfit_hr4796_2g_hfixed_FM_Jband_Aurora.py
 exit
