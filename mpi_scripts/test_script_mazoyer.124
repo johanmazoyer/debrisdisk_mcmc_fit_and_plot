@@ -1,0 +1,9 @@
+#!/bin/bash
+#PBS -l walltime=192:00:00
+#PBS -q verylongq
+#PBS -l select=1:ncpus=16
+#PBS -N mcmc_maz_fake
+source activate astroconda
+cd /home/jmazoyer/codes_python/codes_mcmc_max/
+python diskfit_hr4796_johan_2g_hfixed_FM_Hband_injected_Aurora.py
+exit

@@ -1,0 +1,9 @@
+#!/bin/bash
+#PBS -l walltime=12:00:00
+#PBS -q mediumq
+#PBS -l select=1:ncpus=16
+#PBS -N dst_klip_maz
+source activate astroconda
+cd codes_python/local4Aurora/
+python klip_rdi_dst_data_analysis_bis.py
+exit

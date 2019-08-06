@@ -1,0 +1,8 @@
+source activate astroconda
+cd /Users/jmazoyer/Dropbox/ExchangeFolder/codes_python/codes_mcmc_max/
+python plotfrombackend_hr4796_2g_hfixed_FM_Hband_fakeMaxiNoise.py
+python plotfrombackend_hr4796_2g_hfixed_FM_Sphere.py
+python plotfrombackend_hr4796_2g_hfixed_FM_Hband_realPSF.py
+python plotfrombackend_hr4796_2g_hfixed_FM_Jband_realPSF.py
+python plotfrombackend_hr4796_2g_hfixed_FM_K1band_realPSF.py
+python plotfrombackend_hr4796_2g_hfixed_FM_K2band_realPSF.py
