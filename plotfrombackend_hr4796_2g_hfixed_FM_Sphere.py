@@ -365,7 +365,7 @@ print("chain shape: {0}".format(chain.shape))
 print("chain flat shape: {0}".format(chain_flat.shape))
 print("flat log prob shape: {0}".format(log_prob_samples_flat.shape))
 
-print("best likelyhood: {0}".format(np.max(log_prob_samples_flat))
+print("best likelyhood: {0}".format(np.max(log_prob_samples_flat)))
 
 #######################################################
 #################### Make plot 1  #####################
