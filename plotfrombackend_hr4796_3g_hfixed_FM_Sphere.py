@@ -3,7 +3,7 @@
 quality_plot = 4
 
 
-import sys, os, glob
+import os, glob
 import socket
 
 import distutils.dir_util
