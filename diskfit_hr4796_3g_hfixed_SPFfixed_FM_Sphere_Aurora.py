@@ -262,7 +262,6 @@ def lnpb(theta):
     return lp + ll
 
 ########################################################
-
 # create model 3g h fixed
 def call_gen_disk_3g(theta, wheremask2generatedisk):
     
@@ -287,27 +286,6 @@ def call_gen_disk_3g(theta, wheremask2generatedisk):
 
     return model
 
-# create model 2g h fixed
-def call_gen_disk_2g(theta, wheremask2generatedisk):
-    r1 = mt.exp(theta[0])
-    r2 = mt.exp(theta[1])
-    beta = theta[2]
-    g1 = theta[3]
-    g2 = theta[4]
-    alpha = theta[5]
-    inc = np.degrees(np.arccos(theta[6]))
-    pa = theta[7]
-    dx = theta[8]
-    dy = theta[9]
-    norm = theta[10]
-    # offset = theta[11]
-
-    distance = 72. 
-
-    #generate the model
-    model = mt.exp(norm)*gen_disk_dxdy_2g(R1=r1,R2=r2, beta=beta, aspect_ratio=0.01, g1=g1, g2=g2,alpha=alpha, inc=inc, pa=pa, distance=distance, dx=dx, dy=dy, mask = wheremask2generatedisk) #+ offset
-
-    return model
 
 ########################################################
 # Log likelihood 3g h fixed
@@ -331,6 +309,7 @@ def logl(theta):
     lp = np.nansum (-0.5*(res*res))
 
     return (lp)
+
 ########################################################
 # Priors 
 def logp(theta):

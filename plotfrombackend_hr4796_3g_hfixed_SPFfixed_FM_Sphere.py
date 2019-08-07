@@ -1,6 +1,7 @@
 ####### This is the MCMC plotting code for HR 4796 data #######
 
 quality_plot = 4
+On_Aurora = 1
 
 if On_Aurora:
     datadir='/home/jmazoyer/data_python/Aurora/SPHERE_Hdata/'
