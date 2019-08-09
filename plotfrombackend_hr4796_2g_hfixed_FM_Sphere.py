@@ -348,7 +348,7 @@ print("# of iteration in the backend chain initially: {0}".format(reader.iterati
 print("Max Tau times 50: {0}".format(50*np.max(tau)))
 print("")
 
-burnin = 450
+burnin = 1000
 thin = 1
 
 
