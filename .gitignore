@@ -1,4 +1,4 @@
 .DS_Store
 check_gpi_satspots.pyc
 kowalsky.pyc
-.DS_Store
+*.pyc
