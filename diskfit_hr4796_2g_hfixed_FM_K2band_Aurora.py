@@ -53,8 +53,6 @@ import contextlib
 from multiprocessing import cpu_count
 
 from multiprocessing import Pool
-from schwimmbad import MPIPool as MPIPool
-
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -427,7 +425,7 @@ def make_noise_map_no_mask(reduced_data_wahaj_trick, xcen=140., ycen=140., delta
 #####################################################
 
 #MCMC Parameters
-nwalkers = 192
+nwalkers = 32
 ndim     = 11 #Number of dimensions
 
 niter = 9000
