@@ -9,7 +9,13 @@ def au_to_mas(d_in_au, distance_star_in_pc):
         distance in milliarcseconds
     """
 
-    return d_in_au / distance_star_in_pc * 1000.
+    to_mas = 1000. / distance_star_in_pc
+
+    if isinstance(d_in_au, list):
+        return [x * to_mas for x in d_in_au]
+    elif isinstance(d_in_au, tuple):
+        return (x * to_mas for x in d_in_au)
+    return d_in_au * to_mas
 
 
 def mas_to_au(d_in_mas, distance_star_in_pc):
@@ -23,7 +29,13 @@ def mas_to_au(d_in_mas, distance_star_in_pc):
         distance in au
     """
 
-    return d_in_mas * distance_star_in_pc / 1000.
+    to_au = distance_star_in_pc / 1000.
+
+    if isinstance(d_in_mas, list):
+        return [x * to_au for x in d_in_mas]
+    elif isinstance(d_in_mas, tuple):
+        return (x * to_au for x in d_in_mas)
+    return d_in_mas * to_au
 
 
 def mas_to_pix(d_in_mas, pixscale):
@@ -37,7 +49,13 @@ def mas_to_pix(d_in_mas, pixscale):
         distance in pixels
     """
 
-    return d_in_mas * pixscale * 1000.
+    to_pix = 1 / pixscale / 1000.
+
+    if isinstance(d_in_mas, list):
+        return [x * to_pix for x in d_in_mas]
+    elif isinstance(d_in_mas, tuple):
+        return (x * to_pix for x in d_in_mas)
+    return d_in_mas * to_pix
 
 
 def pix_to_mas(d_in_pix, pixscale):
@@ -51,7 +69,13 @@ def pix_to_mas(d_in_pix, pixscale):
         distance in milliarcseconds
     """
 
-    return d_in_pix / pixscale
+    to_mas = pixscale * 1000.
+
+    if isinstance(d_in_pix, list):
+        return [x * to_mas for x in d_in_pix]
+    elif isinstance(d_in_pix, tuple):
+        return (x * to_mas for x in d_in_pix)
+    return d_in_pix * to_mas
 
 
 def pix_to_au(d_in_pix, pixscale, distance_star_in_pc):
