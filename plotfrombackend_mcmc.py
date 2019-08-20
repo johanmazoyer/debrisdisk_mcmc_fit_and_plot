@@ -38,14 +38,13 @@ warnings.simplefilter('ignore', category=AstropyWarning)
 
 
 ########################################################
-def call_gen_disk_2g(theta, wheremask2generatedisk):
+def call_gen_disk_2g(theta):
     """ call the disk model from a set of parameters. 2g SPF
-        use DIMENSION, PIXSCALE_INS and DISTANCE_STAR global variables
+        use DIMENSION, PIXSCALE_INS and DISTANCE_STAR  and
+        wheremask2generatedisk as global variables
 
     Args:
         theta: list of parameters of the MCMC
-        wheremask2generatedisk: a np.where result that give where the model should be
-                                measured
 
     Returns:
         a 2d model
@@ -85,7 +84,19 @@ def call_gen_disk_2g(theta, wheremask2generatedisk):
 
 
 ########################################################
-def call_gen_disk_3g(theta, wheremask2generatedisk):
+def call_gen_disk_3g(theta):
+
+    """ call the disk model from a set of parameters. 3g SPF
+        use DIMENSION, PIXSCALE_INS and DISTANCE_STAR  and
+        wheremask2generatedisk as global variables
+
+    Args:
+        theta: list of parameters of the MCMC
+
+    Returns:
+        a 2d model
+    """
+
     r1 = mt.exp(theta[0])
     r2 = mt.exp(theta[1])
     beta = theta[2]
@@ -436,6 +447,9 @@ def best_model_plot(hdr):
     Returns:
         None
     """
+
+    global wheremask2generatedisk
+
     ndim = hdr['n_param']
     #Format the most likely values
     #generate the best model
@@ -484,9 +498,9 @@ def best_model_plot(hdr):
 
     #generate the best model
     if ndim == 11:
-        disk_ml = call_gen_disk_2g(theta_ml, wheremask2generatedisk)
+        disk_ml = call_gen_disk_2g(theta_ml)
     if ndim == 13:
-        disk_ml = call_gen_disk_3g(theta_ml, wheremask2generatedisk)
+        disk_ml = call_gen_disk_3g(theta_ml)
 
     new_fits = fits.HDUList()
     new_fits.append(fits.ImageHDU(data=disk_ml, header=hdr))

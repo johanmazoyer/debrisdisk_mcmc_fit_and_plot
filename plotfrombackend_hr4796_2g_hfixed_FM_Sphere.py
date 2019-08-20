@@ -82,9 +82,9 @@ def integrand_dxdy_2g(xp,yp_dy2,yp2,zp,zp2,zpsi_dx,zpci,R1,R2,beta,a_r,g1,g1_2,g
     expo = zz*zz/(hh*hh)
 
     # if expo > 2*maxe:   # cut off exponential after 28 e-foldings (~ 1E-06)
-    #     return 0.0 
+    #     return 0.0
 
-    int2 = np.exp(0.5*expo) 
+    int2 = np.exp(0.5*expo)
     int3 = int2 * d2
 
     return int1/int3
@@ -96,19 +96,19 @@ def gen_disk_dxdy_2g(R1=74.42, R2=82.45, beta=1.0, aspect_ratio=0.1, g1=0.6, g2=
     #SPHERE FOV stuff
     # pixscale = 0.01414 #GPI's pixel scale
     # pixscale  = 0.012255 #SPHERE's IRDIS pixel scale
-    # nspaxels = 200 #The number of lenslets along one side 
-    # fov_square = pixscale*nspaxels #The square FOV of GPI 
+    # nspaxels = 200 #The number of lenslets along one side
+    # fov_square = pixscale*nspaxels #The square FOV of GPI
     # max_fov = mt.sqrt(2)*fov_square/2 #maximum FOV in arcseconds from the center to the edge
-    
+
     #SPHERE FOV stuff
     pixscale  = 0.012255 #SPHERE's IRDIS pixel scale
-    dim=281. 
+    dim=281.
     max_fov = dim/2.*pixscale #maximum radial distance in AU from the center to the edge
     npts=int(np.floor(dim/sampling))
     xsize = max_fov*distance #maximum radial distance in AU from the center to the edge
 
     #The coordinate system here [x,y,z] is defined :
-    # +ve x is the line of sight 
+    # +ve x is the line of sight
     # +ve y is going right from the center
     # +ve z is going up from the center
 
@@ -122,17 +122,17 @@ def gen_disk_dxdy_2g(R1=74.42, R2=82.45, beta=1.0, aspect_ratio=0.1, g1=0.6, g2=
 
     #Some things we can precompute ahead of time
     maxe = mt.log(np.finfo('f').max) #The log of the machine precision
-    
+
     #Inclination Calculations
     incl = np.radians(90-inc)
     ci = mt.cos(incl) #Cosine of inclination
     si = mt.sin(incl) #Sine of inclination
-    
+
     #Position angle calculations
     pa_rad=np.radians(90-pa) #The position angle in radians
     cos_pa=mt.cos(pa_rad) #Calculate these ahead of time
     sin_pa=mt.sin(pa_rad)
-    
+
     #HG g value squared
     g1_2 = g1*g1 #First HG g squared
     g2_2 = g2*g2 #Second HG g squared
@@ -163,7 +163,7 @@ def gen_disk_dxdy_2g(R1=74.42, R2=82.45, beta=1.0, aspect_ratio=0.1, g1=0.6, g2=
                 z2 = zz*zz
 
                 #This rotates the coordinates in and out of the sky
-                zpci=zz*ci #Rotate the z coordinate by the inclination. 
+                zpci=zz*ci #Rotate the z coordinate by the inclination.
                 zpsi=zz*si
                 #Subtract the offset
                 zpsi_dx = zpsi - dx
@@ -173,21 +173,21 @@ def gen_disk_dxdy_2g(R1=74.42, R2=82.45, beta=1.0, aspect_ratio=0.1, g1=0.6, g2=
                 yy_dy2=yy_dy*yy_dy
 
                 image[j,i]=  quad(integrand_dxdy_2g, -R2, R2, epsrel=0.5e-3,limit=75,args=(yy_dy2,y2,zp,z2,zpsi_dx,zpci,R1,R2,beta,a_r,g1,g1_2,g2,g2_2, alpha,ci,si,maxe,dx,dy,k))[0]
-            
+
 
     #If there is a mask then don't calculate disk there
-    else: 
+    else:
         hmask = mask
         # hmask = mask[:,140:] #Use only half the mask
 
         for i,yp in enumerate(y):
             for j,zp in enumerate(z):
-                
+
                 # if hmask[j,npts/2+i]: #This assumes that the input mask has is the same size as the desired image (i.e. ~ size / sampling)
                 if hmask[j,i]:
 
                    image[j,i] = 0.#np.nan
-                
+
                 else:
 
                     #This rotates the coordinates in the image frame
@@ -199,7 +199,7 @@ def gen_disk_dxdy_2g(R1=74.42, R2=82.45, beta=1.0, aspect_ratio=0.1, g1=0.6, g2=
                     z2 = zz*zz
 
                     #This rotates the coordinates in and out of the sky
-                    zpci=zz*ci #Rotate the z coordinate by the inclination. 
+                    zpci=zz*ci #Rotate the z coordinate by the inclination.
                     zpsi=zz*si
                     #Subtract the offset
                     zpsi_dx = zpsi - dx
@@ -236,7 +236,7 @@ def call_gen_disk_2g(theta, wheremask2generatedisk):
     norm = theta[10]
     # offset = theta[11]
 
-    distance = 72 
+    distance = 72
 
     #generate the model
     model = mt.exp(norm)*gen_disk_dxdy_2g(R1=r1,R2=r2, beta=beta, aspect_ratio=0.01, g1=g1, g2=g2,alpha=alpha, inc=inc, pa=pa, distance=distance, dx=dx, dy=dy, mask = wheremask2generatedisk) #+ offset
@@ -255,17 +255,17 @@ def make_noise_map(reduced_data, PAs, mask_object_astro_zeros, xcen=140., ycen=1
 
     total_paralax = np.max(PAs) - np.min(PAs)
 
-    # create nan and zeros masks for the disk    
+    # create nan and zeros masks for the disk
     mask_disk_all_angles_nans = np.ones((dim, dim))
-    
+
     anglesrange = PAs - np.median(PAs)
     anglesrange = np.append(anglesrange,[0])
 
     for index_angle, PAshere in enumerate(anglesrange):
         rot_disk = np.round(interpol.rotate(mask_object_astro_zeros, PAshere, reshape=False, mode='wrap'))
         mask_disk_all_angles_nans[np.where(rot_disk == 0)] = np.nan
-    
-    
+
+
     noise_map = np.zeros((dim, dim))
     for i_ring in range(0, int(np.floor(xcen / delta_raddii)) - 2):
         image_masked = reduced_data * mask_disk_all_angles_nans
@@ -278,18 +278,18 @@ def make_noise_map(reduced_data, PAs, mask_object_astro_zeros, xcen=140., ycen=1
 def crop_center_even(img,crop):
     y,x = img.shape
     startx = x//2 - crop//2
-    starty = y//2 - crop//2    
+    starty = y//2 - crop//2
     return img[starty:starty+crop, startx:startx+crop]
 
 def crop_center_odd(img,crop):
     y,x = img.shape
     startx = (x-1)//2 - crop//2
-    starty = (y-1)//2 - crop//2    
+    starty = (y-1)//2 - crop//2
     return img[starty:starty+crop, startx:startx+crop]
 
 ########################################################
 def offset_2_RA_dec(dx_ml,dy_ml, inc_ml, pa_ml, dist_star):
-    ## from offset in AU in the disk plane (returned by the MCMC), 
+    ## from offset in AU in the disk plane (returned by the MCMC),
     ## return right ascension and declination of the ellipse centre with respect to the star location
     dist_star = 72.
     dx_disk_arcsec = dx_ml*np.cos(np.radians(inc_ml))/dist_star*1000
@@ -321,9 +321,9 @@ ycen= newdim/2 #np.float(rstokes.extheader['PSFCENTY'])
 
 
 if socket.gethostname()== 'MT-101942':
-    datadir='/Users/jmazoyer/Dropbox/ExchangeFolder/data_python/Aurora/SPHERE_Hdata/' 
+    datadir='/Users/jmazoyer/Dropbox/ExchangeFolder/data_python/Aurora/SPHERE_Hdata/'
 else:
-    datadir='/home/jmazoyer/data_python/Aurora/SPHERE_Hdata/'   
+    datadir='/home/jmazoyer/data_python/Aurora/SPHERE_Hdata/'
 
 file_prefix = 'Sphere_hr4796_klipFM_MaxiMaxiNoise'
 
@@ -348,7 +348,7 @@ print("# of iteration in the backend chain initially: {0}".format(reader.iterati
 print("Max Tau times 50: {0}".format(50*np.max(tau)))
 print("")
 
-burnin = 1000
+burnin = 1500
 thin = 1
 
 
@@ -394,7 +394,7 @@ labels=["R1[AU]","R2[AU]",r"$\beta$", "g1[%]","g2[%]",r"$\alpha$[%]", r"$i[^{\ci
 for i in range(ndim):
     axarr[i].set_ylabel(labels[i],fontsize=5*quality_plot)
     axarr[i].tick_params(axis='y',   labelsize=4*quality_plot)
-    
+
 
     for j in range(nwalkers):
         axarr[i].plot(chain4plot[:,j,i],linewidth=quality_plot)
@@ -430,11 +430,11 @@ matplotlib.rcParams['xtick.labelsize'] = 13
 matplotlib.rcParams['ytick.labelsize'] = 13
 
 ### Check truths = bests parameters
-fig=corner.corner(samples, labels=labels, 
+fig=corner.corner(samples, labels=labels,
 	quantiles=(0.159, 0.5, 0.841),show_titles=True, plot_datapoints=False, verbose=False)# levels=(1-np.exp(-0.5),) , ))
-    
-### cumulative percentiles 
-### value at 50% is the center of the Normal law 
+
+### cumulative percentiles
+### value at 50% is the center of the Normal law
 ### value at 50% - value at 15.9% is -1 sigma
 ### value at 84.1%% - value at 50% is 1 sigma
 
@@ -446,7 +446,7 @@ fig.gca().annotate("SPHERE H2 band, {0:,} iterations (192 walkers): {1:,} models
                       xy=(0.55, 0.99), xycoords="figure fraction",
                       xytext=(-20, -10), textcoords="offset points",
                       ha="center", va="top", fontsize=44)
-                      
+
 plt.savefig(mcmcresultdir+name_h5+'_pdfs.pdf')
 
 
@@ -469,11 +469,11 @@ for j in range(samples.shape[0]):
 
 
     dAlpha, dDelta = offset_2_RA_dec(dx_here, dy_here, inc_here, pa_here, dist_star)
-    
-    
+
+
     other_samples[j,0] = dAlpha
     other_samples[j,1] = dDelta
-    
+
     semimajoraxis = r1_here/dist_star*1000
     ecc = np.sin(np.radians(inc_here))
 
@@ -599,7 +599,7 @@ wheremask2minimize = (mask2minimize != mask2minimize)
 
 # load the raw data
 datacube_Julien = fits.getdata(datadir + "cube_H2.fits")/10.   ### we divide the data to keep the ~same prior as is GPI
-parangs = fits.getdata(datadir + "parang.fits") 
+parangs = fits.getdata(datadir + "parang.fits")
 
 
 datacube_Julien = np.delete(datacube_Julien, (72,81),0) ## 2 slices are bad
@@ -622,7 +622,7 @@ dataset = Instrument.GenericData(datacube_Julien, centers, parangs = parangs, wv
 
 dataset.OWA = 116 #102 AU
 mov_here = 8
-KLMODE = [3] 
+KLMODE = [3]
 
 # load the data
 reduced_data = fits.getdata(klipdir + file_prefix + '_Measurewithparallelized-KLmodes-all.fits')
@@ -774,7 +774,7 @@ f1.write("\n'{0:.3f} {1:.3f} +{2:.3f}".format(MLval_mcmc_val_mcmc_err[9,1]/dist_
 
 f1.write("\n")
 f1.write("\n")
-    
+
 f1.write("\n'{0:.3f} {1:.3f} +{2:.3f}".format(MLval_mcmc_val_mcmc_err[13,1], MLval_mcmc_val_mcmc_err[13,2],MLval_mcmc_val_mcmc_err[13,3]))
 f1.write("\n'{0:.3f} {1:.3f} +{2:.3f}".format(MLval_mcmc_val_mcmc_err[14,1], MLval_mcmc_val_mcmc_err[14,2],MLval_mcmc_val_mcmc_err[14,3]))
 f1.write("\n'{0:.3f} {1:.3f} +{2:.3f}".format(MLval_mcmc_val_mcmc_err[6,1], MLval_mcmc_val_mcmc_err[6,2],MLval_mcmc_val_mcmc_err[6,3]))
