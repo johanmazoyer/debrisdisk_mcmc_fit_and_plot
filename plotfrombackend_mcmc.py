@@ -173,7 +173,7 @@ def offset_2_RA_dec(dx, dy, inclination, principal_angle):
 
 
 ########################################################
-def make_chain_plot(reader):
+def make_chain_plot(params_mcmc_yaml):
     """ make_chain_plot reading the .h5 file from emcee
 
     Args:
@@ -183,6 +183,18 @@ def make_chain_plot(reader):
         None
     """
 
+    THIN = params_mcmc_yaml['THIN']
+    BURNIN = params_mcmc_yaml['BURNIN']
+    QUALITY_PLOT = params_mcmc_yaml['QUALITY_PLOT']
+    LABELS = params_mcmc_yaml['LABELS']
+    NAMES = params_mcmc_yaml['NAMES']
+
+    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
+
+    name_h5 = FILE_PREFIX + '_backend_file_mcmc'
+
+
+    reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
     chain = reader.get_chain(discard=0, thin=THIN)
     log_prob_samples_flat = reader.get_log_prob(discard=BURNIN,
                                                 flat=True,
@@ -203,8 +215,8 @@ def make_chain_plot(reader):
     print("thin: {0}".format(THIN))
     print("chain shape: {0}".format(chain.shape))
 
-    ndim = chain.shape[2]
-    nwalkers = chain.shape[1]
+    N_DIM_MCMC = chain.shape[2]
+    NWALKERS = chain.shape[1]
 
     ## change log and arccos values to physical
     chain[:, :, 0] = np.exp(chain[:, :, 0])
@@ -217,27 +229,27 @@ def make_chain_plot(reader):
     chain[:, :, 4] = 100 * chain[:, :, 4]
     chain[:, :, 5] = 100 * chain[:, :, 5]
 
-    _, axarr = plt.subplots(ndim,
+    _, axarr = plt.subplots(N_DIM_MCMC,
                             sharex=True,
                             figsize=(6.4 * QUALITY_PLOT, 4.8 * QUALITY_PLOT))
 
-    for i in range(ndim):
-        axarr[i].set_ylabel(LABELS[i], fontsize=5 * QUALITY_PLOT)
+    for i in range(N_DIM_MCMC):
+        axarr[i].set_ylabel(LABELS[NAMES[i]], fontsize=5 * QUALITY_PLOT)
         axarr[i].tick_params(axis='y', labelsize=4 * QUALITY_PLOT)
 
-        for j in range(nwalkers):
+        for j in range(NWALKERS):
             axarr[i].plot(chain[:, j, i], linewidth=QUALITY_PLOT)
 
         axarr[i].axvline(x=BURNIN, color='black', linewidth=1.5 * QUALITY_PLOT)
 
-    axarr[ndim - 1].tick_params(axis='x', labelsize=6 * QUALITY_PLOT)
-    axarr[ndim - 1].set_xlabel('Iterations', fontsize=10 * QUALITY_PLOT)
+    axarr[N_DIM_MCMC - 1].tick_params(axis='x', labelsize=6 * QUALITY_PLOT)
+    axarr[N_DIM_MCMC - 1].set_xlabel('Iterations', fontsize=10 * QUALITY_PLOT)
 
     plt.savefig(mcmcresultdir + name_h5 + '_chains.jpg')
 
 
 ########################################################
-def make_corner_plot(reader, sigma=1):
+def make_corner_plot(params_mcmc_yaml):
     """ make corner plot reading the .h5 file from emcee
 
     Args:
@@ -249,10 +261,10 @@ def make_corner_plot(reader, sigma=1):
     Returns:
         None
     """
-
+    reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
     chain = reader.get_chain(discard=BURNIN, thin=THIN)
 
-    ndim = chain.shape[2]
+    N_DIM_MCMC = chain.shape[2]
 
     chain[:, :, 0] = np.exp(chain[:, :, 0])
     chain[:, :, 1] = np.exp(chain[:, :, 1])
@@ -264,7 +276,7 @@ def make_corner_plot(reader, sigma=1):
     chain[:, :, 4] = 100 * chain[:, :, 4]
     chain[:, :, 5] = 100 * chain[:, :, 5]
 
-    samples = chain[:, :].reshape(-1, ndim)
+    samples = chain[:, :].reshape(-1, N_DIM_MCMC)
 
     rcParams['axes.labelsize'] = 19
     rcParams['axes.titlesize'] = 14
@@ -284,8 +296,10 @@ def make_corner_plot(reader, sigma=1):
         quants = (0.001, 0.5, 0.999)
 
     #### Check truths = bests parameters
+
+    LABELS_hash = [LABELS[NAMES[i]] for i in range(N_DIM_MCMC)]
     fig = corner.corner(samples,
-                        labels=LABELS,
+                        labels=LABELS_hash,
                         quantiles=quants,
                         show_titles=True,
                         plot_datapoints=False,
@@ -330,19 +344,17 @@ def create_header(reader, sigma=1):
 
     samples = chain[:, :].reshape(-1, chain.shape[2])
 
-    ndim = chain.shape[2]
-    nwalkers = chain.shape[1]
+    N_DIM_MCMC = chain.shape[2]
+    NWALKERS = chain.shape[1]
 
     samples_dict = dict()
-    comments_dict = dict()
+    comments_dict = COMMENTS
     MLval_mcmc_val_mcmc_err_dict = dict()
 
-    for i, key in enumerate(NAMES[:ndim]):
-        comments_dict[key] = COMMENTS[i]
+    for i, key in enumerate(NAMES[:N_DIM_MCMC]):
         samples_dict[key] = samples[:, i]
 
-    for i, key in enumerate(NAMES[ndim:]):
-        comments_dict[key] = COMMENTS[i]
+    for i, key in enumerate(NAMES[N_DIM_MCMC:]):
         samples_dict[key] = samples[:, i] * 0.
 
     # measure of 6 other parameters:  right ascension, declination, and Kowalsky
@@ -417,8 +429,8 @@ def create_header(reader, sigma=1):
 
     hdr['TOT_ITER'] = reader.iteration
 
-    hdr['n_walker'] = nwalkers
-    hdr['n_param'] = ndim
+    hdr['n_walker'] = NWALKERS
+    hdr['n_param'] = N_DIM_MCMC
 
     hdr['MAX_LH'] = (np.max(log_prob_samples_flat),
                      'Max likelyhood, obtained for the ML parameters')
@@ -448,12 +460,12 @@ def best_model_plot(hdr):
         None
     """
 
-    global wheremask2generatedisk
+    global wheremask2generatedisk, DIMENSION
 
-    ndim = hdr['n_param']
+    N_DIM_MCMC = hdr['n_param']
     #Format the most likely values
     #generate the best model
-    if ndim == 11:
+    if N_DIM_MCMC == 11:
         theta_ml = [
             np.log(hdr['R1_ML']),
             np.log(hdr['R2_ML']), hdr['R1_ML'], 1 / 100. * hdr['g1_ML'],
@@ -462,7 +474,7 @@ def best_model_plot(hdr):
             hdr['dy_ML'],
             np.log(hdr['N_ML'])
         ]
-    if ndim == 13:
+    if N_DIM_MCMC == 13:
         theta_ml = [
             np.log(hdr['R1_ML']),
             np.log(hdr['R2_ML']), hdr['R1_ML'], 1 / 100. * hdr['g1_ML'],
@@ -483,7 +495,10 @@ def best_model_plot(hdr):
 
     # load the raw data (necessary to create the DiskFM obj)
     filelist = glob.glob(datadir + "*distorcorr.fits")
-    dataset = GPI.GPIData(filelist, quiet=True, skipslices=REMOVED_SLICES)
+    dataset = GPI.GPIData(filelist, quiet=True)
+
+    #assuming square data
+    DIMENSION = dataset.input.shape[2]
 
     #collapse the data spectrally
     dataset.spectral_collapse(align_frames=True)
@@ -497,9 +512,9 @@ def best_model_plot(hdr):
     noise = fits.getdata(klipdir + FILE_PREFIX + '_noisemap.fits')
 
     #generate the best model
-    if ndim == 11:
+    if N_DIM_MCMC == 11:
         disk_ml = call_gen_disk_2g(theta_ml)
-    if ndim == 13:
+    if N_DIM_MCMC == 13:
         disk_ml = call_gen_disk_3g(theta_ml)
 
     new_fits = fits.HDUList()
@@ -651,11 +666,6 @@ def print_geometry_parameter(hdr):
     f1.write("\n'{0} / {1}".format(reader.iteration, reader.iteration * 192))
     f1.write("\n")
 
-    NAMES = [
-        "R1", "R2", "Beta", "g1", "g2", "Alpha", "inc", "PA", 'dx', 'dy', "N",
-        "RA", "Decl", "RApix", "Depix", "a", "ecc", "Omega", "ARGPE"
-    ]
-
     to_print_str = 'R1'
     to_print = [
         hdr[to_print_str + '_MC'], hdr[to_print_str + '_M'],
@@ -762,101 +772,25 @@ def print_geometry_parameter(hdr):
     f1.close()
 
 
-with open('SPHERE_Hband_3g_MCMC.yaml', 'r') as f:
-    params_mcmc_yaml = yaml.load(f, Loader=yaml.FullLoader)
 
-DIMENSION = params_mcmc_yaml['DIMENSION']
+str_yalm = 'GPI_Hband_MCMC.yaml'
+with open('initialization_files/' + str_yalm, 'r') as yaml_file:
+    params_mcmc_yaml = yaml.load(yaml_file, Loader=yaml.FullLoader)
 
-# pixels in the image (assuming square images)
-QUALITY_PLOT = params_mcmc_yaml['QUALITY_PLOT']
-# a single parameter to obtain high quality figures or not.
-# Figs exact proportions have been optimized for QUALITY_PLOT = 4
 
-DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']  # pc, distance of the star
-PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']  #GPI's pixel scale
 
-BURNIN = params_mcmc_yaml['BURNIN']
-THIN = params_mcmc_yaml['THIN']
-
-KLMODE_NUMBER = params_mcmc_yaml['KLMODE_NUMBER']  # number of KL mode
-REMOVED_SLICES = params_mcmc_yaml['REMOVED_SLICES']  # IFS slices removed
-
-FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
-BAND_NAME = params_mcmc_yaml['BAND_NAME']
 BAND_DIR = params_mcmc_yaml['BAND_DIR']
 
 if socket.gethostname() == 'MT-101942':
-    datadir = '/Users/jmazoyer/Dropbox/ExchangeFolder/data_python/Aurora/' + BAND_DIR
+    basedir = '/Users/jmazoyer/Dropbox/ExchangeFolder/data_python/Aurora/'
 else:
-    datadir = '/home/jmazoyer/data_python/Aurora/' + BAND_DIR
+    basedir = '/home/jmazoyer/data_python/Aurora/'
 
-klipdir = datadir + 'klip_fm_files/'
-mcmcresultdir = datadir + 'results_MCMC/'
+DATADIR = basedir + BAND_DIR
+klipdir = DATADIR + 'klip_fm_files/'
+mcmcresultdir = DATADIR + 'results_MCMC/'
 
-KLMODE = [KLMODE_NUMBER]
 
-# read the backend in h5
-name_h5 = FILE_PREFIX + 'backend_file_mcmc'
-reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
-chain = reader.get_chain(discard=BURNIN, thin=THIN)
-
-ndim = chain.shape[2]
-if ndim == 13:
-
-    LABELS = [
-        "R1[AU]", "R2[AU]", r"$\beta$", "g1[%]", "g2[%]", "g3[%]",
-        r"$\alpha$1[%]", r"$\alpha$2[%]", r"$i[^{\circ}]$", r"$pa[^{\circ}]$",
-        'dx[AU]', 'dy[AU]', "N[ADU]"
-    ]
-
-    NAMES = [
-        "R1", "R2", "Beta", "g1", "g2", "g3", "Alpha1", "Alpha2", "inc", "PA",
-        'dx', 'dy', "N", "RA", "Decl", "RApix", "Depix", "a", "ecc", "Omega",
-        "ARGPE"
-    ]
-
-    COMMENTS = [
-        'AU, inner radius', 'AU, outer radius', 'radial power law',
-        '%, 1st HG param', '%, 2nd HG param', '%, 3nd HG param',
-        '%, first relative HG weight', '%, second relative HG weight',
-        'degree, inclination', 'degree, principal angle',
-        'au, + -> NW offset disk plane Minor Axis',
-        'au, + -> SW offset disk plane Major Axis', 'ADU, normalisation',
-        'mas, ->E right ascension (dalpha in Milli+2017)',
-        'mas, ->N declination (ddelta in Milli+2017)',
-        'pix, ->E right ascension', 'pix, ->N declination',
-        'mas, deproj. (true) semi major axis (Kowalsky)',
-        'deproj. (true) eccentricity (Kowalsky)',
-        'deg, longitude of the ascending node (Kowalsky)',
-        'deg, argument of pericentre (Kowalsky)'
-    ]
-
-if ndim == 11:
-
-    LABELS = [
-        "R1[AU]", "R2[AU]", r"$\beta$", "g1[%]", "g2[%]", r"$\alpha$1[%]",
-        r"$i[^{\circ}]$", r"$pa[^{\circ}]$", 'dx[AU]', 'dy[AU]', "N[ADU]"
-    ]
-
-    NAMES = [
-        "R1", "R2", "Beta", "g1", "g2", "Alpha", "inc", "PA", 'dx', 'dy', "N",
-        "RA", "Decl", "RApix", "Depix", "a", "ecc", "Omega", "ARGPE"
-    ]
-
-    COMMENTS = [
-        'AU, inner radius', 'AU, outer radius', 'radial power law',
-        '%, 1st HG param', '%, 2nd HG param', '%, first relative HG weight',
-        'degree, inclination', 'degree, principal angle',
-        'au, + -> NW offset disk plane Minor Axis',
-        'au, + -> SW offset disk plane Major Axis', 'ADU, normalisation',
-        'mas, ->E right ascension (dalpha in Milli+2017)',
-        'mas, ->N declination (ddelta in Milli+2017)',
-        'pix, ->E right ascension', 'pix, ->N declination',
-        'mas, deproj. (true) semi major axis (Kowalsky)',
-        'deproj. (true) eccentricity (Kowalsky)',
-        'deg, longitude of the ascending node (Kowalsky)',
-        'deg, argument of pericentre (Kowalsky)'
-    ]
 
 #######################################################
 #################### Make plot 1  #####################
@@ -864,7 +798,7 @@ if ndim == 11:
 #######################################################
 # Plot the chain values
 
-make_chain_plot(reader)
+make_chain_plot(params_mcmc_yaml)
 
 # ####################################################################
 # ### #Plot the PDFs
