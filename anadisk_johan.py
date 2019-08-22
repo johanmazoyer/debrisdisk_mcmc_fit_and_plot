@@ -11,6 +11,10 @@ import numpy as np
 
 from scipy.integrate import quad
 
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+
+
 
 def integrand_dxdy_2g(xp, yp_dy2, yp2, zp, zp2, zpsi_dx, zpci, R1, R2, beta,
                       a_r, g1, g1_2, g2, g2_2, alpha, ci, si, maxe, dx, dy, k):

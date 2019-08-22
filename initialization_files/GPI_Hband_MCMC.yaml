@@ -1,15 +1,17 @@
 # PYKLIP PARAMETERS
 FIRST_TIME: 1
-#if FIRST_TIME = 1 the masks, reduced data, noise map, and KL vectors are recalculated.
+#if FIRST_TIME=1 the masks, reduced data, noise map, and KL vectors are recalculated.
 KLMODE_NUMBER: 3
 REMOVED_SLICES: null
+RM_FILE_DISK_CROSS_SATSPOTS: 0
 OWA: 98
 MOVE_HERE: 6
-
+xcen: 140.
+ycen: 140.
 
 # LOCATION AND NAME PARAMETERS
-BAND_DIR: 160318_H_Spec/
-FILE_PREFIX: Hband_hr4796_klipFM_MaxiNoise
+BAND_DIR: 160318_H_Spec_test/
+FILE_PREFIX: Hband_hr4796_klipFM_test
 BAND_NAME: GPI H band
 
 # STAR OBSERVATION PARAMETERS
@@ -17,9 +19,10 @@ DISTANCE_STAR: 72.0
 PIXSCALE_INS: 0.01414
 
 # MCMC PARAMETERS
-NEW_BACKEND: 1 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
-NWALKERS: 192 #Number of walkers
-N_ITER_MCMC: 2 #Number of interation
+NEW_BACKEND: 1
+#if NEW_BACKEND=0, reset the backend, if not, start where you stopped
+NWALKERS: 32 #Number of walkers
+N_ITER_MCMC: 4 #Number of interation
 NOISE_MULTIPLICATION_FACTOR: 5 # multiplicative factor for the chains
 
 N_DIM_MCMC: 11  #Number of parmeter in the MCMC
@@ -41,11 +44,10 @@ g3_init: 0.
 alpha2_init: 0.
 
 # MCMC READING PARAMETERS
-BURNIN: 9500   #We remove the first BURNIN iteration
+BURNIN: 0   #We remove the first BURNIN iteration
 THIN: 1       #thin (bin) the chains
 QUALITY_PLOT: 4
 sigma: 1
-
 
 
 NAMES:
@@ -54,26 +56,27 @@ NAMES:
 - Beta
 - g1
 - g2
-- Alpha
+- Alph1
 - inc
 - PA
 - dx
 - dy
-- N
+- Norm
 - RA
 - Decl
-- RApix
-- Depix
-- a
-- ecc
+- RAp
+- Declp
+- Rkowa
+- ekowa
+- ikowa
 - Omega
-- ARGPE
+- Argpe
 
 LABELS:
-  Alpha1: $\alpha$1[%]
-  Alpha2: $\alpha$2[%]
+  Alph1: $\alpha$1[%]
+  Alph2: $\alpha$2[%]
   Beta: $\beta$
-  N: N[ADU]
+  Norm: N[ADU]
   PA: $pa[^{\circ}]$
   R1: R1[AU]
   R2: R2[AU]
@@ -85,22 +88,24 @@ LABELS:
   inc: $i[^{\circ}]$
 
 COMMENTS:
-  ARGPE: deg, argument of pericentre (Kowalsky)
-  Alpha1: '%, first relative HG weight'
-  Alpha2: '%, second relative HG weight'
+  Argpe: deg, argument of pericentre (Kowalsky)
+  Alph1: '%, first relative HG weight'
+  Alph2: '%, second relative HG weight'
   Beta: radial power law
-  Depix: pix, -> N declination
-  N: ADU, normalisation
+  Decl: mas, ->N declination
+  Declp: pix, -> N declination
+  Norm: ADU, normalisation
   Omega: deg, longitude of the ascending node (Kowalsky)
   PA: degree, principal angle
   R1: AU, inner radius
   R2: AU, outer radius
   RA: mas, ->E right ascension
-  RApix: pix, ->E right ascension
-  a: mas, deproj. (true) semi major axis (Kowalsky)
+  RAp: pix, ->E right ascension
+  Rkowa: mas, deproj. (true) semi major axis (Kowalsky)
   dx: au, + -> NW offset disk plane Minor Axis
   dy: au, + -> SW offset disk plane Major Axis
-  ecc: deproj. (true) eccentricity (Kowalsky)
+  ekowa: deproj. (true) eccentricity (Kowalsky)
+  ikowa: degree, deproj. (true) inclination (Kowalsky)
   g1: '%, 1st HG param'
   g2: '%, 2nd HG param'
   g3: '%, 3rd HG param'

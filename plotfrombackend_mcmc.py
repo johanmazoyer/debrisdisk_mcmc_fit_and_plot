@@ -1,5 +1,5 @@
 ####### This is the MCMC plotting code for HR 4796 data #######
-
+import sys
 import glob
 import socket
 import warnings
@@ -18,7 +18,8 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 
 matplotlib.use('Agg')
-### There is a conflict when I import matplotlib with pyklip if I don't use this line
+# There is a conflict when I import
+# matplotlib with pyklip if I don't use this line
 
 import corner
 from emcee import backends
@@ -32,9 +33,9 @@ from anadisk_johan import gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import astro_unit_conversion as convert
 from kowalsky import kowalsky
 
-warnings.filterwarnings("ignore", category=RuntimeWarning)
-warnings.filterwarnings("ignore", category=UserWarning)
-warnings.simplefilter('ignore', category=AstropyWarning)
+# define global variables in the global scope
+DISTANCE_STAR = PIXSCALE_INS = DIMENSION = None
+wheremask2generatedisk = 12310120398
 
 
 ########################################################
@@ -85,7 +86,6 @@ def call_gen_disk_2g(theta):
 
 ########################################################
 def call_gen_disk_3g(theta):
-
     """ call the disk model from a set of parameters. 3g SPF
         use DIMENSION, PIXSCALE_INS and DISTANCE_STAR  and
         wheremask2generatedisk as global variables
@@ -141,7 +141,7 @@ def crop_center(img, crop):
 
 
 ########################################################
-def offset_2_RA_dec(dx, dy, inclination, principal_angle):
+def offset_2_RA_dec(dx, dy, inclination, principal_angle, distance_star):
     """ right ascension and declination of the ellipse centre with respect to the star
         location from the offset in AU in the disk plane define by the max disk code
 
@@ -158,8 +158,8 @@ def offset_2_RA_dec(dx, dy, inclination, principal_angle):
     """
 
     dx_disk_mas = convert.au_to_mas(dx * np.cos(np.radians(inclination)),
-                                    DISTANCE_STAR)
-    dy_disk_mas = convert.au_to_mas(-dy, DISTANCE_STAR)
+                                    distance_star)
+    dy_disk_mas = convert.au_to_mas(-dy, distance_star)
 
     dx_sky = np.cos(np.radians(principal_angle)) * dx_disk_mas - np.sin(
         np.radians(principal_angle)) * dy_disk_mas
@@ -177,7 +177,8 @@ def make_chain_plot(params_mcmc_yaml):
     """ make_chain_plot reading the .h5 file from emcee
 
     Args:
-        reader: a reader obtained from backends.HDFBackend
+        params_mcmc_yaml: dic, all the parameters of the MCMC and klip
+                            read from yaml file
 
     Returns:
         None
@@ -192,7 +193,6 @@ def make_chain_plot(params_mcmc_yaml):
     FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
 
     name_h5 = FILE_PREFIX + '_backend_file_mcmc'
-
 
     reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
     chain = reader.get_chain(discard=0, thin=THIN)
@@ -253,14 +253,26 @@ def make_corner_plot(params_mcmc_yaml):
     """ make corner plot reading the .h5 file from emcee
 
     Args:
-        reader: a reader obtained from backends.HDFBackend
-        sigma: the number of sigma you want plotted as vertical bars on the corner
-               plot (1 2, or 3)
+        params_mcmc_yaml: dic, all the parameters of the MCMC and klip
+                            read from yaml file
 
 
     Returns:
         None
     """
+
+    THIN = params_mcmc_yaml['THIN']
+    BURNIN = params_mcmc_yaml['BURNIN']
+    LABELS = params_mcmc_yaml['LABELS']
+    NAMES = params_mcmc_yaml['NAMES']
+    sigma = params_mcmc_yaml['sigma']
+
+    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
+
+    name_h5 = FILE_PREFIX + '_backend_file_mcmc'
+
+    BAND_NAME = params_mcmc_yaml['BAND_NAME']
+
     reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
     chain = reader.get_chain(discard=BURNIN, thin=THIN)
 
@@ -308,35 +320,49 @@ def make_corner_plot(params_mcmc_yaml):
     fig.subplots_adjust(hspace=0)
     fig.subplots_adjust(wspace=0)
 
-    fig.gca().annotate(
-        "GPI H band, {0:,} iterations (192 walkers): {1:,} models".format(
-            reader.iteration, reader.iteration * 192),
-        xy=(0.55, 0.99),
-        xycoords="figure fraction",
-        xytext=(-20, -10),
-        textcoords="offset points",
-        ha="center",
-        va="top",
-        fontsize=44)
+    fig.gca().annotate(BAND_NAME +
+                       ": {0:,} iterations (192 walkers): {1:,} models".format(
+                           reader.iteration, reader.iteration * 192),
+                       xy=(0.55, 0.99),
+                       xycoords="figure fraction",
+                       xytext=(-20, -10),
+                       textcoords="offset points",
+                       ha="center",
+                       va="top",
+                       fontsize=44)
 
     plt.savefig(mcmcresultdir + name_h5 + '_pdfs.pdf')
 
 
 ########################################################
-def create_header(reader, sigma=1):
+def create_header(params_mcmc_yaml):
     """ measure all the important parameters and exctract their error bars
         and print them and save them in a hdr file
 
     Args:
-        reader: a reader obtained from backends.HDFBackend
-        sigma: the number of sigma you want plotted as vertical bars on the corner
-               plot (1 2, or 3)
+        params_mcmc_yaml: dic, all the parameters of the MCMC and klip
+                            read from yaml file
 
 
     Returns:
         header for all the fits
     """
 
+    THIN = params_mcmc_yaml['THIN']
+    BURNIN = params_mcmc_yaml['BURNIN']
+
+    COMMENTS = params_mcmc_yaml['COMMENTS']
+    NAMES = params_mcmc_yaml['NAMES']
+
+    DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
+    PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
+
+    sigma = params_mcmc_yaml['sigma']
+
+    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
+    name_h5 = FILE_PREFIX + '_backend_file_mcmc'
+
+    reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
     chain = reader.get_chain(discard=BURNIN, thin=THIN)
     log_prob_samples_flat = reader.get_log_prob(discard=BURNIN,
                                                 flat=True,
@@ -366,7 +392,8 @@ def create_header(reader, sigma=1):
         dx_here = samples_dict['dx'][j]
         dy_here = samples_dict['dy'][j]
 
-        dAlpha, dDelta = offset_2_RA_dec(dx_here, dy_here, inc_here, pa_here)
+        dAlpha, dDelta = offset_2_RA_dec(dx_here, dy_here, inc_here, pa_here,
+                                         DISTANCE_STAR)
 
         samples_dict['RA'][j] = dAlpha
         samples_dict['Decl'][j] = dDelta
@@ -377,10 +404,11 @@ def create_header(reader, sigma=1):
         true_a, true_ecc, argperi, inc, longnode = kowalsky(
             semimajoraxis, ecc, pa_here, dAlpha, dDelta)
 
-        samples_dict['a'][j] = true_a
-        samples_dict['ecc'][j] = true_ecc
+        samples_dict['Rkowa'][j] = true_a
+        samples_dict['ekowa'][j] = true_ecc
+        samples_dict['ikowa'][j] = inc
         samples_dict['Omega'][j] = longnode
-        samples_dict['ARGPE'][j] = argperi
+        samples_dict['Argpe'][j] = argperi
 
     wheremin = np.where(log_prob_samples_flat == np.max(log_prob_samples_flat))
     wheremin0 = np.array(wheremin).flatten()[0]
@@ -395,16 +423,16 @@ def create_header(reader, sigma=1):
     for key in samples_dict.keys():
         MLval_mcmc_val_mcmc_err_dict[key] = np.zeros(4)
 
-        percent = np.percentile(samples[:, i], quants)
+        percent = np.percentile(samples_dict[key], quants)
         # print(key,samples_dict[key].shape)
         MLval_mcmc_val_mcmc_err_dict[key][0] = samples_dict[key][wheremin0]
         MLval_mcmc_val_mcmc_err_dict[key][1] = percent[1]
         MLval_mcmc_val_mcmc_err_dict[key][2] = percent[0] - percent[1]
         MLval_mcmc_val_mcmc_err_dict[key][3] = percent[2] - percent[1]
 
-    MLval_mcmc_val_mcmc_err_dict['RApix'] = convert.mas_to_pix(
+    MLval_mcmc_val_mcmc_err_dict['RAp'] = convert.mas_to_pix(
         MLval_mcmc_val_mcmc_err_dict['RA'], PIXSCALE_INS)
-    MLval_mcmc_val_mcmc_err_dict['Depix'] = convert.mas_to_pix(
+    MLval_mcmc_val_mcmc_err_dict['Declp'] = convert.mas_to_pix(
         MLval_mcmc_val_mcmc_err_dict['Decl'], PIXSCALE_INS)
 
     print(" ")
@@ -446,7 +474,7 @@ def create_header(reader, sigma=1):
 
 
 ########################################################
-def best_model_plot(hdr):
+def best_model_plot(params_mcmc_yaml, hdr):
     """ Make the best models plot and save fits of
         BestModelBeforeConv
         BestModelAfterConv
@@ -454,38 +482,53 @@ def best_model_plot(hdr):
         BestModelResiduals
 
     Args:
+        params_mcmc_yaml: dic, all the parameters of the MCMC and klip
+                            read from yaml file
         hdr: the header obtained from create_header
 
     Returns:
         None
     """
 
-    global wheremask2generatedisk, DIMENSION
+    # I am going to plot the model, I need to define some of the
+    # global variables to do so
 
+    global PIXSCALE_INS, DISTANCE_STAR, wheremask2generatedisk, DIMENSION
+
+    DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
+    PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
+
+    QUALITY_PLOT = params_mcmc_yaml['QUALITY_PLOT']
+    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
+    BAND_NAME = params_mcmc_yaml['BAND_NAME']
+    name_h5 = FILE_PREFIX + '_backend_file_mcmc'
+
+    KLMODE = [params_mcmc_yaml['KLMODE_NUMBER']]
     N_DIM_MCMC = hdr['n_param']
+
     #Format the most likely values
     #generate the best model
     if N_DIM_MCMC == 11:
         theta_ml = [
             np.log(hdr['R1_ML']),
             np.log(hdr['R2_ML']), hdr['R1_ML'], 1 / 100. * hdr['g1_ML'],
-            1 / 100. * hdr['g2_ML'], 1 / 100. * hdr['Alpha_ML'],
+            1 / 100. * hdr['g2_ML'], 1 / 100. * hdr['Alph1_ML'],
             np.cos(np.radians(hdr['inc_ML'])), hdr['PA_ML'], hdr['dx_ML'],
             hdr['dy_ML'],
-            np.log(hdr['N_ML'])
+            np.log(hdr['Norm_ML'])
         ]
     if N_DIM_MCMC == 13:
         theta_ml = [
             np.log(hdr['R1_ML']),
             np.log(hdr['R2_ML']), hdr['R1_ML'], 1 / 100. * hdr['g1_ML'],
             1 / 100. * hdr['g2_ML'], 1 / 100. * hdr['g3_ML'],
-            1 / 100. * hdr['Alpha1_ML'], 1 / 100. * hdr['Alpha2_ML'],
+            1 / 100. * hdr['Alph1_ML'], 1 / 100. * hdr['Alph2_ML'],
             np.cos(np.radians(hdr['inc_ML'])), hdr['PA_ML'], hdr['dx_ML'],
             hdr['dy_ML'],
-            np.log(hdr['N_ML'])
+            np.log(hdr['Norm_ML'])
         ]
 
-    psf = fits.getdata(datadir + FILE_PREFIX + '_SatSpotPSF.fits')
+    psf = fits.getdata(DATADIR + FILE_PREFIX + '_SatSpotPSF.fits')
 
     mask2generatedisk = fits.getdata(klipdir + FILE_PREFIX +
                                      '_mask2generatedisk.fits')
@@ -494,18 +537,17 @@ def best_model_plot(hdr):
     wheremask2generatedisk = (mask2generatedisk != mask2generatedisk)
 
     # load the raw data (necessary to create the DiskFM obj)
-    filelist = glob.glob(datadir + "*distorcorr.fits")
+    filelist = glob.glob(DATADIR + "*distorcorr.fits")
     dataset = GPI.GPIData(filelist, quiet=True)
-
-    #assuming square data
-    DIMENSION = dataset.input.shape[2]
 
     #collapse the data spectrally
     dataset.spectral_collapse(align_frames=True)
 
+    DIMENSION = dataset.input.shape[1]
+
     # load the data
     reduced_data = fits.getdata(klipdir + FILE_PREFIX +
-                                '_Measurewithparallelized-KLmodes-all.fits')[
+                                '-klipped-KLmodes-all.fits')[
                                     0]  ### we take only the first KL mode
 
     # load the noise
@@ -530,31 +572,29 @@ def best_model_plot(hdr):
     new_fits.writeto(mcmcresultdir + name_h5 + '_BestModelAfterConv.fits',
                      overwrite=True)
 
-    if socket.gethostname() != 'MT-101942':
-        # load the KL numbers
-        diskobj = DiskFM(dataset.input.shape,
-                         KLMODE,
-                         dataset,
-                         disk_ml_convolved,
-                         basis_filename=klipdir + FILE_PREFIX + '_basis.pkl',
-                         save_basis=False,
-                         load_from_basis=True)
+    # load the KL numbers
+    diskobj = DiskFM(dataset.input.shape,
+                     KLMODE,
+                     dataset,
+                     disk_ml_convolved,
+                     basis_filename=klipdir + FILE_PREFIX + '_klbasis.h5',
+                     load_from_basis=True)
 
-        #do the FM
-        diskobj.update_disk(disk_ml_convolved)
-        disk_ml_FM = diskobj.fm_parallelized()[
-            0]  ### we take only the first KL modemode
+    #do the FM
+    diskobj.update_disk(disk_ml_convolved)
+    disk_ml_FM = diskobj.fm_parallelized()[
+        0]  ### we take only the first KL modemode
 
-        new_fits = fits.HDUList()
-        new_fits.append(fits.ImageHDU(data=disk_ml_FM, header=hdr))
-        new_fits.writeto(mcmcresultdir + name_h5 + '_BestModelAfterFM.fits',
-                         overwrite=True)
+    new_fits = fits.HDUList()
+    new_fits.append(fits.ImageHDU(data=disk_ml_FM, header=hdr))
+    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModelAfterFM.fits',
+                     overwrite=True)
 
-        new_fits = fits.HDUList()
-        new_fits.append(
-            fits.ImageHDU(data=np.abs(reduced_data - disk_ml_FM), header=hdr))
-        new_fits.writeto(mcmcresultdir + name_h5 + '_BestModelResiduals.fits',
-                         overwrite=True)
+    new_fits = fits.HDUList()
+    new_fits.append(
+        fits.ImageHDU(data=np.abs(reduced_data - disk_ml_FM), header=hdr))
+    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModelResiduals.fits',
+                     overwrite=True)
 
     disk_ml_FM = fits.getdata(mcmcresultdir + name_h5 +
                               '_BestModelAfterFM.fits')
@@ -660,7 +700,25 @@ def best_model_plot(hdr):
 
 
 ########################################################
-def print_geometry_parameter(hdr):
+def print_geometry_parameter(params_mcmc_yaml, hdr):
+    """ Print some of the important values from the header to put in
+        excel
+
+    Args:
+        params_mcmc_yaml: dic, all the parameters of the MCMC and klip
+                            read from yaml file
+        hdr: the header obtained from create_header
+
+    Returns:
+        None
+    """
+
+    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
+    DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
+
+    name_h5 = FILE_PREFIX + '_backend_file_mcmc'
+
+    reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
 
     f1 = open(mcmcresultdir + name_h5 + 'mcmcfit_geometrical_params.txt', 'w+')
     f1.write("\n'{0} / {1}".format(reader.iteration, reader.iteration * 192))
@@ -729,7 +787,7 @@ def print_geometry_parameter(hdr):
     f1.write("\n")
     f1.write("\n")
 
-    to_print_str = 'a'
+    to_print_str = 'Rkowa'
     to_print = [
         hdr[to_print_str + '_MC'], hdr[to_print_str + '_M'],
         hdr[to_print_str + '_P']
@@ -737,7 +795,7 @@ def print_geometry_parameter(hdr):
     f1.write("\n'{0:.3f} {1:.3f} +{2:.3f}".format(to_print[0], to_print[1],
                                                   to_print[2]))
 
-    to_print_str = 'ecc'
+    to_print_str = 'eKOWA'
     to_print = [
         hdr[to_print_str + '_MC'], hdr[to_print_str + '_M'],
         hdr[to_print_str + '_P']
@@ -745,7 +803,7 @@ def print_geometry_parameter(hdr):
     f1.write("\n'{0:.3f} {1:.3f} +{2:.3f}".format(to_print[0], to_print[1],
                                                   to_print[2]))
 
-    to_print_str = 'inc'
+    to_print_str = 'ikowa'
     to_print = [
         hdr[to_print_str + '_MC'], hdr[to_print_str + '_M'],
         hdr[to_print_str + '_P']
@@ -761,7 +819,7 @@ def print_geometry_parameter(hdr):
     f1.write("\n'{0:.3f} {1:.3f} +{2:.3f}".format(to_print[0], to_print[1],
                                                   to_print[2]))
 
-    to_print_str = 'ARGPE'
+    to_print_str = 'Argpe'
     to_print = [
         hdr[to_print_str + '_MC'], hdr[to_print_str + '_M'],
         hdr[to_print_str + '_P']
@@ -772,54 +830,41 @@ def print_geometry_parameter(hdr):
     f1.close()
 
 
+if __name__ == '__main__':
 
-str_yalm = 'GPI_Hband_MCMC.yaml'
-with open('initialization_files/' + str_yalm, 'r') as yaml_file:
-    params_mcmc_yaml = yaml.load(yaml_file, Loader=yaml.FullLoader)
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
 
+    if len(sys.argv) == 1:
+        str_yalm = 'GPI_Hband_MCMC.yaml'
+    else:
+        str_yalm = sys.argv[1]
 
+    with open('initialization_files/' + str_yalm, 'r') as yaml_file:
+        params_mcmc_yaml = yaml.load(yaml_file, Loader=yaml.FullLoader)
 
-BAND_DIR = params_mcmc_yaml['BAND_DIR']
+    # test on which machine I am
+    if socket.gethostname() == 'MT-101942':
+        basedir = '/Users/jmazoyer/Dropbox/ExchangeFolder/data_python/Aurora/'
+    else:
+        basedir = '/home/jmazoyer/data_python/Aurora/'
 
-if socket.gethostname() == 'MT-101942':
-    basedir = '/Users/jmazoyer/Dropbox/ExchangeFolder/data_python/Aurora/'
-else:
-    basedir = '/home/jmazoyer/data_python/Aurora/'
+    BAND_DIR = params_mcmc_yaml['BAND_DIR']
 
-DATADIR = basedir + BAND_DIR
-klipdir = DATADIR + 'klip_fm_files/'
-mcmcresultdir = DATADIR + 'results_MCMC/'
+    DATADIR = basedir + BAND_DIR
+    klipdir = DATADIR + 'klip_fm_files/'
+    mcmcresultdir = DATADIR + 'results_MCMC/'
 
+    # Plot the chain values
+    make_chain_plot(params_mcmc_yaml)
 
+    # Plot the PDFs
+    make_corner_plot(params_mcmc_yaml)
 
-#######################################################
-#################### Make plot 1  #####################
-#######################################################
-#######################################################
-# Plot the chain values
+    # measure the best likelyhood model and excract MCMC errors
+    hdr = create_header(params_mcmc_yaml)
 
-make_chain_plot(params_mcmc_yaml)
+    # save the fits, plot the model and residuals
+    best_model_plot(params_mcmc_yaml, hdr)
 
-# ####################################################################
-# ### #Plot the PDFs
-# ####################################################################
-
-make_corner_plot(reader, sigma=1)
-
-####################################################################
-### Best likelyhood model and MCMC errors
-####################################################################
-
-hdr = create_header(reader)
-
-#######################################################
-#### save the fits, plot the model and residuals
-#######################################################
-
-best_model_plot(hdr)
-
-#######################################################
-#### print the values to put in excel sheet easily
-#######################################################
-
-print_geometry_parameter(hdr)
+    # print the values to put in excel sheet easily
+    print_geometry_parameter(params_mcmc_yaml, hdr)

@@ -1,5 +1,5 @@
+# pylint: disable=C0103
 ####### This is the MCMC fitting code for fitting a disk to HR 4796 data #######
-
 import os
 import sys
 import glob
@@ -19,7 +19,6 @@ import math as mt
 import numpy as np
 
 import astropy.io.fits as fits
-from astropy.utils.exceptions import AstropyWarning
 from astropy.convolution import convolve
 
 import yaml
@@ -76,7 +75,7 @@ def call_gen_disk_2g(theta):
                                             pa=pa,
                                             dx=dx,
                                             dy=dy,
-                                            mask=wheremask2generatedisk,
+                                            mask=WHEREMASK2GENERATEDISK,
                                             pixscale=PIXSCALE_INS,
                                             distance=DISTANCE_STAR)  #+ offset
 
@@ -125,14 +124,13 @@ def call_gen_disk_3g(theta):
                                             pa=pa,
                                             dx=dx,
                                             dy=dy,
-                                            mask=wheremask2generatedisk,
+                                            mask=WHEREMASK2GENERATEDISK,
                                             pixscale=PIXSCALE_INS,
                                             distance=DISTANCE_STAR)  #+ offset
     return model
 
 
 ########################################################
-# Log likelihood
 def logl(theta):
     """ measure the Chisquare (log of the likelyhood) of the parameter set.
         create disk
@@ -154,13 +152,13 @@ def logl(theta):
     if len(theta) == 13:
         model = call_gen_disk_3g(theta)
 
-    modelconvolved = convolve(model, psf, boundary='wrap')
-    diskobj.update_disk(modelconvolved)
-    model_fm = diskobj.fm_parallelized()[0]
+    modelconvolved = convolve(model, PSF, boundary='wrap')
+    DISKOBJ.update_disk(modelconvolved)
+    model_fm = DISKOBJ.fm_parallelized()[0]
 
     # reduced data have already been naned outside of the minimization
     # zone, so we don't need to do it also for model_fm
-    res = (reduced_data - model_fm) / noise
+    res = (REDUCED_DATA - model_fm) / NOISE
 
     Chisquare = np.nansum(-0.5 * (res * res))
 
@@ -168,7 +166,6 @@ def logl(theta):
 
 
 ########################################################
-# Log Priors
 def logp(theta):
     """ measure the log of the priors of the parameter set.
 
@@ -270,7 +267,6 @@ def logp(theta):
 
 
 ########################################################
-# Log Priors + Log likelihood
 def lnpb(theta):
     """ sum the logs of the priors (return of the logp funciton)
         and of the likelyhood (return of the logl function)
@@ -359,93 +355,86 @@ def make_noise_map_no_mask(reduced_data, xcen=140., ycen=140., delta_raddii=3):
     return noise_map
 
 
-def initialize_the_disk(params_mcmc_yaml):
-    """ initialize the MCMC by preparing the disk (measure the data, the psf
-        the diskFM object, the noise, the masks).
-        all the things that will be used by the MCMC are beeing passed as
-        global parameters to speed up the parallel MCMC
+########################################################
+def initialize_mask_psf_noise(params_mcmc_yaml):
+    """ initialize the MCMC by preparing the useful things to measure the
+    likelyhood (measure the data, the psf the noise, the masks).
 
     Args:
         params_mcmc_yaml: dic, all the parameters of the MCMC and klip
                             read from yaml file
 
     Returns:
-        None
+        a dataset a pyklip instance of Instrument.Data
     """
 
-    global psf, wheremask2generatedisk, reduced_data, diskobj, DIMENSION, noise
-    global DISTANCE_STAR, PIXSCALE_INS
-    DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
-    PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
-
-    # if FIRST_TIME = 1 old the mask, reduced data, noise map, and KL vectors
+    # if first_time = 1 old the mask, reduced data, noise map, and KL vectors
     # are recalculated. be careful, for some reason the KL vectors are slightly
     # different on different machines. if you see weird stuff in the FM models
     # (for example in plotting the results), just remake them
-    FIRST_TIME = params_mcmc_yaml['FIRST_TIME']
+    first_time = params_mcmc_yaml['FIRST_TIME']
 
-    OWA = params_mcmc_yaml['OWA']
-    MOVE_HERE = params_mcmc_yaml['MOVE_HERE']
-    KLMODE_NUMBER = params_mcmc_yaml['KLMODE_NUMBER']
-    REMOVED_SLICES = params_mcmc_yaml['REMOVED_SLICES']
-    NOISE_MULTIPLICATION_FACTOR = params_mcmc_yaml[
+    file_prefix = params_mcmc_yaml['FILE_PREFIX']
+
+    distance_star = params_mcmc_yaml['FIRST_TIME']
+    pixscale_ins = params_mcmc_yaml['PIXSCALE_INS']
+
+    owa = params_mcmc_yaml['OWA']
+    move_here = params_mcmc_yaml['MOVE_HERE']
+    numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
+    removed_slices = params_mcmc_yaml['REMOVED_SLICES']
+
+    rm_file_disk_cross_satspots = params_mcmc_yaml[
+        'RM_FILE_DISK_CROSS_SATSPOTS']
+    noise_multiplication_factor = params_mcmc_yaml[
         'NOISE_MULTIPLICATION_FACTOR']
 
-    theta_init = from_param_to_theta_init(params_mcmc_yaml)
-
-    DATADIR = basedir + params_mcmc_yaml['BAND_DIR']
-    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
-    klipdir = DATADIR + 'klip_fm_files/'
-    distutils.dir_util.mkpath(klipdir)
-
     #The PSF centers
-    xcen = 140.
-    ycen = 140.
+    xcen = params_mcmc_yaml['xcen']
+    ycen = params_mcmc_yaml['ycen']
 
     # list of the raw data file
     filelist = glob.glob(DATADIR + "*_distorcorr.fits")
 
     # measure the PSF from the satspots and identify angles where the
     # disk intersect the satspots
-    if FIRST_TIME == 1:
-        excluded_files = check_gpi_satspots(
-            DATADIR,
-            removed_slices=params_mcmc_yaml['REMOVED_SLICES'],
-            SavePSF=True,
-            name_psf=FILE_PREFIX + '_SatSpotPSF',
-            SaveAll=False)
+    if first_time == 1:
+        excluded_files = check_gpi_satspots(DATADIR,
+                                            removed_slices=removed_slices,
+                                            SavePSF=True,
+                                            name_psf=file_prefix +
+                                            '_SatSpotPSF',
+                                            SaveAll=False)
 
     # We do not remove files for now
-    # for excluded_filesi in excluded_files:
-    #     if excluded_filesi in filelist: filelist.remove(excluded_filesi)
-
-    psf = fits.getdata(DATADIR + FILE_PREFIX + '_SatSpotPSF.fits')
+    if rm_file_disk_cross_satspots == 1:
+        for excluded_filesi in excluded_files:
+            if excluded_filesi in filelist: filelist.remove(excluded_filesi)
 
     # load the rww data
-    dataset = GPI.GPIData(filelist, quiet=True, skipslices=REMOVED_SLICES)
+    dataset = GPI.GPIData(filelist, quiet=True, skipslices=removed_slices)
 
     #collapse the data spectrally
     dataset.spectral_collapse(align_frames=True, numthreads=1)
+    dataset.OWA = owa
 
-    dataset.OWA = OWA
-    KLMODE = [KLMODE_NUMBER]
     #assuming square data
-    DIMENSION = dataset.input.shape[2]
+    dimension = dataset.input.shape[2]
 
     #create the masks
-    if FIRST_TIME == 1:
+    if first_time == 1:
         #create the mask where the non convoluted disk is going to be generated.
         # To gain time, it is tightely adjusted to the expected models BEFORE convolution
         mask_disk_zeros = make_disk_mask(
-            DIMENSION,
+            dimension,
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(40, PIXSCALE_INS, DISTANCE_STAR),
-            convert.au_to_pix(105, PIXSCALE_INS, DISTANCE_STAR),
+            convert.au_to_pix(40, pixscale_ins, distance_star),
+            convert.au_to_pix(115, pixscale_ins, distance_star),
             xcen=xcen,
             ycen=ycen)
         mask2generatedisk = 1 - mask_disk_zeros
-        fits.writeto(klipdir + FILE_PREFIX + '_mask2generatedisk.fits',
+        fits.writeto(KLIPDIR + file_prefix + '_mask2generatedisk.fits',
                      mask2generatedisk,
                      overwrite='True')
 
@@ -453,53 +442,47 @@ def initialize_the_disk(params_mcmc_yaml):
         # (because model expect to grow with the PSF convolution and the FM)
         # and we can also exclude the center region where there are too much speckles
         mask_disk_zeros = make_disk_mask(
-            DIMENSION,
+            dimension,
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(40, PIXSCALE_INS, DISTANCE_STAR),
-            convert.au_to_pix(125, PIXSCALE_INS, DISTANCE_STAR),
+            convert.au_to_pix(40, pixscale_ins, distance_star),
+            convert.au_to_pix(130, pixscale_ins, distance_star),
             xcen=xcen,
             ycen=ycen)
 
-        mask_speckle_region = np.ones((DIMENSION, DIMENSION))
-        # x = np.arange(DIMENSION, dtype=np.float)[None,:] - xcen
-        # y = np.arange(DIMENSION, dtype=np.float)[:,None] - ycen
+        mask_speckle_region = np.ones((dimension, dimension))
+        # x = np.arange(dimension, dtype=np.float)[None,:] - xcen
+        # y = np.arange(dimension, dtype=np.float)[:,None] - ycen
         # rho2d = np.sqrt(x**2 + y**2)
         # mask_speckle_region[np.where(rho2d < 21)] = 0.
         mask2minimize = mask_speckle_region * (1 - mask_disk_zeros)
 
-        fits.writeto(klipdir + FILE_PREFIX + '_mask2minimize.fits',
+        fits.writeto(KLIPDIR + file_prefix + '_mask2minimize.fits',
                      mask2minimize,
                      overwrite='True')
 
-    mask2generatedisk = fits.getdata(klipdir + FILE_PREFIX +
+    mask2generatedisk = fits.getdata(KLIPDIR + file_prefix +
                                      '_mask2generatedisk.fits')
-    mask2minimize = fits.getdata(klipdir + FILE_PREFIX + '_mask2minimize.fits')
+    mask2minimize = fits.getdata(KLIPDIR + file_prefix + '_mask2minimize.fits')
 
-    mask2generatedisk[np.where(mask2generatedisk == 0.)] = np.nan
-    wheremask2generatedisk = (mask2generatedisk != mask2generatedisk)
-
-    mask2minimize[np.where(mask2minimize == 0.)] = np.nan
-    wheremask2minimize = (mask2minimize != mask2minimize)
-
-    if FIRST_TIME == 1:
+    if first_time == 1:
         #measure the noise Wahhaj trick
         dataset.PAs = -dataset.PAs
         parallelized.klip_dataset(dataset,
-                                  numbasis=KLMODE,
+                                  numbasis=numbasis,
                                   maxnumbasis=len(filelist),
                                   annuli=1,
                                   subsections=1,
                                   mode='ADI',
-                                  outputdir=klipdir,
-                                  fileprefix=FILE_PREFIX + '_WahhajTrick',
+                                  outputdir=KLIPDIR,
+                                  fileprefix=file_prefix + '_WahhajTrick',
                                   aligned_center=[xcen, ycen],
                                   highpass=False,
-                                  minrot=MOVE_HERE,
+                                  minrot=move_here,
                                   calibrate_flux=False)
 
         reduced_data_wahhajtrick = fits.getdata(
-            klipdir + FILE_PREFIX + '_WahhajTrick-KLmodes-all.fits')[0]
+            KLIPDIR + file_prefix + '_WahhajTrick-KLmodes-all.fits')[0]
         noise = make_noise_map_no_mask(reduced_data_wahhajtrick,
                                        xcen=xcen,
                                        ycen=ycen,
@@ -507,92 +490,111 @@ def initialize_the_disk(params_mcmc_yaml):
         noise[np.where(noise == 0)] = np.nan
 
         #### We know our noise is too small
-        noise = NOISE_MULTIPLICATION_FACTOR * noise
+        noise = noise_multiplication_factor * noise
 
-        fits.writeto(klipdir + FILE_PREFIX + '_noisemap.fits',
+        fits.writeto(KLIPDIR + file_prefix + '_noisemap.fits',
                      noise,
                      overwrite='True')
 
         dataset.PAs = -dataset.PAs
-        os.remove(klipdir + FILE_PREFIX + '_WahhajTrick-KLmodes-all.fits')
+        os.remove(KLIPDIR + file_prefix + '_WahhajTrick-KLmodes-all.fits')
         del reduced_data_wahhajtrick
 
-    # load the noise
-    noise = fits.getdata(klipdir + FILE_PREFIX + '_noisemap.fits')
+    return dataset
 
-    if FIRST_TIME == 1:
+
+########################################################
+def initialize_diskfm(dataset, params_mcmc_yaml):
+    """ initialize the MCMC by preparing the diskFM object
+
+    Args:
+        dataset: a pyklip instance of Instrument.Data
+        params_mcmc_yaml: dic, all the parameters of the MCMC and klip
+                            read from yaml file
+
+    Returns:
+        a  diskFM object
+    """
+
+    first_time = params_mcmc_yaml['FIRST_TIME']
+    xcen = params_mcmc_yaml['xcen']
+    ycen = params_mcmc_yaml['xcen']
+    numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
+    move_here = params_mcmc_yaml['MOVE_HERE']
+
+    file_prefix = params_mcmc_yaml['FILE_PREFIX']
+
+    if first_time == 1:
         # create a first model to check the begining parameter and initialize the FM.
         # We will clear all useless variables befire starting the MCMC
         # Be careful that this model is close to what you think is the minimum
         # because the FM is not completely linear so you have to measure the FM on
         # something already close to the best one
 
+        theta_init = from_param_to_theta_init(params_mcmc_yaml)
+
         #generate the model
         model_here = call_gen_disk_2g(theta_init)
+        fits.writeto(KLIPDIR + file_prefix + '_model_first.fits',
+                     model_here,
+                     overwrite='True')
 
-        model_here_convolved = convolve(model_here, psf, boundary='wrap')
-        fits.writeto(klipdir + FILE_PREFIX + '_model_convolved_first.fits',
+        model_here_convolved = convolve(model_here, PSF, boundary='wrap')
+        fits.writeto(KLIPDIR + file_prefix + '_model_convolved_first.fits',
                      model_here_convolved,
                      overwrite='True')
 
-    model_here_convolved = fits.getdata(klipdir + FILE_PREFIX +
+    model_here_convolved = fits.getdata(KLIPDIR + file_prefix +
                                         '_model_convolved_first.fits')
 
-    if FIRST_TIME == 1:
+    if first_time == 1:
         # initialize the DiskFM object
         diskobj = DiskFM(dataset.input.shape,
-                         KLMODE,
+                         numbasis,
                          dataset,
                          model_here_convolved,
-                         basis_filename=klipdir + FILE_PREFIX + '_klbasis.h5',
+                         basis_filename=KLIPDIR + file_prefix + '_klbasis.h5',
                          save_basis=True,
                          aligned_center=[xcen, ycen])
         # measure the KL basis and save it
         fm.klip_dataset(dataset,
                         diskobj,
-                        numbasis=KLMODE,
-                        maxnumbasis=len(filelist),
+                        numbasis=numbasis,
+                        maxnumbasis=100,
                         annuli=1,
                         subsections=1,
                         mode='ADI',
-                        outputdir=klipdir,
-                        fileprefix=FILE_PREFIX,
+                        outputdir=KLIPDIR,
+                        fileprefix=file_prefix,
                         aligned_center=[xcen, ycen],
                         mute_progression=True,
                         highpass=False,
-                        minrot=MOVE_HERE,
+                        minrot=move_here,
                         calibrate_flux=False,
                         numthreads=1)
 
-    # load the data
-    reduced_data = fits.getdata(klipdir + FILE_PREFIX +
-                                '-klipped-KLmodes-all.fits')[
-                                    0]  ### we take only the first KL mode
-
-    # we multiply the data by the mask2minimize to avoid having to pass it as a global
-    # variable
-    reduced_data[wheremask2minimize] = np.nan
-
     # load the the KL basis and define the diskFM object
     diskobj = DiskFM(dataset.input.shape,
-                     KLMODE,
+                     numbasis,
                      dataset,
                      model_here_convolved,
-                     basis_filename=klipdir + FILE_PREFIX + '_klbasis.h5',
+                     basis_filename=KLIPDIR + file_prefix + '_klbasis.h5',
                      load_from_basis=True)
 
     # test the diskFM object
     diskobj.update_disk(model_here_convolved)
     modelfm_here = diskobj.fm_parallelized()[
         0]  ### we take only the first KL modemode
-    fits.writeto(klipdir + FILE_PREFIX + '_modelfm_first.fits',
+    fits.writeto(KLIPDIR + file_prefix + '_modelfm_first.fits',
                  modelfm_here,
                  overwrite='True')
 
     ## We have initialized the variables we need and we now cleaned the ones that do not
     ## need to be passed to the cores during the MCMC
+    return diskobj
 
 
+########################################################
 def initialize_walkers_backend(params_mcmc_yaml):
     """ initialize the MCMC by preparing the initial position of the
         walkers and the backend file
@@ -602,28 +604,24 @@ def initialize_walkers_backend(params_mcmc_yaml):
                             read from yaml file
 
     Returns:
-        if NEW_BACKEND ==1 then [intial position of the walkers, a clean BACKEND]
-        if NEW_BACKEND ==0 then [None, the loaded BACKEND]
+        if new_backend ==1 then [intial position of the walkers, a clean BACKEND]
+        if new_backend ==0 then [None, the loaded BACKEND]
     """
 
-    # if NEW_BACKEND = 0, reset the backend, if not restart the chains.
-    # Be careful if you change the parameters or walkers #, you have to put NEW_BACKEND = 1
-    NEW_BACKEND = params_mcmc_yaml['NEW_BACKEND']
+    # if new_backend = 0, reset the backend, if not restart the chains.
+    # Be careful if you change the parameters or walkers #, you have to put new_backend = 1
+    new_backend = params_mcmc_yaml['NEW_BACKEND']
 
-    DATADIR = basedir + params_mcmc_yaml['BAND_DIR']
-    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
+    nwalkers = params_mcmc_yaml['NWALKERS']
+    n_dim_mcmc = params_mcmc_yaml['N_DIM_MCMC']
 
-    mcmcresultdir = DATADIR + 'results_MCMC/'
-    distutils.dir_util.mkpath(mcmcresultdir)
-
-    NWALKERS = params_mcmc_yaml['NWALKERS']
-    N_DIM_MCMC = params_mcmc_yaml['N_DIM_MCMC']
+    file_prefix = params_mcmc_yaml['FILE_PREFIX']
 
     theta_init = from_param_to_theta_init(params_mcmc_yaml)
 
     # Set up the backend
     # Don't forget to clear it in case the file already exists
-    filename_backend = mcmcresultdir + FILE_PREFIX + "_backend_file_mcmc.h5"
+    filename_backend = MCMCRESULTDIR + file_prefix + "_backend_file_mcmc.h5"
     backend_ini = backends.HDFBackend(filename_backend)
 
     #############################################################
@@ -631,83 +629,84 @@ def initialize_walkers_backend(params_mcmc_yaml):
     # to start in a small ball around the a priori preferred position.
     # Dont worry, the walkers quickly branch out and explore the
     # rest of the space.
-    if NEW_BACKEND == 1:
+    if new_backend == 1:
         init_ball0 = np.random.uniform(theta_init[0] * 0.999,
                                        theta_init[0] * 1.001,
-                                       size=(NWALKERS))  # r1 log[AU]
+                                       size=(nwalkers))  # r1 log[AU]
         init_ball1 = np.random.uniform(theta_init[1] * 0.999,
                                        theta_init[1] * 1.001,
-                                       size=(NWALKERS))  # r2 log[AU]
+                                       size=(nwalkers))  # r2 log[AU]
         init_ball2 = np.random.uniform(theta_init[2] * 0.99,
                                        theta_init[2] * 1.01,
-                                       size=(NWALKERS))  #beta
+                                       size=(nwalkers))  #beta
         init_ball3 = np.random.uniform(theta_init[3] * 0.99,
                                        theta_init[3] * 1.01,
-                                       size=(NWALKERS))  #g1
+                                       size=(nwalkers))  #g1
         init_ball4 = np.random.uniform(theta_init[4] * 0.99,
                                        theta_init[4] * 1.01,
-                                       size=(NWALKERS))  #g2
+                                       size=(nwalkers))  #g2
 
-        if N_DIM_MCMC == 11:
+        if n_dim_mcmc == 11:
             init_ball5 = np.random.uniform(theta_init[5] * 0.99,
                                            theta_init[5] * 1.01,
-                                           size=(NWALKERS))  #alpha1
+                                           size=(nwalkers))  #alpha1
             init_ball6 = np.random.uniform(theta_init[6] * 0.99,
                                            theta_init[6] * 1.01,
-                                           size=(NWALKERS))  #cinc
+                                           size=(nwalkers))  #cinc
             init_ball7 = np.random.uniform(theta_init[7] * 0.99,
                                            theta_init[7] * 1.01,
-                                           size=(NWALKERS))  #pa [degrees]
+                                           size=(nwalkers))  #pa [degrees]
             init_ball8 = np.random.uniform(
                 theta_init[8] * 0.99, theta_init[8] * 1.01,
-                size=(NWALKERS))  # offset in minor axis
+                size=(nwalkers))  # offset in minor axis
             init_ball9 = np.random.uniform(
                 theta_init[9] * 0.99, theta_init[9] * 1.01,
-                size=(NWALKERS))  # offset in major axis
+                size=(nwalkers))  # offset in major axis
             init_ball10 = np.random.uniform(
                 theta_init[10] * 0.99, theta_init[10] * 1.01,
-                size=(NWALKERS))  #log normalizing factor
+                size=(nwalkers))  #log normalizing factor
             p0 = np.dstack((init_ball0, init_ball1, init_ball2, init_ball3,
                             init_ball4, init_ball5, init_ball6, init_ball7,
                             init_ball8, init_ball9, init_ball10))
 
-        if N_DIM_MCMC == 13:
+        if n_dim_mcmc == 13:
             init_ball5 = np.random.uniform(theta_init[5] * 0.99,
                                            theta_init[5] * 1.01,
-                                           size=(NWALKERS))  #g3
+                                           size=(nwalkers))  #g3
             init_ball6 = np.random.uniform(theta_init[6] * 0.99,
                                            theta_init[6] * 1.01,
-                                           size=(NWALKERS))  #alpha1
+                                           size=(nwalkers))  #alpha1
             init_ball7 = np.random.uniform(theta_init[7] * 0.99,
                                            theta_init[7] * 1.01,
-                                           size=(NWALKERS))  #alpha2
+                                           size=(nwalkers))  #alpha2
 
             init_ball8 = np.random.uniform(theta_init[8] * 0.99,
                                            theta_init[8] * 1.01,
-                                           size=(NWALKERS))  #cinc
+                                           size=(nwalkers))  #cinc
             init_ball9 = np.random.uniform(theta_init[9] * 0.99,
                                            theta_init[9] * 1.01,
-                                           size=(NWALKERS))  #pa [degrees]
+                                           size=(nwalkers))  #pa [degrees]
             init_ball10 = np.random.uniform(
                 theta_init[10] * 0.99, theta_init[10] * 1.01,
-                size=(NWALKERS))  # offset in minor axis
+                size=(nwalkers))  # offset in minor axis
             init_ball11 = np.random.uniform(
                 theta_init[11] * 0.99, theta_init[11] * 1.01,
-                size=(NWALKERS))  # offset in major axis
+                size=(nwalkers))  # offset in major axis
             init_ball12 = np.random.uniform(
                 theta_init[12] * 0.99, theta_init[12] * 1.01,
-                size=(NWALKERS))  #log normalizing factor
+                size=(nwalkers))  #log normalizing factor
             p0 = np.dstack(
                 (init_ball0, init_ball1, init_ball2, init_ball3, init_ball4,
                  init_ball5, init_ball6, init_ball7, init_ball8, init_ball9,
                  init_ball10, init_ball11, init_ball12))
 
-        backend_ini.reset(NWALKERS, N_DIM_MCMC)
+        backend_ini.reset(nwalkers, n_dim_mcmc)
         return p0[0], backend_ini
-    else:
-        return None, backend_ini
+
+    return None, backend_ini
 
 
+########################################################
 def from_param_to_theta_init(params_mcmc_yaml):
     """ create a initial set of MCMCparameter from the initial parmeters
         store in the init yaml file
@@ -719,7 +718,7 @@ def from_param_to_theta_init(params_mcmc_yaml):
         initial set of MCMC parameter
     """
 
-    N_DIM_MCMC = params_mcmc_yaml['N_DIM_MCMC']  #Number of interation
+    n_dim_mcmc = params_mcmc_yaml['N_DIM_MCMC']  #Number of interation
 
     r1_init = params_mcmc_yaml['r1_init']
     r2_init = params_mcmc_yaml['r2_init']
@@ -733,11 +732,11 @@ def from_param_to_theta_init(params_mcmc_yaml):
     dy_init = params_mcmc_yaml['dy_init']
     N_init = params_mcmc_yaml['N_init']
 
-    if N_DIM_MCMC == 11:
+    if n_dim_mcmc == 11:
         theta_init = (np.log(r1_init), np.log(r2_init), beta_init, g1_init,
                       g2_init, alpha1_init, np.cos(np.radians(inc_init)),
                       pa_init, dx_init, dy_init, np.log(N_init))
-    if N_DIM_MCMC == 13:
+    if n_dim_mcmc == 13:
         g3_init = params_mcmc_yaml['g3_init']
         alpha2_init = params_mcmc_yaml['alpha2_init']
         theta_init = (np.log(r1_init), np.log(r2_init), beta_init, g1_init,
@@ -750,7 +749,7 @@ def from_param_to_theta_init(params_mcmc_yaml):
 
 if __name__ == '__main__':
 
-    # warnings.filterwarnings("ignore", category=RuntimeWarning)
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
     if len(sys.argv) == 1:
@@ -770,18 +769,60 @@ if __name__ == '__main__':
     with open('initialization_files/' + str_yalm, 'r') as yaml_file:
         params_mcmc_yaml = yaml.load(yaml_file, Loader=yaml.FullLoader)
 
-    # initialize the disk. create a bunch of global variables
-    # that will be used in the MCMC to avoid passing them at each core
-    # at each iteration
-    initialize_the_disk(params_mcmc_yaml)
+    DATADIR = basedir + params_mcmc_yaml['BAND_DIR']
+    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
+
+    KLIPDIR = DATADIR + 'klip_fm_files/'
+    distutils.dir_util.mkpath(KLIPDIR)
+
+    MCMCRESULTDIR = DATADIR + 'results_MCMC/'
+    distutils.dir_util.mkpath(MCMCRESULTDIR)
+
+    # initialize the things necessary to do a
+    dataset = initialize_mask_psf_noise(params_mcmc_yaml)
+
+    # load DISTANCE_STAR & PIXSCALE_INS & DIMENSION and make them global
+    DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
+    PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
+    DIMENSION = dataset.input.shape[1]
+
+    # load PSF and make it global
+    PSF = fits.getdata(DATADIR + FILE_PREFIX + '_SatSpotPSF.fits')
+
+    # load wheremask2generatedisk and make it global
+    WHEREMASK2GENERATEDISK = (fits.getdata(KLIPDIR + FILE_PREFIX +
+                                           '_mask2generatedisk.fits') == 0)
+
+    # load noise and make it global
+    NOISE = fits.getdata(KLIPDIR + FILE_PREFIX + '_noisemap.fits')
+
+    # initialize_diskfm and make diskobj global
+    DISKOBJ = initialize_diskfm(dataset, params_mcmc_yaml)
+
+    # load reduced_dataand make it a global variable
+    REDUCED_DATA = fits.getdata(KLIPDIR + FILE_PREFIX +
+                                '-klipped-KLmodes-all.fits')[
+                                    0]  ### we take only the first KL mode
+
+    # we multiply the reduced_data by the mask2minimize to avoid having
+    # to pass it as a global variable
+    mask2minimize = fits.getdata(KLIPDIR + FILE_PREFIX + '_mask2minimize.fits')
+    mask2minimize[np.where(mask2minimize == 0.)] = np.nan
+    REDUCED_DATA *= mask2minimize
+    del mask2minimize, dataset
+
+    # Make a final test by printing the likelyhood of the iniatial model
+    lnpb_model = lnpb(from_param_to_theta_init(params_mcmc_yaml))
+    print("Test likelyhood on initial model :", lnpb_model)
 
     # initialize the walkers if necessary. initialize/load the backend
-    init_walkers, backend = initialize_walkers_backend(params_mcmc_yaml)
+    # make them global
+    init_walkers, BACKEND = initialize_walkers_backend(params_mcmc_yaml)
 
     # load the Parameters necessary to launch the MCMC
     NWALKERS = params_mcmc_yaml['NWALKERS']  #Number of walkers
     N_ITER_MCMC = params_mcmc_yaml['N_ITER_MCMC']  #Number of interation
-    N_DIM_MCMC = params_mcmc_yaml['N_DIM_MCMC']  #Number of dimension of the MCMC
+    N_DIM_MCMC = params_mcmc_yaml['N_DIM_MCMC']  #Number of MCMC dimension
 
     # last chance to remove some global variable to be as light as possible
     # in the MCMC
@@ -798,7 +839,7 @@ if __name__ == '__main__':
                                   N_DIM_MCMC,
                                   lnpb,
                                   pool=pool,
-                                  backend=backend)
+                                  backend=BACKEND)
 
         sampler.run_mcmc(init_walkers, N_ITER_MCMC, progress=progress)
 
