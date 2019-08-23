@@ -32,16 +32,16 @@ NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
 N_DIM_MCMC: 11  #Number of parmeter in the MCMC
 # INITIAL MODEL PARAMETERS
 r1_init: 74.5
-r2_init: 99.9
+r2_init: 86
 beta_init: 12
-g1_init: 0.78
-g2_init: -0.21
-alpha1_init: 0.31
-inc_init: 76.79
-pa_init: 26.73
-dx_init: -1.7
-dy_init: 0.85
-N_init: 189
+g1_init: 0.99
+g2_init: -0.1683
+alpha1_init: 0.9
+inc_init: 76.4
+pa_init: 26.6
+dx_init: -1.8
+dy_init: 1.8
+N_init: 140
 
 # fill if 3g SPF (N_DIM_MCMC = 13)
 g3_init: 0.

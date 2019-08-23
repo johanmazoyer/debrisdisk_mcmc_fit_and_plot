@@ -10,13 +10,13 @@
 new_backend = 0
 
 # if first_time = 1 old the mask, reduced data, noise map, and KL vectors are recalculated.
-# be careful, for some reason the KL vectors are slightly different on different machines. 
+# be careful, for some reason the KL vectors are slightly different on different machines.
 # if you see weird stuff in the FM models (for example in plotting the results), just remake them
 first_time = 0
 
 
 import sys, os, glob
-import socket 
+import socket
 
 
 if socket.gethostname()== 'MT-101942':
@@ -97,9 +97,9 @@ def integrand_dxdy_2g(xp,yp_dy2,yp2,zp,zp2,zpsi_dx,zpci,R1,R2,beta,a_r,g1,g1_2,g
     expo = zz*zz/(hh*hh)
 
     # if expo > 2*maxe:   # cut off exponential after 28 e-foldings (~ 1E-06)
-    #     return 0.0 
+    #     return 0.0
 
-    int2 = np.exp(0.5*expo) 
+    int2 = np.exp(0.5*expo)
     int3 = int2 * d2
 
     return int1/int3
@@ -109,9 +109,9 @@ def gen_disk_dxdy_2g(R1=74.42, R2=82.45, beta=1.0, aspect_ratio=0.1, g1=0.6, g2=
     # starttime=datetime.now()
 
     #GPI FOV stuff
-    # 
-    # nspaxels = 200 #The number of lenslets along one side 
-    # fov_square = pixscale*nspaxels #The square FOV of GPI 
+    #
+    # nspaxels = 200 #The number of lenslets along one side
+    # fov_square = pixscale*nspaxels #The square FOV of GPI
     # max_fov = mt.sqrt(2)*fov_square/2 #maximum FOV in arcseconds from the center to the edge
     # xsize = max_fov*distance #maximum radial distance in AU from the center to the edge
 
@@ -120,13 +120,13 @@ def gen_disk_dxdy_2g(R1=74.42, R2=82.45, beta=1.0, aspect_ratio=0.1, g1=0.6, g2=
     # npts = mt.ceil(nspaxels*mt.sqrt(2)/2/sampling)#The number of pixels to use from the center to the edge
     pixscale = 0.01414 #GPI's pixel scale
     dim=281. #for now the GPI dimensions are hardcoded
-    
+
     max_fov = dim/2.*pixscale #maximum radial distance in AU from the center to the edge
     npts=int(np.floor(dim/sampling))
     xsize = max_fov*distance #maximum radial distance in AU from the center to the edge
 
     #The coordinate system here [x,y,z] is defined :
-    # +ve x is the line of sight 
+    # +ve x is the line of sight
     # +ve y is going right from the center
     # +ve z is going up from the center
 
@@ -140,17 +140,17 @@ def gen_disk_dxdy_2g(R1=74.42, R2=82.45, beta=1.0, aspect_ratio=0.1, g1=0.6, g2=
 
     #Some things we can precompute ahead of time
     maxe = mt.log(np.finfo('f').max) #The log of the machine precision
-    
+
     #Inclination Calculations
     incl = np.radians(90-inc)
     ci = mt.cos(incl) #Cosine of inclination
     si = mt.sin(incl) #Sine of inclination
-    
+
     #Position angle calculations
     pa_rad=np.radians(90-pa) #The position angle in radians
     cos_pa=mt.cos(pa_rad) #Calculate these ahead of time
     sin_pa=mt.sin(pa_rad)
-    
+
     #HG g value squared
     g1_2 = g1*g1 #First HG g squared
     g2_2 = g2*g2 #Second HG g squared
@@ -181,7 +181,7 @@ def gen_disk_dxdy_2g(R1=74.42, R2=82.45, beta=1.0, aspect_ratio=0.1, g1=0.6, g2=
                 z2 = zz*zz
 
                 #This rotates the coordinates in and out of the sky
-                zpci=zz*ci #Rotate the z coordinate by the inclination. 
+                zpci=zz*ci #Rotate the z coordinate by the inclination.
                 zpsi=zz*si
                 #Subtract the offset
                 zpsi_dx = zpsi - dx
@@ -191,21 +191,21 @@ def gen_disk_dxdy_2g(R1=74.42, R2=82.45, beta=1.0, aspect_ratio=0.1, g1=0.6, g2=
                 yy_dy2=yy_dy*yy_dy
 
                 image[j,i]=  quad(integrand_dxdy_2g, -R2, R2, epsrel=0.5e-3,limit=75,args=(yy_dy2,y2,zp,z2,zpsi_dx,zpci,R1,R2,beta,a_r,g1,g1_2,g2,g2_2, alpha,ci,si,maxe,dx,dy,k))[0]
-            
+
 
     #If there is a mask then don't calculate disk there
-    else: 
+    else:
         hmask = mask
         # hmask = mask[:,140:] #Use only half the mask
 
         for i,yp in enumerate(y):
             for j,zp in enumerate(z):
-                
+
                 # if hmask[j,npts/2+i]: #This assumes that the input mask has is the same size as the desired image (i.e. ~ size / sampling)
                 if hmask[j,i]:
 
                    image[j,i] = 0.#np.nan
-                
+
                 else:
 
                     #This rotates the coordinates in the image frame
@@ -217,7 +217,7 @@ def gen_disk_dxdy_2g(R1=74.42, R2=82.45, beta=1.0, aspect_ratio=0.1, g1=0.6, g2=
                     z2 = zz*zz
 
                     #This rotates the coordinates in and out of the sky
-                    zpci=zz*ci #Rotate the z coordinate by the inclination. 
+                    zpci=zz*ci #Rotate the z coordinate by the inclination.
                     zpsi=zz*si
                     #Subtract the offset
                     zpsi_dx = zpsi - dx
@@ -264,7 +264,7 @@ def call_gen_disk_2g(theta, wheremask2generatedisk):
     norm = theta[10]
     # offset = theta[11]
 
-    distance = 72 
+    distance = 72
 
     #generate the model
     model = mt.exp(norm)*gen_disk_dxdy_2g(R1=r1,R2=r2, beta=beta, aspect_ratio=0.01, g1=g1, g2=g2,alpha=alpha, inc=inc, pa=pa, distance=distance, dx=dx, dy=dy, mask = wheremask2generatedisk) #+ offset
@@ -275,10 +275,10 @@ def call_gen_disk_2g(theta, wheremask2generatedisk):
 ########################################################
 # Log likelihood 2g h fixed
 def logl(theta):
-    
+
     model=call_gen_disk_2g(theta, wheremask2generatedisk)
-    
-    modelconvolved = convolve(model,psf, boundary = 'wrap') 
+
+    modelconvolved = convolve(model,psf, boundary = 'wrap')
     diskobj.update_disk(modelconvolved)
     model_fm = diskobj.fm_parallelized()[0]
 
@@ -290,12 +290,12 @@ def logl(theta):
     model_fm[wheremask2minimize]=float('nan')
 
     res=(reduced_data-model_fm)/noise
-    
+
     lp = np.nansum (-0.5*(res*res))
 
     return (lp)
 ########################################################
-# Priors 
+# Priors
 def logp(theta):
 
     r1 = mt.exp(theta[0])
@@ -313,19 +313,19 @@ def logp(theta):
 
     if ( r1 < 60 or r1 > 79 ): #Can't be bigger than 200 AU
         return -np.inf
- 
+
     # - rout = Logistic We arbitralily cut the prior at r2 = 100 (~25 AU large) because this parameter is very limited by the ADI
     if ((r2 > 82) and (r2 < 102)):
         prior_rout = 1./(1.+np.exp(40.*(r2-100)))
     else: return -np.inf
 
-    # if ( r2 < 82  or r2 > 110 ): #I've tested some things empirically and I don't see a big difference between 500 and 1000 AU. 
+    # if ( r2 < 82  or r2 > 110 ): #I've tested some things empirically and I don't see a big difference between 500 and 1000 AU.
     #     return -np.inf
 
     if (beta < 6 or beta > 25):
         return -np.inf
 
-    # if (a_r < 0.0001 or a_r > 0.5 ): #The aspect ratio  
+    # if (a_r < 0.0001 or a_r > 0.5 ): #The aspect ratio
     #     return -np.inf
 
     if (g1 < 0.05 or g1 > 0.9999):
@@ -335,14 +335,14 @@ def logp(theta):
         return -np.inf
 
     if (alpha < 0.1 or alpha > 0.9999):
-        return -np.inf    
+        return -np.inf
 
-    if (np.arccos(cinc) < np.radians(70)  or np.arccos(cinc) > np.radians(80)): 
+    if (np.arccos(cinc) < np.radians(70)  or np.arccos(cinc) > np.radians(80)):
         return -np.inf
 
     if (pa < 20 or pa > 30):
         return -np.inf
-   
+
     if (dx > 0) or (dx < -10): #The x offset
         return -np.inf
 
@@ -350,13 +350,13 @@ def logp(theta):
         return -np.inf
 
     if (lognorm < np.log(0.5) or lognorm > np.log(50000)):
-        return -np.inf    
-    # otherwise ... 
+        return -np.inf
+    # otherwise ...
 
     return np.log(prior_rout)
     # return 0.0
 
-######################################################## 
+########################################################
 def make_disk_mask(dim, estimPA, estiminclin, estimminr,estimmaxr, xcen=140., ycen=140.):
     PA_rad = (90 + estimPA)*np.pi/180.
     x = np.arange(dim, dtype=np.float)[None,:] - xcen
@@ -385,17 +385,17 @@ def make_noise_map(reduced_data, PAs, mask_object_astro_zeros, xcen=140., ycen=1
 
     total_paralax = np.max(PAs) - np.min(PAs)
 
-    # create nan and zeros masks for the disk    
+    # create nan and zeros masks for the disk
     mask_disk_all_angles_nans = np.ones((dim, dim))
-    
+
     anglesrange = PAs - np.median(PAs)
     anglesrange = np.append(anglesrange,[0])
 
     for index_angle, PAshere in enumerate(anglesrange):
         rot_disk = np.round(interpol.rotate(mask_object_astro_zeros, PAshere, reshape=False, mode='wrap'))
         mask_disk_all_angles_nans[np.where(rot_disk == 0)] = np.nan
-    
-    
+
+
     noise_map = np.zeros((dim, dim))
     for i_ring in range(0, int(np.floor(xcen / delta_raddii)) - 2):
         image_masked = reduced_data * mask_disk_all_angles_nans
@@ -453,14 +453,14 @@ psf = fits.getdata(datadir + file_prefix+'_SatSpotPSF.fits')
 
 # load the raw data
 filelist = glob.glob(datadir + "*distorcorr.fits")
-for excluded_filesi in excluded_files: 
+for excluded_filesi in excluded_files:
     if excluded_filesi in filelist: filelist.remove(excluded_filesi)
 
 dataset = GPI.GPIData(filelist, quiet=True, skipslices=removed_slices)
 
 dataset.OWA = 98
 mov_here = 8
-KLMODE = [3] 
+KLMODE = [3]
 
 #collapse the data spectrally
 dataset.spectral_collapse(align_frames=True, numthreads =1)
@@ -472,8 +472,8 @@ if first_time == 1:
     mask2generatedisk = 1 - mask_disk_zeros
     fits.writeto( klipdir + file_prefix+ '_mask2generatedisk.fits', mask2generatedisk, clobber='True')
 
-    ### we create a second mask for the minimization a little bit larger (because model expect to grow with the PSF convolution and the FM) 
-    ### and we can also exclude the center region where there are too much speckles 
+    ### we create a second mask for the minimization a little bit larger (because model expect to grow with the PSF convolution and the FM)
+    ### and we can also exclude the center region where there are too much speckles
     mask_disk_zeros =  make_disk_mask(281, 27., 76.,40.,120., xcen=xcen, ycen=ycen)
 
     mask_speckle_region = np.ones((281,281))
@@ -517,9 +517,9 @@ if first_time == 1:
     noise[np.where(noise == 0)] = np.nan
 
     #### We know our noise is too small
-    noise = 4*noise    
+    noise = 4*noise
     fits.writeto( klipdir + file_prefix+ '_noisemap.fits', noise, clobber='True')
-    
+
     dataset.PAs = -dataset.PAs
     os.remove(klipdir + file_prefix + '_WahhajTrick-KLmodes-all.fits')
     del reduced_data_wahhajtrick
@@ -531,7 +531,7 @@ noise = fits.getdata(klipdir + file_prefix + '_noisemap.fits')
 
 if first_time == 1:
     ### create a first model to check the begining parameter and initialize the FM. We will clear all useless variables befire starting the MCMC
-    ### Be careful that this model is the one that you think is the minimum because the FM is not completely linear so you have to measure the FM on something 
+    ### Be careful that this model is the one that you think is the minimum because the FM is not completely linear so you have to measure the FM on something
     ### already close to the disk
     theta_here = (np.log(74.3),np.log(85),11, 0.99, -0.18, 0.99, np.cos(np.radians(76.5)), 26.6, -1.9,1.7, np.log(108))
 
@@ -545,7 +545,7 @@ model_here_convolved = fits.getdata(klipdir + file_prefix + '_model_convolved_fi
 
 if first_time == 1:
     # measure the KL vector
-    diskobj = DiskFM([len(filelist), 281, 281], KLMODE,dataset, model_here_convolved, annuli=1, subsections=1, 
+    diskobj = DiskFM([len(filelist), 281, 281], KLMODE,dataset, model_here_convolved, annuli=1, subsections=1,
                             basis_filename = klipdir + file_prefix+ '_KLbasis.pkl', save_basis = True, load_from_basis = False, numthreads =1)
 
     fm.klip_dataset(dataset, diskobj, numbasis=KLMODE,maxnumbasis = len(filelist), annuli=1, subsections=1, mode='ADI',
@@ -561,7 +561,7 @@ diskobj.update_disk(model_here_convolved)
 modelfm_here = diskobj.fm_parallelized()[0] ### we take only the first KL modemode
 fits.writeto( klipdir + file_prefix+ '_modelfm_first.fits', modelfm_here, clobber='True')
 
-## We have initialized the variables we need and we now cleaned the ones that do not 
+## We have initialized the variables we need and we now cleaned the ones that do not
 ## need to be passed to the pus during the MCMC
 
 del mask2minimize
@@ -577,11 +577,11 @@ del modelfm_here
 
 ## Let's start the MCMC
 
-sys.stdout.flush() 
+sys.stdout.flush()
 f1=open(mcmcresultdir + 'output_job_aurora2.txt', 'a+')
 f1.write("\n Begin the MCMC")
 f1.close()
-sys.stdout.flush() 
+sys.stdout.flush()
 
 # Set up the backend
 # Don't forget to clear it in case the file already exists
@@ -593,7 +593,7 @@ if new_backend ==1:
 f1=open(mcmcresultdir + 'output_job_aurora2.txt', 'a+')
 f1.write("\n Size of the backend initially: {0}".format(backend.iteration))
 f1.close()
-sys.stdout.flush() 
+sys.stdout.flush()
 
 
 #Let's start the clock
@@ -605,24 +605,24 @@ if __name__ == '__main__':
         # if not pool.is_master():
         #     pool.wait()
         #     sys.exit(0)
-        
+
         # Set up the Sampler. I purposefully passed the variables (KL modes, reduced data, masks) in global variables to save time
         # as advised in https://emcee.readthedocs.io/en/latest/tutorials/parallel/
         sampler = EnsembleSampler(nwalkers, ndim, lnpb, pool = pool, backend=backend)
 
         if new_backend ==1:
             #############################################################
-            # Initialize the walkers. The best technique seems to be 
-            # to start in a small ball around the a priori preferred position. 
-            # Dont worry, the walkers quickly branch out and explore the 
+            # Initialize the walkers. The best technique seems to be
+            # to start in a small ball around the a priori preferred position.
+            # Dont worry, the walkers quickly branch out and explore the
             # rest of the space.
             w0 = np.random.uniform( theta_here[0]*0.999 ,   theta_here[0]*1.001 ,   size=(nwalkers))    # r1 log[AU]
             w1 = np.random.uniform( theta_here[1]*0.999 ,   theta_here[1]*1.001 ,   size=(nwalkers))    # r2 log[AU]
-            w2 = np.random.uniform( theta_here[2]*0.99  ,   theta_here[2]*1.01  ,   size=(nwalkers))    #beta 
+            w2 = np.random.uniform( theta_here[2]*0.99  ,   theta_here[2]*1.01  ,   size=(nwalkers))    #beta
             w3 = np.random.uniform( theta_here[3]*0.99  ,   theta_here[3]*1.01  ,   size=(nwalkers))    #g1
             w4 = np.random.uniform( theta_here[4]*0.99  ,   theta_here[4]*1.01  ,   size=(nwalkers))    #g2
             w5 = np.random.uniform( theta_here[5]*0.99  ,   theta_here[5]*1.01  ,   size=(nwalkers))    #alpha
-            w6 = np.random.uniform( theta_here[6]*0.99  ,   theta_here[6]*1.01  ,   size=(nwalkers))    #cinc 
+            w6 = np.random.uniform( theta_here[6]*0.99  ,   theta_here[6]*1.01  ,   size=(nwalkers))    #cinc
             w7 = np.random.uniform( theta_here[7]*0.99  ,   theta_here[7]*1.01  ,   size=(nwalkers))    #pa [degrees]
             w8 = np.random.uniform( theta_here[8]*0.99  ,   theta_here[8]*1.01  ,   size=(nwalkers))    # Xoffset is in AU in minor axis direction + => towards NORTH WEST
             w9 = np.random.uniform( theta_here[9]*0.99  ,   theta_here[9]*1.01  ,   size=(nwalkers))    # Yoffset is in AU in major axis direction + => towards SOUTH WEST
@@ -636,9 +636,9 @@ if __name__ == '__main__':
             sampler.run_mcmc(None, niter, progress=True)
 
 
-sys.stdout.flush() 
+sys.stdout.flush()
 ncpu = cpu_count()
 f1=open(mcmcresultdir + 'output_job_aurora2.txt', 'a+')
 f1.write("\n time for {0} iterations with {1} walkers and {2} cpus: {3}".format(niter, nwalkers,ncpu, datetime.now()-startTime))
 f1.close()
-sys.stdout.flush() 
+sys.stdout.flush()

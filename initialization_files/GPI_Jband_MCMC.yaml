@@ -10,9 +10,9 @@ xcen: 140.
 ycen: 140.
 
 # LOCATION AND NAME PARAMETERS
-BAND_DIR: 160318_H_Spec/
-FILE_PREFIX: Hband_hr4796
-BAND_NAME: GPI H band
+BAND_DIR: 160323_J_Spec/
+FILE_PREFIX: Jband_hr4796_
+BAND_NAME: GPI J band
 
 # STAR OBSERVATION PARAMETERS
 DISTANCE_STAR: 72.0
@@ -28,16 +28,16 @@ NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
 N_DIM_MCMC: 11  #Number of parmeter in the MCMC
 # INITIAL MODEL PARAMETERS
 r1_init: 74.3
-r2_init: 86
-beta_init: 12
-g1_init: 0.99
-g2_init: -0.1683
-alpha1_init: 0.9
-inc_init: 76.44
-pa_init: 26.64
-dx_init: -1.8
-dy_init: 1.8
-N_init: 200
+r2_init: 99.9
+beta_init: 10.4
+g1_init: 0.82
+g2_init: -0.16
+alpha1_init: 0.33
+inc_init: 76.79
+pa_init: 27
+dx_init: -0.2
+dy_init: 1.4
+N_init: 80
 
 # fill if 3g SPF (N_DIM_MCMC = 13)
 g3_init: 0.

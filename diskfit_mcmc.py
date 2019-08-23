@@ -215,7 +215,7 @@ def logp(theta):
     # if ( r2 < 82  or r2 > 110 ):
     #     return -np.inf
 
-    if (beta < 6 or beta > 25):
+    if (beta < 1 or beta > 30):
         return -np.inf
 
     # if (a_r < 0.0001 or a_r > 0.5 ): #The aspect ratio
@@ -227,7 +227,7 @@ def logp(theta):
         if (g2 < -0.9999 or g2 > -0.05):
             return -np.inf
 
-        if (alpha1 < 0.1 or alpha1 > 0.9999):
+        if (alpha1 < 0.01 or alpha1 > 0.9999):
             return -np.inf
 
     if len(theta) == 13:
@@ -252,10 +252,10 @@ def logp(theta):
     if (pa < 20 or pa > 30):
         return -np.inf
 
-    if (dx > 0) or (dx < -10):  #The x offset
+    if (dx > 10) or (dx < -10):  #The x offset
         return -np.inf
 
-    if (dy > 10) or (dy < 0):  #The y offset
+    if (dy > 10) or (dy < -10):  #The y offset
         return -np.inf
 
     if (lognorm < np.log(0.5) or lognorm > np.log(50000)):
@@ -771,7 +771,7 @@ if __name__ == '__main__':
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC.yaml'
+        str_yalm = 'GPI_K1band_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
