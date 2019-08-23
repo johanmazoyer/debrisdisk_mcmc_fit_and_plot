@@ -11,7 +11,7 @@ ycen: 140.
 
 # LOCATION AND NAME PARAMETERS
 BAND_DIR: 160323_J_Spec/
-FILE_PREFIX: Jband_hr4796_
+FILE_PREFIX: Jband_hr4796
 BAND_NAME: GPI J band
 
 # STAR OBSERVATION PARAMETERS
@@ -22,7 +22,7 @@ PIXSCALE_INS: 0.01414
 NEW_BACKEND: 1
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
 NWALKERS: 192 #Number of walkers
-N_ITER_MCMC: 100 #Number of interation
+N_ITER_MCMC: 10 #Number of interation
 NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
 
 N_DIM_MCMC: 11  #Number of parmeter in the MCMC
