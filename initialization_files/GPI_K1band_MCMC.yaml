@@ -23,7 +23,7 @@ DISTANCE_STAR: 72.0
 PIXSCALE_INS: 0.01414
 
 # MCMC PARAMETERS
-NEW_BACKEND: 1
+NEW_BACKEND: 0
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
 NWALKERS: 192 #Number of walkers
 N_ITER_MCMC: 100 #Number of interation
