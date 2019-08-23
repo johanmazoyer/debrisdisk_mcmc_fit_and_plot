@@ -376,7 +376,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
 
-    distance_star = params_mcmc_yaml['FIRST_TIME']
+    distance_star = params_mcmc_yaml['DISTANCE_STAR']
     pixscale_ins = params_mcmc_yaml['PIXSCALE_INS']
 
     owa = params_mcmc_yaml['OWA']
@@ -393,20 +393,38 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     xcen = params_mcmc_yaml['xcen']
     ycen = params_mcmc_yaml['ycen']
 
-    # list of the raw data file
-    filelist = glob.glob(DATADIR + "*_distorcorr.fits")
-
     # measure the PSF from the satspots and identify angles where the
     # disk intersect the satspots
     if first_time == 1:
         excluded_files = check_gpi_satspots(DATADIR,
                                             removed_slices=removed_slices,
-                                            SavePSF=True,
+                                            SavePSF=False,
                                             name_psf=file_prefix +
                                             '_SatSpotPSF',
                                             SaveAll=False)
 
-    # We do not remove files for now
+        # EXclude files where disk intersect the satspots to measure the PSF
+        # using Jason's routine
+        filelist = glob.glob(DATADIR + "*_distorcorr.fits")
+        for excluded_filesi in excluded_files:
+            if excluded_filesi in filelist: filelist.remove(excluded_filesi)
+
+        dataset4psf = GPI.GPIData(filelist,
+                                  quiet=True,
+                                  skipslices=removed_slices)
+        dataset4psf.spectral_collapse(align_frames=True)
+
+        #find the wl to have the same box size for all WL
+        wl = dataset4psf.wvs[0]
+        dataset4psf.generate_psfs(boxrad=np.round(8 / 1.64483417 * wl))
+        instrument_psf = dataset4psf.psfs[0]
+        instrument_psf = instrument_psf / np.max(instrument_psf)
+        fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
+                     instrument_psf,
+                     overwrite=True)
+
+    # list of the raw data file
+    filelist = glob.glob(DATADIR + "*_distorcorr.fits")
     if rm_file_disk_cross_satspots == 1:
         for excluded_filesi in excluded_files:
             if excluded_filesi in filelist: filelist.remove(excluded_filesi)

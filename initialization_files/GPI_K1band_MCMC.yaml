@@ -2,7 +2,11 @@
 FIRST_TIME: 1
 #if FIRST_TIME=1 the masks, reduced data, noise map, and KL vectors are recalculated.
 KLMODE_NUMBER: 3
-REMOVED_SLICES: null
+REMOVED_SLICES:
+  - 0
+  - 1
+  - 2
+  - 36
 RM_FILE_DISK_CROSS_SATSPOTS: 0
 OWA: 98
 MOVE_HERE: 6
@@ -10,9 +14,9 @@ xcen: 140.
 ycen: 140.
 
 # LOCATION AND NAME PARAMETERS
-BAND_DIR: 160318_H_Spec_test/
-FILE_PREFIX: Hband_hr4796_klipFM_test
-BAND_NAME: GPI H band
+BAND_DIR: 150403_K1_Spec/
+FILE_PREFIX: K1band_hr4796
+BAND_NAME: GPI K1 band
 
 # STAR OBSERVATION PARAMETERS
 DISTANCE_STAR: 72.0
@@ -21,23 +25,23 @@ PIXSCALE_INS: 0.01414
 # MCMC PARAMETERS
 NEW_BACKEND: 1
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
-NWALKERS: 32 #Number of walkers
-N_ITER_MCMC: 4 #Number of interation
+NWALKERS: 192 #Number of walkers
+N_ITER_MCMC: 10000 #Number of interation
 NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
 
 N_DIM_MCMC: 11  #Number of parmeter in the MCMC
 # INITIAL MODEL PARAMETERS
-r1_init: 74.3
-r2_init: 86
+r1_init: 74.5
+r2_init: 99.9
 beta_init: 12
-g1_init: 0.99
-g2_init: -0.1683
-alpha1_init: 0.9
-inc_init: 76.44
-pa_init: 26.64
-dx_init: -1.8
-dy_init: 1.8
-N_init: 200
+g1_init: 0.78
+g2_init: -0.21
+alpha1_init: 0.31
+inc_init: 76.79
+pa_init: 26.73
+dx_init: -1.7
+dy_init: 0.85
+N_init: 189
 
 # fill if 3g SPF (N_DIM_MCMC = 13)
 g3_init: 0.

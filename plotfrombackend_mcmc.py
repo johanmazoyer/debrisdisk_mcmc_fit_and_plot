@@ -1,3 +1,5 @@
+# pylint: disable=C0103
+
 ####### This is the MCMC plotting code for HR 4796 data #######
 import sys
 import glob
@@ -11,7 +13,6 @@ import numpy as np
 
 import astropy.io.fits as fits
 from astropy.convolution import convolve
-from astropy.utils.exceptions import AstropyWarning
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -218,16 +219,32 @@ def make_chain_plot(params_mcmc_yaml):
     N_DIM_MCMC = chain.shape[2]
     NWALKERS = chain.shape[1]
 
-    ## change log and arccos values to physical
-    chain[:, :, 0] = np.exp(chain[:, :, 0])
-    chain[:, :, 1] = np.exp(chain[:, :, 1])
-    chain[:, :, 6] = np.degrees(np.arccos(chain[:, :, 6]))
-    chain[:, :, 10] = np.exp(chain[:, :, 10])
+    if N_DIM_MCMC == 11:
+        ## change log and arccos values to physical
+        chain[:, :, 0] = np.exp(chain[:, :, 0])
+        chain[:, :, 1] = np.exp(chain[:, :, 1])
+        chain[:, :, 6] = np.degrees(np.arccos(chain[:, :, 6]))
+        chain[:, :, 10] = np.exp(chain[:, :, 10])
 
-    ## change g1, g2 and alpha to percentage
-    chain[:, :, 3] = 100 * chain[:, :, 3]
-    chain[:, :, 4] = 100 * chain[:, :, 4]
-    chain[:, :, 5] = 100 * chain[:, :, 5]
+        ## change g1, g2 and alpha to percentage
+        chain[:, :, 3] = 100 * chain[:, :, 3]
+        chain[:, :, 4] = 100 * chain[:, :, 4]
+        chain[:, :, 5] = 100 * chain[:, :, 5]
+
+    if N_DIM_MCMC == 13:
+        ## change log values to physical
+        chain[:,:,0]=np.exp(chain[:,:,0])
+        chain[:,:,1]=np.exp(chain[:,:,1])
+        chain[:,:,8]=np.degrees(np.arccos(chain[:,:,8]))
+        chain[:,:,12]=np.exp(chain[:,:,12])
+
+        ## change g1, g2, g3, alpha1 and alpha2 to percentage
+        chain[:,:,3]=100*chain[:,:,3]
+        chain[:,:,4]=100*chain[:,:,4]
+        chain[:,:,5]=100*chain[:,:,5]
+        chain[:,:,6]=100*chain[:,:,6]
+        chain[:,:,7]=100*chain[:,:,7]
+
 
     _, axarr = plt.subplots(N_DIM_MCMC,
                             sharex=True,
@@ -278,15 +295,32 @@ def make_corner_plot(params_mcmc_yaml):
 
     N_DIM_MCMC = chain.shape[2]
 
-    chain[:, :, 0] = np.exp(chain[:, :, 0])
-    chain[:, :, 1] = np.exp(chain[:, :, 1])
-    chain[:, :, 6] = np.degrees(np.arccos(chain[:, :, 6]))
-    chain[:, :, 10] = np.exp(chain[:, :, 10])
+    if N_DIM_MCMC == 11:
+        ## change log and arccos values to physical
+        chain[:, :, 0] = np.exp(chain[:, :, 0])
+        chain[:, :, 1] = np.exp(chain[:, :, 1])
+        chain[:, :, 6] = np.degrees(np.arccos(chain[:, :, 6]))
+        chain[:, :, 10] = np.exp(chain[:, :, 10])
 
-    ## change g1, g2 and alpha to percentage
-    chain[:, :, 3] = 100 * chain[:, :, 3]
-    chain[:, :, 4] = 100 * chain[:, :, 4]
-    chain[:, :, 5] = 100 * chain[:, :, 5]
+        ## change g1, g2 and alpha to percentage
+        chain[:, :, 3] = 100 * chain[:, :, 3]
+        chain[:, :, 4] = 100 * chain[:, :, 4]
+        chain[:, :, 5] = 100 * chain[:, :, 5]
+
+    if N_DIM_MCMC == 13:
+        ## change log values to physical
+        chain[:,:,0]=np.exp(chain[:,:,0])
+        chain[:,:,1]=np.exp(chain[:,:,1])
+        chain[:,:,8]=np.degrees(np.arccos(chain[:,:,8]))
+        chain[:,:,12]=np.exp(chain[:,:,12])
+
+        ## change g1, g2, g3, alpha1 and alpha2 to percentage
+        chain[:,:,3]=100*chain[:,:,3]
+        chain[:,:,4]=100*chain[:,:,4]
+        chain[:,:,5]=100*chain[:,:,5]
+        chain[:,:,6]=100*chain[:,:,6]
+        chain[:,:,7]=100*chain[:,:,7]
+
 
     samples = chain[:, :].reshape(-1, N_DIM_MCMC)
 
@@ -357,6 +391,8 @@ def create_header(params_mcmc_yaml):
     DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
     PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
 
+
+
     sigma = params_mcmc_yaml['sigma']
 
     FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
@@ -367,6 +403,35 @@ def create_header(params_mcmc_yaml):
     log_prob_samples_flat = reader.get_log_prob(discard=BURNIN,
                                                 flat=True,
                                                 thin=THIN)
+
+    N_DIM_MCMC = chain.shape[2]
+    if N_DIM_MCMC == 11:
+        ## change log and arccos values to physical
+        chain[:, :, 0] = np.exp(chain[:, :, 0])
+        chain[:, :, 1] = np.exp(chain[:, :, 1])
+        chain[:, :, 6] = np.degrees(np.arccos(chain[:, :, 6]))
+        chain[:, :, 10] = np.exp(chain[:, :, 10])
+
+        ## change g1, g2 and alpha to percentage
+        chain[:, :, 3] = 100 * chain[:, :, 3]
+        chain[:, :, 4] = 100 * chain[:, :, 4]
+        chain[:, :, 5] = 100 * chain[:, :, 5]
+
+    if N_DIM_MCMC == 13:
+        ## change log values to physical
+        chain[:,:,0]=np.exp(chain[:,:,0])
+        chain[:,:,1]=np.exp(chain[:,:,1])
+        chain[:,:,8]=np.degrees(np.arccos(chain[:,:,8]))
+        chain[:,:,12]=np.exp(chain[:,:,12])
+
+        ## change g1, g2, g3, alpha1 and alpha2 to percentage
+        chain[:,:,3]=100*chain[:,:,3]
+        chain[:,:,4]=100*chain[:,:,4]
+        chain[:,:,5]=100*chain[:,:,5]
+        chain[:,:,6]=100*chain[:,:,6]
+        chain[:,:,7]=100*chain[:,:,7]
+
+
 
     samples = chain[:, :].reshape(-1, chain.shape[2])
 
@@ -391,7 +456,6 @@ def create_header(params_mcmc_yaml):
         pa_here = samples_dict['PA'][j]
         dx_here = samples_dict['dx'][j]
         dy_here = samples_dict['dy'][j]
-
         dAlpha, dDelta = offset_2_RA_dec(dx_here, dy_here, inc_here, pa_here,
                                          DISTANCE_STAR)
 
@@ -424,7 +488,7 @@ def create_header(params_mcmc_yaml):
         MLval_mcmc_val_mcmc_err_dict[key] = np.zeros(4)
 
         percent = np.percentile(samples_dict[key], quants)
-        # print(key,samples_dict[key].shape)
+
         MLval_mcmc_val_mcmc_err_dict[key][0] = samples_dict[key][wheremin0]
         MLval_mcmc_val_mcmc_err_dict[key][1] = percent[1]
         MLval_mcmc_val_mcmc_err_dict[key][2] = percent[0] - percent[1]
@@ -439,7 +503,7 @@ def create_header(params_mcmc_yaml):
 
     for key in samples_dict.keys():
         print(key +
-              ' ML: {0:.3f}, MCMC {1:.3f}, -/+1sig: {2:.3f}/+{3:.3f}'.format(
+              '_ML: {0:.3f}, MCMC {1:.3f}, -/+1sig: {2:.3f}/+{3:.3f}'.format(
                   MLval_mcmc_val_mcmc_err_dict[key][0],
                   MLval_mcmc_val_mcmc_err_dict[key][1],
                   MLval_mcmc_val_mcmc_err_dict[key][2],
@@ -511,7 +575,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     if N_DIM_MCMC == 11:
         theta_ml = [
             np.log(hdr['R1_ML']),
-            np.log(hdr['R2_ML']), hdr['R1_ML'], 1 / 100. * hdr['g1_ML'],
+            np.log(hdr['R2_ML']), hdr['Beta_ML'], 1 / 100. * hdr['g1_ML'],
             1 / 100. * hdr['g2_ML'], 1 / 100. * hdr['Alph1_ML'],
             np.cos(np.radians(hdr['inc_ML'])), hdr['PA_ML'], hdr['dx_ML'],
             hdr['dy_ML'],
@@ -520,7 +584,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     if N_DIM_MCMC == 13:
         theta_ml = [
             np.log(hdr['R1_ML']),
-            np.log(hdr['R2_ML']), hdr['R1_ML'], 1 / 100. * hdr['g1_ML'],
+            np.log(hdr['R2_ML']), hdr['Beta_ML'], 1 / 100. * hdr['g1_ML'],
             1 / 100. * hdr['g2_ML'], 1 / 100. * hdr['g3_ML'],
             1 / 100. * hdr['Alph1_ML'], 1 / 100. * hdr['Alph2_ML'],
             np.cos(np.radians(hdr['inc_ML'])), hdr['PA_ML'], hdr['dx_ML'],
@@ -858,13 +922,13 @@ if __name__ == '__main__':
     make_chain_plot(params_mcmc_yaml)
 
     # Plot the PDFs
-    make_corner_plot(params_mcmc_yaml)
+    # make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
-    hdr = create_header(params_mcmc_yaml)
+    # hdr = create_header(params_mcmc_yaml)
 
     # save the fits, plot the model and residuals
-    best_model_plot(params_mcmc_yaml, hdr)
+    # best_model_plot(params_mcmc_yaml, hdr)
 
     # print the values to put in excel sheet easily
-    print_geometry_parameter(params_mcmc_yaml, hdr)
+    # print_geometry_parameter(params_mcmc_yaml, hdr)
