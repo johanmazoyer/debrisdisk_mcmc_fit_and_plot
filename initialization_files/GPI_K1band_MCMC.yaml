@@ -26,7 +26,7 @@ PIXSCALE_INS: 0.01414
 NEW_BACKEND: 1
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
 NWALKERS: 192 #Number of walkers
-N_ITER_MCMC: 10000 #Number of interation
+N_ITER_MCMC: 100 #Number of interation
 NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
 
 N_DIM_MCMC: 11  #Number of parmeter in the MCMC
