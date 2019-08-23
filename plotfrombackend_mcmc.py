@@ -904,7 +904,7 @@ if __name__ == '__main__':
         str_yalm = sys.argv[1]
 
     with open('initialization_files/' + str_yalm, 'r') as yaml_file:
-        params_mcmc_yaml = yaml.load(yaml_file, Loader=yaml.FullLoader)
+        params_mcmc_yaml = yaml.load(yaml_file)
 
     # test on which machine I am
     if socket.gethostname() == 'MT-101942':

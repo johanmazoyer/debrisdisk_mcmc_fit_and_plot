@@ -785,7 +785,7 @@ if __name__ == '__main__':
 
     # open the parameter file
     with open('initialization_files/' + str_yalm, 'r') as yaml_file:
-        params_mcmc_yaml = yaml.load(yaml_file, Loader=yaml.FullLoader)
+        params_mcmc_yaml = yaml.load(yaml_file)
 
     DATADIR = basedir + params_mcmc_yaml['BAND_DIR']
     FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
