@@ -32,6 +32,8 @@ from emcee import EnsembleSampler
 from emcee import backends
 
 from check_gpi_satspots import check_gpi_satspots
+import make_gpi_psf_for_disks as psfcheck
+
 from anadisk_johan import gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import astro_unit_conversion as convert
 
@@ -396,29 +398,28 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     # measure the PSF from the satspots and identify angles where the
     # disk intersect the satspots
     if first_time == 1:
-        excluded_files = check_gpi_satspots(DATADIR,
-                                            removed_slices=removed_slices,
-                                            SavePSF=False,
-                                            name_psf=file_prefix +
-                                            '_SatSpotPSF',
-                                            SaveAll=False)
 
-        # EXclude files where disk intersect the satspots to measure the PSF
-        # using Jason's routine
         filelist = glob.glob(DATADIR + "*_distorcorr.fits")
+        dataset4psf = GPI.GPIData(filelist, quiet=True)
+
+        excluded_files = psfcheck.check_satspots_disk_intersection(
+            dataset4psf, params_mcmc_yaml, quiet=True)
+
         for excluded_filesi in excluded_files:
             if excluded_filesi in filelist: filelist.remove(excluded_filesi)
+
+        removed_slices = psfcheck.check_satspots_snr(dataset4psf,
+                                                     params_mcmc_yaml,
+                                                     quiet=True)
 
         dataset4psf = GPI.GPIData(filelist,
                                   quiet=True,
                                   skipslices=removed_slices)
-        dataset4psf.spectral_collapse(align_frames=True)
 
-        #find the wl to have the same box size for all WL
-        wl = dataset4psf.wvs[0]
-        dataset4psf.generate_psfs(boxrad=np.round(8 / 1.64483417 * wl))
-        instrument_psf = dataset4psf.psfs[0]
-        instrument_psf = instrument_psf / np.max(instrument_psf)
+        instrument_psf = psfcheck.make_collapsed_psf(dataset4psf,
+                                                     params_mcmc_yaml,
+                                                     boxrad=14)
+
         fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
                      instrument_psf,
                      overwrite=True)
@@ -771,7 +772,7 @@ if __name__ == '__main__':
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_K1band_MCMC.yaml'
+        str_yalm = 'GPI_Hband_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
