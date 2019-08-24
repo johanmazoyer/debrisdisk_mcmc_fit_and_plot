@@ -31,8 +31,7 @@ import pyklip.fm as fm
 from emcee import EnsembleSampler
 from emcee import backends
 
-from check_gpi_satspots import check_gpi_satspots
-import make_gpi_psf_for_disks as psfcheck
+import make_gpi_psf_for_disks as gpidiskpsf
 
 from anadisk_johan import gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import astro_unit_conversion as convert
@@ -402,13 +401,13 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         filelist = glob.glob(DATADIR + "*_distorcorr.fits")
         dataset4psf = GPI.GPIData(filelist, quiet=True)
 
-        excluded_files = psfcheck.check_satspots_disk_intersection(
+        excluded_files = gpidiskpsf.check_satspots_disk_intersection(
             dataset4psf, params_mcmc_yaml, quiet=True)
 
         for excluded_filesi in excluded_files:
             if excluded_filesi in filelist: filelist.remove(excluded_filesi)
 
-        removed_slices = psfcheck.check_satspots_snr(dataset4psf,
+        removed_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
                                                      params_mcmc_yaml,
                                                      quiet=True)
 
@@ -416,7 +415,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                                   quiet=True,
                                   skipslices=removed_slices)
 
-        instrument_psf = psfcheck.make_collapsed_psf(dataset4psf,
+        instrument_psf = gpidiskpsf.make_collapsed_psf(dataset4psf,
                                                      params_mcmc_yaml,
                                                      boxrad=14)
 
