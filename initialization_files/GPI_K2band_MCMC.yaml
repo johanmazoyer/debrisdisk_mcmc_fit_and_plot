@@ -2,28 +2,6 @@
 FIRST_TIME: 1
 #if FIRST_TIME=1 the masks, reduced data, noise map, and KL vectors are recalculated.
 KLMODE_NUMBER: 3
-REMOVED_SLICES:
-  - 19
-  - 20
-  - 21
-  - 20
-  - 22
-  - 23
-  - 24
-  - 25
-  - 26
-  - 27
-  - 28
-  - 29
-  - 30
-  - 31
-  - 32
-  - 33
-  - 34
-  - 35
-  - 36
-  - 37
-
 RM_FILE_DISK_CROSS_SATSPOTS: 0
 OWA: 98
 MOVE_HERE: 6
