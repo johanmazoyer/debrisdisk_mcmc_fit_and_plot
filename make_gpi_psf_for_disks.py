@@ -1,26 +1,20 @@
+# pylint: disable=C0103
 """check the sat spots.
-Return the filename where the sat spots intersect the disk
-save in fits all the sat spots if they do not intersect with disk
+a set of function made to measure the psf specifically for GPI IFS disk data
 author: Johan Mazoyer
 """
 
 import os
-import glob
-import numpy as np
-import astropy.io.fits as fits
 
-import scipy.ndimage.interpolation as interpol
+import numpy as np
 import scipy.ndimage.filters as scipy_filters
 
-import pyklip.instruments.GPI as GPI
 import pyklip.klip as klip
 
-import warnings
-warnings.filterwarnings("ignore", category=RuntimeWarning)
 import astro_unit_conversion as convert
 
 
-def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet = True):
+def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
     """ check in which image the disk intereset the satspots for
     GPI IFA data
     Args:
@@ -68,15 +62,11 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet = True):
     mask_object_astro_ones[np.where((rho2dellip > estimminr)
                                     & (rho2dellip < estimmaxr))] = 1.
 
-
     filename_disk_intercept_satspot = []
 
-    for i, frame in enumerate(dataset.input):
-        # figure out which header and which wavelength slice
-
+    for i in range(dataset.input.shape[0]):
 
         filename_here = dataset.filenames[i]
-
 
         if filename_here in filename_disk_intercept_satspot:
             continue
@@ -85,7 +75,7 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet = True):
         Starpos = dataset.centers[i]
         wls = dataset.wvs[i]
         hdrindex = dataset.filenums[i]
-        slice = dataset.wv_indices[i]
+        slice_here = dataset.wv_indices[i]
 
         model_mask_rot = np.round(
             np.abs(
@@ -96,19 +86,19 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet = True):
         # now grab the values from them by parsing the header
         hdr = dataset.exthdrs[hdrindex]
 
-        spot0 = hdr['SATS{wave}_0'.format(wave=slice)].split()
-        spot1 = hdr['SATS{wave}_1'.format(wave=slice)].split()
-        spot2 = hdr['SATS{wave}_2'.format(wave=slice)].split()
-        spot3 = hdr['SATS{wave}_3'.format(wave=slice)].split()
+        spot0 = hdr['SATS{wave}_0'.format(wave=slice_here)].split()
+        spot1 = hdr['SATS{wave}_1'.format(wave=slice_here)].split()
+        spot2 = hdr['SATS{wave}_2'.format(wave=slice_here)].split()
+        spot3 = hdr['SATS{wave}_3'.format(wave=slice_here)].split()
 
         for j, spot in enumerate([spot0, spot1, spot2, spot3]):
             posx = float(spot[0])
             posy = float(spot[1])
 
-            x_sat = np.arange(dimx, dtype=np.float)[None,:] - posx
-            y_sat = np.arange(dimy, dtype=np.float)[:,None] - posy
+            x_sat = np.arange(dimx, dtype=np.float)[None, :] - posx
+            y_sat = np.arange(dimy, dtype=np.float)[:, None] - posy
             rho2d_sat = np.sqrt(x_sat**2 + y_sat**2)
-            wh_sat_spot = np.where( (rho2d_sat < 3/1.6*wls))
+            wh_sat_spot = np.where((rho2d_sat < 3 / 1.6 * wls))
 
             is_on_the_disk = np.sum(model_mask_rot[wh_sat_spot]) > 0
             if is_on_the_disk:
@@ -117,19 +107,22 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet = True):
                 # print(filename_here,np.sum(model_mask_rot[wh_sat_spot]))
                 if not quiet:
                     head, _ = os.path.split(filename_here)
-                    print(head, 'removed because of the sat spot #'+str(j))
+                    print(head, 'removed because of the sat spot #' + str(j))
                 filename_disk_intercept_satspot.append(filename_here)
                 break
-    if len(filename_disk_intercept_satspot) > 0:
-        print(file_prefix + ': We remove ' + str(len(filename_disk_intercept_satspot)) +' files for psf measurement out of '+ str(nfiles) +' because sat spots intersected the disk')
+    if filename_disk_intercept_satspot:
+        print(file_prefix + ': We remove ' +
+              str(len(filename_disk_intercept_satspot)) +
+              ' files for psf measurement out of ' + str(nfiles) +
+              ' because sat spots intersected the disk')
     else:
-        print('The disk never intersects the satspots, they are all kept for psf measurement')
+        print(
+            'The disk never intersects the satspots, they are all kept for psf measurement'
+        )
     return filename_disk_intercept_satspot
 
 
-
-def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet = True):
-
+def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet=True):
     """ check the SNR of the PSF created for each slice in GPI IFS.
         If too small (<3), we return the list of the PSF to reject.
     Args:
@@ -141,7 +134,6 @@ def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet = True):
     Returns:
         the PSF
     """
-
 
     wls = np.unique(dataset_multi_wl.wvs)
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
@@ -168,34 +160,40 @@ def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet = True):
     else:
         mask_triangle = np.ones((dimx, dimy))
 
-    dataset_multi_wl.input = dataset_multi_wl.input*mask_triangle
+    dataset_multi_wl.input = dataset_multi_wl.input * mask_triangle
     dataset_multi_wl.generate_psfs(boxrad=boxrad_here)
 
-    snr = wls*0.
+    snr = wls * 0.
     for j, psf in enumerate(dataset_multi_wl.psfs):
         y_img, x_img = np.indices(psf.shape, dtype=float)
-        r_img = np.sqrt((x_img - psf.shape[0]//2)**2 + (y_img - psf.shape[1]//2)**2)
-        noise_annulus = np.where((r_img > 9/1.6*wls[j]) & (r_img <= 12/1.6*wls[j]))
-        signal_aperture = np.where(r_img <= 3/1.6*wls[j])
+        r_img = np.sqrt((x_img - psf.shape[0] // 2)**2 +
+                        (y_img - psf.shape[1] // 2)**2)
+        noise_annulus = np.where((r_img > 9 / 1.6 * wls[j])
+                                 & (r_img <= 12 / 1.6 * wls[j]))
+        signal_aperture = np.where(r_img <= 3 / 1.6 * wls[j])
 
         # psf[noise_annulus] = 1
         # psf[signal_aperture] = 1
 
-        snr[j] = np.nanmean(psf[signal_aperture])/ np.nanstd(psf[noise_annulus])
+        snr[j] = np.nanmean(psf[signal_aperture]) / np.nanstd(
+            psf[noise_annulus])
         if not quiet:
-                print(file_prefix+ ': SNR of time-averaged satspots at wl {0:.2f} is {1:.2f}'.format(wls[j],snr[j]))
+            print(file_prefix +
+                  ': SNR of time-averaged satspots at wl {0:.2f} is {1:.2f}'.
+                  format(wls[j], snr[j]))
 
-    bad_sat_spots = np.where(snr<3)
+    bad_sat_spots = np.where(snr < 3)
     bad_sat_spots_list = bad_sat_spots[0].tolist()
-    if len(bad_sat_spots_list)>0:
-        print(file_prefix + ': PSFs # {0} have SNR < 3: these WLs are removed'.format(bad_sat_spots_list))
+    if bad_sat_spots_list:
+        print(file_prefix +
+              ': PSFs # {0} have SNR < 3: these WLs are removed'.format(
+                  bad_sat_spots_list))
     else:
         print(file_prefix + ': all PSFs have high enough SNRs')
     return bad_sat_spots[0].tolist()
 
 
-def make_collapsed_psf(dataset, params_mcmc_yaml,boxrad = 20 ):
-
+def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=20):
     """ create a PSF from the satspots, with a smoothed box
     Args:
         dataset: a pyklip instance of Instrument.Data
@@ -229,23 +227,25 @@ def make_collapsed_psf(dataset, params_mcmc_yaml,boxrad = 20 ):
     else:
         mask_triangle = np.ones((dimx, dimy))
 
-    dataset.input = dataset.input*mask_triangle
+    dataset.input = dataset.input * mask_triangle
     dataset.spectral_collapse(align_frames=True)
 
     dataset.generate_psfs(boxrad=boxrad)
-    r_smooth = 12/1.6*dataset.wvs[0]
-        # # create rho2D for the psf square
-    x_square = np.arange(2*boxrad +1, dtype=np.float)[None,:] - dataset.psfs.shape[1]//2
-    y_square = np.arange(2*boxrad +1, dtype=np.float)[:,None] - dataset.psfs.shape[2]//2
+    r_smooth = 12 / 1.6 * dataset.wvs[0]
+    # # create rho2D for the psf square
+    x_square = np.arange(2 * boxrad + 1,
+                         dtype=np.float)[None, :] - dataset.psfs.shape[1] // 2
+    y_square = np.arange(2 * boxrad + 1,
+                         dtype=np.float)[:, None] - dataset.psfs.shape[2] // 2
     rho2d_square = np.sqrt(x_square**2 + y_square**2)
 
-    smooth_mask = np.ones((2*boxrad +1,2*boxrad +1))
-    smooth_mask[np.where(rho2d_square > r_smooth-1)] = 0.
+    smooth_mask = np.ones((2 * boxrad + 1, 2 * boxrad + 1))
+    smooth_mask[np.where(rho2d_square > r_smooth - 1)] = 0.
     smooth_mask = scipy_filters.gaussian_filter(smooth_mask, 2.)
     smooth_mask[np.where(rho2d_square < r_smooth)] = 1.
     smooth_mask[np.where(smooth_mask < 0.01)] = 0.
 
-    return_psf = dataset.psfs*smooth_mask
-    return_psf = return_psf/np.max(return_psf)
-    return_psf[np.where(return_psf<0.)] = 0.
+    return_psf = dataset.psfs * smooth_mask
+    return_psf = return_psf / np.max(return_psf)
+    return_psf[np.where(return_psf < 0.)] = 0.
     return return_psf
