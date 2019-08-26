@@ -383,7 +383,6 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     owa = params_mcmc_yaml['OWA']
     move_here = params_mcmc_yaml['MOVE_HERE']
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
-    removed_slices = params_mcmc_yaml['REMOVED_SLICES']
 
     rm_file_disk_cross_satspots = params_mcmc_yaml[
         'RM_FILE_DISK_CROSS_SATSPOTS']
@@ -407,13 +406,13 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         for excluded_filesi in excluded_files:
             if excluded_filesi in filelist: filelist.remove(excluded_filesi)
 
-        removed_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
+        excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
                                                      params_mcmc_yaml,
                                                      quiet=True)
 
         dataset4psf = GPI.GPIData(filelist,
                                   quiet=True,
-                                  skipslices=removed_slices)
+                                  skipslices=excluded_slices)
 
         instrument_psf = gpidiskpsf.make_collapsed_psf(dataset4psf,
                                                      params_mcmc_yaml,
@@ -430,7 +429,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             if excluded_filesi in filelist: filelist.remove(excluded_filesi)
 
     # load the rww data
-    dataset = GPI.GPIData(filelist, quiet=True, skipslices=removed_slices)
+    dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
 
     #collapse the data spectrally
     dataset.spectral_collapse(align_frames=True, numthreads=1)
