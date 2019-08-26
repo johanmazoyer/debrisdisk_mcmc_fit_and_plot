@@ -21,6 +21,17 @@ import astro_unit_conversion as convert
 
 
 def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet = True):
+    """ check in which image the disk intereset the satspots for
+    GPI IFA data
+    Args:
+        dataset: a pyklip instance of Instrument.Data
+        params_mcmc_yaml: dic, all the parameters of the MCMC and klip
+                            read from yaml file
+        quiet: in False, print each rejected image and for which satspots
+
+    Returns:
+        a string list of the files for which the disk interesects the satspots
+    """
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     xcen = params_mcmc_yaml['xcen']
@@ -119,6 +130,19 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet = True):
 
 def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet = True):
 
+    """ check the SNR of the PSF created for each slice in GPI IFS.
+        If too small (<3), we return the list of the PSF to reject.
+    Args:
+        dataset: a pyklip instance of Instrument.Data
+        params_mcmc_yaml: dic, all the parameters of the MCMC and klip
+                            read from yaml file
+         quiet: if false print the SNR of each PSF for each color
+
+    Returns:
+        the PSF
+    """
+
+
     wls = np.unique(dataset_multi_wl.wvs)
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     xcen = params_mcmc_yaml['xcen']
@@ -170,13 +194,24 @@ def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet = True):
     return bad_sat_spots[0].tolist()
 
 
-def make_collapsed_psf(dataset_multi_wl, params_mcmc_yaml,boxrad = 20 ):
+def make_collapsed_psf(dataset, params_mcmc_yaml,boxrad = 20 ):
+
+    """ create a PSF from the satspots, with a smoothed box
+    Args:
+        dataset: a pyklip instance of Instrument.Data
+        params_mcmc_yaml: dic, all the parameters of the MCMC and klip
+                            read from yaml file
+        boxrad: size of the PSF. Must be larger than 12 to have the box
+
+    Returns:
+        the PSF
+    """
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     xcen = params_mcmc_yaml['xcen']
     ycen = params_mcmc_yaml['ycen']
-    dimx = dataset_multi_wl.input.shape[1]
-    dimy = dataset_multi_wl.input.shape[2]
+    dimx = dataset.input.shape[1]
+    dimy = dataset.input.shape[2]
 
     # create a nan mask for the bright regions in 2015 probably due to the malfunctionning diode
     if (file_prefix == 'K2band_hr4796') or (file_prefix == 'K1band_hr4796'):
@@ -194,14 +229,14 @@ def make_collapsed_psf(dataset_multi_wl, params_mcmc_yaml,boxrad = 20 ):
     else:
         mask_triangle = np.ones((dimx, dimy))
 
-    dataset_multi_wl.input = dataset_multi_wl.input*mask_triangle
-    dataset_multi_wl.spectral_collapse(align_frames=True)
+    dataset.input = dataset.input*mask_triangle
+    dataset.spectral_collapse(align_frames=True)
 
-    dataset_multi_wl.generate_psfs(boxrad=boxrad)
-    r_smooth = 12/1.6*dataset_multi_wl.wvs[0]
+    dataset.generate_psfs(boxrad=boxrad)
+    r_smooth = 12/1.6*dataset.wvs[0]
         # # create rho2D for the psf square
-    x_square = np.arange(2*boxrad +1, dtype=np.float)[None,:] - dataset_multi_wl.psfs.shape[1]//2
-    y_square = np.arange(2*boxrad +1, dtype=np.float)[:,None] - dataset_multi_wl.psfs.shape[2]//2
+    x_square = np.arange(2*boxrad +1, dtype=np.float)[None,:] - dataset.psfs.shape[1]//2
+    y_square = np.arange(2*boxrad +1, dtype=np.float)[:,None] - dataset.psfs.shape[2]//2
     rho2d_square = np.sqrt(x_square**2 + y_square**2)
 
     smooth_mask = np.ones((2*boxrad +1,2*boxrad +1))
@@ -210,7 +245,7 @@ def make_collapsed_psf(dataset_multi_wl, params_mcmc_yaml,boxrad = 20 ):
     smooth_mask[np.where(rho2d_square < r_smooth)] = 1.
     smooth_mask[np.where(smooth_mask < 0.01)] = 0.
 
-    return_psf = dataset_multi_wl.psfs*smooth_mask
+    return_psf = dataset.psfs*smooth_mask
     return_psf = return_psf/np.max(return_psf)
     return_psf[np.where(return_psf<0.)] = 0.
     return return_psf
