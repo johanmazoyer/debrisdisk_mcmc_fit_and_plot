@@ -418,6 +418,9 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                                                      params_mcmc_yaml,
                                                      boxrad=14)
 
+        #because we are monochromatic here, we only take the first one
+        instrument_psf = instrument_psf[0]
+
         fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
                      instrument_psf,
                      overwrite=True)

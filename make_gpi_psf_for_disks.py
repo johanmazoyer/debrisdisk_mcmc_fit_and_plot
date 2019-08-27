@@ -117,7 +117,7 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
               ' because sat spots intersected the disk')
     else:
         print(
-            'The disk never intersects the satspots, they are all kept for psf measurement'
+            'The disk never intersects the satspots, all kept for the psf measurement'
         )
     return filename_disk_intercept_satspot
 
@@ -144,7 +144,8 @@ def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet=True):
 
     boxrad_here = 20
 
-    # create a nan mask for the bright regions in 2015 probably due to the malfunctionning diode
+    # create a traingle nan mask for the bright regions in 2015 probably due
+    # to the malfunctionning diode
     if (file_prefix == 'K2band_hr4796') or (file_prefix == 'K1band_hr4796'):
         x_image = np.arange(dimx, dtype=np.float)[None, :] - xcen
         y_image = np.arange(dimy, dtype=np.float)[:, None] - ycen
@@ -211,7 +212,8 @@ def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=20):
     dimx = dataset.input.shape[1]
     dimy = dataset.input.shape[2]
 
-    # create a nan mask for the bright regions in 2015 probably due to the malfunctionning diode
+    # create a traingle nan mask for the bright regions in 2015 probably due
+    # to the malfunctionning diode
     if (file_prefix == 'K2band_hr4796') or (file_prefix == 'K1band_hr4796'):
         x_image = np.arange(dimx, dtype=np.float)[None, :] - xcen
         y_image = np.arange(dimy, dtype=np.float)[:, None] - ycen
