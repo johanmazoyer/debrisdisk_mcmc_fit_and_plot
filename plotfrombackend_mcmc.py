@@ -18,7 +18,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 
-# matplotlib.use('Agg')
+plt.switch_backend('agg')
 # There is a conflict when I import
 # matplotlib with pyklip if I don't use this line
 
