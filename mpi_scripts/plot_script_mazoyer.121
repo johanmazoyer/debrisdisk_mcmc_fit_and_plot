@@ -5,12 +5,9 @@
 #PBS -N plot_mcmc_results
 source activate astroconda
 cd /home/jmazoyer/codes_python/hr4796_mcmc_run_and_read/
-python plotfrombackend_hr4796_2g_hfixed_FM_Sphere.py
-python plotfrombackend_hr4796_3g_hfixed_FM_Sphere.py
-#python plotfrombackend_hr4796_2g_hfixed_FM_Hband_injected.py
-#python plotfrombackend_hr4796_2g_hfixed_FM_Hband.py
-#python plotfrombackend_hr4796_2g_hfixed_FM_Jband.py
-#python plotfrombackend_hr4796_2g_hfixed_FM_K1band.py
-#python plotfrombackend_hr4796_2g_hfixed_FM_K2band.py
-#python plotfrombackend_hr4796_3g_hfixed_SPFfixed_FM_Sphere.py
+python plotfrombackend_mcmc.py GPI_Jband_MCMC.yaml
+python plotfrombackend_mcmc.py GPI_Hband_MCMC.yaml
+python plotfrombackend_mcmc.py GPI_K1band_MCMC.yaml
+python plotfrombackend_mcmc.py GPI_K2band_MCMC.yaml
+
 exit
