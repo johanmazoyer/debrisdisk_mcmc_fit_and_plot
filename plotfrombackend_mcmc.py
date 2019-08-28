@@ -200,6 +200,7 @@ def make_chain_plot(params_mcmc_yaml):
     log_prob_samples_flat = reader.get_log_prob(discard=BURNIN,
                                                 flat=True,
                                                 thin=THIN)
+    # print(log_prob_samples_flat)
     tau = reader.get_autocorr_time(tol=0)
 
     print("")
@@ -919,10 +920,10 @@ if __name__ == '__main__':
     mcmcresultdir = DATADIR + 'results_MCMC/'
 
     # Plot the chain values
-    make_chain_plot(params_mcmc_yaml)
+    # make_chain_plot(params_mcmc_yaml)
 
     # Plot the PDFs
-    make_corner_plot(params_mcmc_yaml)
+    # make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)

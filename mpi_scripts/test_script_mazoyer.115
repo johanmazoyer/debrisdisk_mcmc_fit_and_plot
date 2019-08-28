@@ -5,5 +5,5 @@
 #PBS -N mcmc_maz_sph
 source activate astroconda
 cd /home/jmazoyer/codes_python/hr4796_mcmc_run_and_read/
-python diskfit_hr4796_2g_hfixed_FM_Sphere_Aurora.py
+python diskfit_mcmc.py SPHERE_Hband_MCMC.yaml
 exit

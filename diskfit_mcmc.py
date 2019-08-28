@@ -24,6 +24,9 @@ from astropy.convolution import convolve
 import yaml
 
 import pyklip.instruments.GPI as GPI
+import pyklip.instruments.Instrument as Instrument
+# import pyklip.instruments.GenericData as GenericData
+
 import pyklip.parallelized as parallelized
 from pyklip.fmlib.diskfm import DiskFM
 import pyklip.fm as fm
@@ -392,8 +395,6 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     move_here = params_mcmc_yaml['MOVE_HERE']
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
 
-    rm_file_disk_cross_satspots = params_mcmc_yaml[
-        'RM_FILE_DISK_CROSS_SATSPOTS']
     noise_multiplication_factor = params_mcmc_yaml[
         'NOISE_MULTIPLICATION_FACTOR']
 
@@ -401,49 +402,99 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     xcen = params_mcmc_yaml['xcen']
     ycen = params_mcmc_yaml['ycen']
 
-    # measure the PSF from the satspots and identify angles where the
-    # disk intersect the satspots
+    ### This is the only part of the code different for GPI IFS anf SPHERE
+    # For SPHERE We load the PSF and the parangs, crop the data
+    # For GPI, we load the raw data, emasure hte PSF from sat spots and
+    # collaspe the data
+
+    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata/':
+        #only for SPHERE
+        psf_init = fits.getdata(DATADIR + "psf_sphere_h2.fits")
+        size_init = psf_init.shape[1]
+        size_small = 31
+        small_psf = psf_init[size_init//2 - size_small//2:size_init//2 + size_small//2 +1 ,size_init//2 - size_small//2:size_init//2 + size_small//2+1]
 
 
-    filelist = glob.glob(DATADIR + "*_distorcorr.fits")
-    dataset4psf = GPI.GPIData(filelist, quiet=True)
+        small_psf = small_psf/np.max(small_psf)
+        small_psf[np.where(small_psf < 0.005)] = 0.
 
-    excluded_files = gpidiskpsf.check_satspots_disk_intersection(
-        dataset4psf, params_mcmc_yaml, quiet=True)
+        fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',small_psf,overwrite='True')
 
-    filelist4psf = filelist
-    for excluded_filesi in excluded_files:
-        if excluded_filesi in filelist4psf: filelist4psf.remove(excluded_filesi)
 
-    if rm_file_disk_cross_satspots == 1:
+        # load the raw data
+        datacube_sphere_init = fits.getdata(DATADIR + "cube_H2.fits") ### we divide the data to keep the ~same prior as is GPI
+        parangs = fits.getdata(DATADIR + "parang.fits")
+
+        datacube_sphere_init = np.delete(datacube_sphere_init, (72,81),0) ## 2 slices are bad
+        parangs = np.delete(parangs, (72,81),0) ## 2 slices are bad
+
+        olddim = datacube_sphere_init.shape[1]
+
+        newdim = 281   ## we resize the data to the same size as GPI to avoid a problem of centering
+        datacube_sphere_newdim = np.zeros((datacube_sphere_init.shape[0], newdim,newdim))
+
+        for i in range(datacube_sphere_init.shape[0]):
+            datacube_sphere_newdim[i,:,:] = datacube_sphere_init[i, olddim//2 - newdim//2:olddim//2 + newdim//2 +1 ,olddim//2 - newdim//2:olddim//2 + newdim//2+1]
+
+
+        datacube_sphere = datacube_sphere_newdim
+        size_datacube = datacube_sphere.shape
+
+        parangs = parangs  -135.99 +90 ## true north
+        centers = np.zeros((size_datacube[0],2)) + xcen
+        dataset = Instrument.GenericData(datacube_sphere, centers, parangs = parangs, wvs = None)
+        dataset.flipx = False  #### The SPHERE DATA SET ALREADY HAVE THAT
+
+    else:
+        #only for GPI
+        filelist = glob.glob(DATADIR + "*_distorcorr.fits")
+
+        dataset4psf = GPI.GPIData(filelist, quiet=True)
+
+        # measure the PSF from the satspots and identify angles where the
+        # disk intersect the satspots
+        excluded_files = gpidiskpsf.check_satspots_disk_intersection(
+            dataset4psf, params_mcmc_yaml, quiet=True)
+
+        filelist4psf = filelist
         for excluded_filesi in excluded_files:
-            if excluded_filesi in filelist: filelist.remove(excluded_filesi)
+            if excluded_filesi in filelist4psf: filelist4psf.remove(excluded_filesi)
 
-    excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
-                                                    params_mcmc_yaml,
-                                                    quiet=True)
+        rm_file_disk_cross_satspots = params_mcmc_yaml[
+            'RM_FILE_DISK_CROSS_SATSPOTS']
 
-    if first_time == 1:
-        dataset4psf = GPI.GPIData(filelist4psf,
-                                quiet=True,
-                                skipslices=excluded_slices)
+        if rm_file_disk_cross_satspots == 1:
+            for excluded_filesi in excluded_files:
+                if excluded_filesi in filelist: filelist.remove(excluded_filesi)
 
-        instrument_psf = gpidiskpsf.make_collapsed_psf(dataset4psf,
-                                                    params_mcmc_yaml,
-                                                    boxrad=14)
+        excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
+                                                        params_mcmc_yaml,
+                                                        quiet=True)
 
-        #because we are monochromatic here, we only take the first one
-        instrument_psf = instrument_psf[0]
+        if first_time == 1:
+            dataset4psf = GPI.GPIData(filelist4psf,
+                                    quiet=True,
+                                    skipslices=excluded_slices)
 
-        fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
-                    instrument_psf,
-                    overwrite=True)
+            instrument_psf = gpidiskpsf.make_collapsed_psf(dataset4psf,
+                                                        params_mcmc_yaml,
+                                                        boxrad=14)
 
-    # load the rww data
-    dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
+            #because we are monochromatic here, we only take the first one
+            instrument_psf = instrument_psf[0]
 
-    #collapse the data spectrally
-    dataset.spectral_collapse(align_frames=True, numthreads=1)
+            fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
+                        instrument_psf,
+                        overwrite=True)
+
+        # load the rww data
+        dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
+
+        #collapse the data spectrally
+        dataset.spectral_collapse(align_frames=True, numthreads=1)
+
+
+    #put the outer working angle
     dataset.OWA = owa
 
     #assuming square data
@@ -498,7 +549,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         dataset.PAs = -dataset.PAs
         parallelized.klip_dataset(dataset,
                                   numbasis=numbasis,
-                                  maxnumbasis=len(filelist),
+                                  maxnumbasis=100,
                                   annuli=1,
                                   subsections=1,
                                   mode='ADI',
@@ -783,7 +834,7 @@ if __name__ == '__main__':
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC.yaml'
+        str_yalm = 'SPHERE_Hband_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 

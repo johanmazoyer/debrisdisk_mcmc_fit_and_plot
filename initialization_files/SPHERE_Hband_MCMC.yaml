@@ -10,20 +10,21 @@ ycen: 140.
 
 # LOCATION AND NAME PARAMETERS
 BAND_DIR: SPHERE_Hdata/
-FILE_PREFIX: Sphere_hr4796_3g
-BAND_NAME: SPHERE H2 band 3g
+FILE_PREFIX: Sphere_hr4796
+BAND_NAME: SPHERE H2 band
 
 # STAR OBSERVATION PARAMETERS
 DISTANCE_STAR: 72.0
 PIXSCALE_INS: 0.012255
 
 # MCMC PARAMETERS
-NEW_BACKEND: 1 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
-NWALKERS: 32 #Number of walkers
+NEW_BACKEND: 1
+#if NEW_BACKEND=0, reset the backend, if not, start where you stopped
+NWALKERS: 192 #Number of walkers
 N_ITER_MCMC: 1 #Number of interation
 NOISE_MULTIPLICATION_FACTOR: 5 # multiplicative factor for the chains
 
-N_DIM_MCMC: 13  #Number of parmeter in the MCMC
+N_DIM_MCMC: 11  #Number of parmeter in the MCMC
 # INITIAL MODEL PARAMETERS
 r1_init: 74.3
 r2_init: 99.9
@@ -55,9 +56,7 @@ NAMES:
 - Beta
 - g1
 - g2
-- g3
-- Alpha1
-- Alpha2
+- Alph1
 - inc
 - PA
 - dx
@@ -65,12 +64,13 @@ NAMES:
 - Norm
 - RA
 - Decl
-- RApix
-- Depix
-- a
-- ecc
+- RAp
+- Declp
+- Rkowa
+- ekowa
+- ikowa
 - Omega
-- ARGPE
+- Argpe
 
 LABELS:
   Alph1: $\alpha$1[%]
