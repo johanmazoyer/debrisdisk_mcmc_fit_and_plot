@@ -683,8 +683,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
                               '_BestModelAfterFM.fits')
 
     #Set the colormap
-    vmin = -2
-    vmax = 16
+    vmin = 0.3*np.min(disk_ml_FM)
+    vmax = 0.9*np.max(disk_ml_FM)
 
     if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata/':
         dim_crop_image = 232
@@ -943,10 +943,10 @@ if __name__ == '__main__':
     mcmcresultdir = DATADIR + 'results_MCMC/'
 
     # Plot the chain values
-    make_chain_plot(params_mcmc_yaml)
+    # make_chain_plot(params_mcmc_yaml)
 
-    # Plot the PDFs
-    make_corner_plot(params_mcmc_yaml)
+    # # Plot the PDFs
+    # make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)
@@ -955,4 +955,4 @@ if __name__ == '__main__':
     best_model_plot(params_mcmc_yaml, hdr)
 
     # print the values to put in excel sheet easily
-    print_geometry_parameter(params_mcmc_yaml, hdr)
+    # print_geometry_parameter(params_mcmc_yaml, hdr)
