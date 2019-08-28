@@ -2,6 +2,7 @@
 
 ####### This is the MCMC plotting code for HR 4796 data #######
 import sys
+import os
 import glob
 import socket
 import warnings
@@ -13,6 +14,7 @@ import numpy as np
 
 import astropy.io.fits as fits
 from astropy.convolution import convolve
+import pyklip.parallelized as parallelized
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -34,6 +36,7 @@ from pyklip.fmlib.diskfm import DiskFM
 from anadisk_johan import gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import astro_unit_conversion as convert
 from kowalsky import kowalsky
+import make_gpi_psf_for_disks as gpidiskpsf
 
 # define global variables in the global scope
 DISTANCE_STAR = PIXSCALE_INS = DIMENSION = None
@@ -569,7 +572,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
     BAND_NAME = params_mcmc_yaml['BAND_NAME']
     name_h5 = FILE_PREFIX + '_backend_file_mcmc'
 
-    KLMODE = [params_mcmc_yaml['KLMODE_NUMBER']]
+    numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
+    move_here = params_mcmc_yaml['MOVE_HERE']
     N_DIM_MCMC = hdr['n_param']
 
     #Format the most likely values
@@ -620,11 +624,57 @@ def best_model_plot(params_mcmc_yaml, hdr):
                                         wvs=None)
     else:
         #only for GPI
-        filelist = glob.glob(DATADIR + "*distorcorr.fits")
-        dataset = GPI.GPIData(filelist, quiet=True)
+
+        xcen = params_mcmc_yaml['xcen']
+        ycen = params_mcmc_yaml['ycen']
+
+        filelist = glob.glob(DATADIR + "*_distorcorr.fits")
+
+        dataset4psf = GPI.GPIData(filelist, quiet=True)
+
+        # measure the PSF from the satspots and identify angles where the
+        # disk intersect the satspots
+        excluded_files = gpidiskpsf.check_satspots_disk_intersection(
+            dataset4psf, params_mcmc_yaml, quiet=True)
+
+        filelist4psf = filelist
+        for excluded_filesi in excluded_files:
+            if excluded_filesi in filelist4psf:
+                filelist4psf.remove(excluded_filesi)
+
+        rm_file_disk_cross_satspots = params_mcmc_yaml[
+            'RM_FILE_DISK_CROSS_SATSPOTS']
+
+        if rm_file_disk_cross_satspots == 1:
+            for excluded_filesi in excluded_files:
+                if excluded_filesi in filelist:
+                    filelist.remove(excluded_filesi)
+
+        excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
+                                                        params_mcmc_yaml,
+                                                        quiet=True)
+        # load the rww data
+        dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
 
         #collapse the data spectrally
-        dataset.spectral_collapse(align_frames=True)
+        dataset.spectral_collapse(align_frames=True, numthreads=1)
+
+
+
+    parallelized.klip_dataset(dataset,
+                            numbasis=numbasis,
+                            maxnumbasis=100,
+                            annuli=1,
+                            subsections=1,
+                            mode='ADI',
+                            outputdir=klipdir,
+                            fileprefix= 'run_and_del',
+                            aligned_center=[xcen, ycen],
+                            highpass=False,
+                            minrot=move_here,
+                            calibrate_flux=False)
+
+    os.remove(klipdir + 'run_and_del-KLmodes-all.fits')
 
     DIMENSION = dataset.input.shape[1]
 
@@ -657,7 +707,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     # load the KL numbers
     diskobj = DiskFM(dataset.input.shape,
-                     KLMODE,
+                     numbasis,
                      dataset,
                      disk_ml_convolved,
                      basis_filename=klipdir + FILE_PREFIX + '_klbasis.h5',
@@ -697,7 +747,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     noise_crop = crop_center(noise, dim_crop_image)
     disk_ml_crop = crop_center(disk_ml, dim_crop_image)
 
-    caracsize = 40 * QUALITY_PLOT / 2
+    caracsize = 40 * QUALITY_PLOT / 2.
 
     fig = plt.figure(figsize=(6.4 * 2 * QUALITY_PLOT, 4.8 * 2 * QUALITY_PLOT))
     #The data
@@ -709,7 +759,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      cmap=plt.cm.get_cmap('hot'))
     ax1.set_title("Original Data", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
-    cbar.ax.tick_params(labelsize=caracsize * 3 / 4)
+    cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
     plt.axis('off')
 
     #The residuals
@@ -717,11 +767,11 @@ def best_model_plot(params_mcmc_yaml, hdr):
     cax = plt.imshow(np.abs(reduced_data_crop - disk_ml_FM_crop),
                      origin='lower',
                      vmin=0,
-                     vmax=vmax / 3,
+                     vmax=vmax / 3.,
                      cmap=plt.cm.get_cmap('hot'))
     ax1.set_title("Residuals", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
-    cbar.ax.tick_params(labelsize=caracsize * 3 / 4)
+    cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
     plt.axis('off')
 
     #The SNR of the residuals
@@ -733,7 +783,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      cmap=plt.cm.get_cmap('hot'))
     ax1.set_title("SNR Residuals", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, ticks=[0, 1, 2], fraction=0.046, pad=0.04)
-    cbar.ax.tick_params(labelsize=caracsize * 3 / 4)
+    cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
     cbar.ax.set_yticklabels(['0', '1', '2'])  # vertically oriented colorbar
     plt.axis('off')
 
@@ -746,7 +796,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      cmap=plt.cm.get_cmap('hot'))
     ax1.set_title("Best Model", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
-    cbar.ax.tick_params(labelsize=caracsize * 3 / 4)
+    cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
     plt.axis('off')
 
     #The convolved model
@@ -759,7 +809,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     ax1.set_title("Model Convolved", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
-    cbar.ax.tick_params(labelsize=caracsize * 3 / 4)
+    cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
     plt.axis('off')
 
     #The FM convolved model
@@ -773,7 +823,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
                   fontsize=caracsize,
                   pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
-    cbar.ax.tick_params(labelsize=caracsize * 3 / 4)
+    cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
     plt.axis('off')
 
     fig.subplots_adjust(hspace=-0.4, wspace=0.2)
@@ -943,10 +993,10 @@ if __name__ == '__main__':
     mcmcresultdir = DATADIR + 'results_MCMC/'
 
     # Plot the chain values
-    make_chain_plot(params_mcmc_yaml)
+    # make_chain_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
-    make_corner_plot(params_mcmc_yaml)
+    # make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)

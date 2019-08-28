@@ -1,10 +1,4 @@
 source activate astroconda
 cd /Users/jmazoyer/Dropbox/ExchangeFolder/codes_python/codes_mcmc_max/
-python plotfrombackend_hr4796_2g_hfixed_FM_Sphere.py
-python plotfrombackend_hr4796_3g_hfixed_FM_Sphere.py
-#python plotfrombackend_hr4796_2g_hfixed_FM_Hband_injected.py
-#python plotfrombackend_hr4796_2g_hfixed_FM_Hband.py
-#python plotfrombackend_hr4796_2g_hfixed_FM_Jband.py
-#python plotfrombackend_hr4796_2g_hfixed_FM_K1band.py
-#python plotfrombackend_hr4796_2g_hfixed_FM_K2band.py
-#python plotfrombackend_hr4796_3g_hfixed_SPFfixed_FM_Sphere.py
+/Users/jmazoyer/anaconda3/envs/astroconda/bin/python plotfrombackend_mcmc.py GPI_Hband_MCMC.yaml
+/Users/jmazoyer/anaconda3/envs/astroconda/bin/python plotfrombackend_mcmc.py SPHERE_Hband_MCMC.yaml
