@@ -293,7 +293,7 @@ def lnpb(theta):
     ll = logl(theta)
     # print("Running time model + FM: ", datetime.now()-starttime)
 
-    return lp +ll
+    return lp + ll
 
 
 ########################################################
@@ -412,37 +412,48 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         psf_init = fits.getdata(DATADIR + "psf_sphere_h2.fits")
         size_init = psf_init.shape[1]
         size_small = 31
-        small_psf = psf_init[size_init//2 - size_small//2:size_init//2 + size_small//2 +1 ,size_init//2 - size_small//2:size_init//2 + size_small//2+1]
+        small_psf = psf_init[size_init // 2 - size_small // 2:size_init // 2 +
+                             size_small // 2 + 1, size_init // 2 -
+                             size_small // 2:size_init // 2 + size_small // 2 +
+                             1]
 
-
-        small_psf = small_psf/np.max(small_psf)
+        small_psf = small_psf / np.max(small_psf)
         small_psf[np.where(small_psf < 0.005)] = 0.
 
-        fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',small_psf,overwrite='True')
-
+        fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
+                     small_psf,
+                     overwrite='True')
 
         # load the raw data
-        datacube_sphere_init = fits.getdata(DATADIR + "cube_H2.fits") ### we divide the data to keep the ~same prior as is GPI
+        datacube_sphere_init = fits.getdata(
+            DATADIR + "cube_H2.fits"
+        )  ### we divide the data to keep the ~same prior as is GPI
         parangs = fits.getdata(DATADIR + "parang.fits")
 
-        datacube_sphere_init = np.delete(datacube_sphere_init, (72,81),0) ## 2 slices are bad
-        parangs = np.delete(parangs, (72,81),0) ## 2 slices are bad
+        datacube_sphere_init = np.delete(datacube_sphere_init, (72, 81),
+                                         0)  ## 2 slices are bad
+        parangs = np.delete(parangs, (72, 81), 0)  ## 2 slices are bad
 
         olddim = datacube_sphere_init.shape[1]
 
-        newdim = 281   ## we resize the data to the same size as GPI to avoid a problem of centering
-        datacube_sphere_newdim = np.zeros((datacube_sphere_init.shape[0], newdim,newdim))
+        newdim = 281  ## we resize the data to the same size as GPI to avoid a problem of centering
+        datacube_sphere_newdim = np.zeros(
+            (datacube_sphere_init.shape[0], newdim, newdim))
 
         for i in range(datacube_sphere_init.shape[0]):
-            datacube_sphere_newdim[i,:,:] = datacube_sphere_init[i, olddim//2 - newdim//2:olddim//2 + newdim//2 +1 ,olddim//2 - newdim//2:olddim//2 + newdim//2+1]
-
+            datacube_sphere_newdim[i, :, :] = datacube_sphere_init[
+                i, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 +
+                1, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1]
 
         datacube_sphere = datacube_sphere_newdim
         size_datacube = datacube_sphere.shape
 
-        parangs = parangs  -135.99 +90 ## true north
-        centers = np.zeros((size_datacube[0],2)) + xcen
-        dataset = Instrument.GenericData(datacube_sphere, centers, parangs = parangs, wvs = None)
+        parangs = parangs - 135.99 + 90  ## true north
+        centers = np.zeros((size_datacube[0], 2)) + xcen
+        dataset = Instrument.GenericData(datacube_sphere,
+                                         centers,
+                                         parangs=parangs,
+                                         wvs=None)
         dataset.flipx = False  #### The SPHERE DATA SET ALREADY HAVE THAT
 
     else:
@@ -458,14 +469,16 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
         filelist4psf = filelist
         for excluded_filesi in excluded_files:
-            if excluded_filesi in filelist4psf: filelist4psf.remove(excluded_filesi)
+            if excluded_filesi in filelist4psf:
+                filelist4psf.remove(excluded_filesi)
 
         rm_file_disk_cross_satspots = params_mcmc_yaml[
             'RM_FILE_DISK_CROSS_SATSPOTS']
 
         if rm_file_disk_cross_satspots == 1:
             for excluded_filesi in excluded_files:
-                if excluded_filesi in filelist: filelist.remove(excluded_filesi)
+                if excluded_filesi in filelist:
+                    filelist.remove(excluded_filesi)
 
         excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
                                                         params_mcmc_yaml,
@@ -473,26 +486,25 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
         if first_time == 1:
             dataset4psf = GPI.GPIData(filelist4psf,
-                                    quiet=True,
-                                    skipslices=excluded_slices)
+                                      quiet=True,
+                                      skipslices=excluded_slices)
 
             instrument_psf = gpidiskpsf.make_collapsed_psf(dataset4psf,
-                                                        params_mcmc_yaml,
-                                                        boxrad=14)
+                                                           params_mcmc_yaml,
+                                                           boxrad=14)
 
             #because we are monochromatic here, we only take the first one
             instrument_psf = instrument_psf[0]
 
             fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
-                        instrument_psf,
-                        overwrite=True)
+                         instrument_psf,
+                         overwrite=True)
 
         # load the rww data
         dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
 
         #collapse the data spectrally
         dataset.spectral_collapse(align_frames=True, numthreads=1)
-
 
     #put the outer working angle
     dataset.OWA = owa

@@ -5,6 +5,7 @@
 #PBS -N plot_mcmc_results
 source activate astroconda
 cd /home/jmazoyer/codes_python/hr4796_mcmc_run_and_read/
+python plotfrombackend_mcmc.py SPHERE_Hband_MCMC.yaml
 python plotfrombackend_mcmc.py GPI_Jband_MCMC.yaml
 python plotfrombackend_mcmc.py GPI_Hband_MCMC.yaml
 python plotfrombackend_mcmc.py GPI_K1band_MCMC.yaml

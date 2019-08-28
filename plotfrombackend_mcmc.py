@@ -668,11 +668,16 @@ def best_model_plot(params_mcmc_yaml, hdr):
     vmin = -2
     vmax = 16
 
-    reduced_data_crop = crop_center(reduced_data, 196)
-    disk_ml_FM_crop = crop_center(disk_ml_FM, 196)
-    disk_ml_convolved_crop = crop_center(disk_ml_convolved, 196)
-    noise_crop = crop_center(noise, 196)
-    disk_ml_crop = crop_center(disk_ml, 196)
+    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata/':
+        dim_crop_image = 232
+    else:
+        dim_crop_image = 196
+
+    reduced_data_crop = crop_center(reduced_data, dim_crop_image)
+    disk_ml_FM_crop = crop_center(disk_ml_FM, dim_crop_image)
+    disk_ml_convolved_crop = crop_center(disk_ml_convolved, dim_crop_image)
+    noise_crop = crop_center(noise, dim_crop_image)
+    disk_ml_crop = crop_center(disk_ml, dim_crop_image)
 
     caracsize = 40 * QUALITY_PLOT / 2
 
