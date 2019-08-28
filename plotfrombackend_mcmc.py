@@ -720,7 +720,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     new_fits = fits.HDUList()
     new_fits.append(fits.ImageHDU(data=disk_ml_FM, header=hdr))
-    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModelAfterFM.fits',
+    new_fits.writeto(mcmcresultdir + name_h5 + socket.gethostname() + '_BestModelAfterFM.fits',
                      overwrite=True)
 
     new_fits = fits.HDUList()
