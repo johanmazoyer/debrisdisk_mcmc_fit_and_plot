@@ -38,6 +38,7 @@ import astro_unit_conversion as convert
 
 os.environ["OMP_NUM_THREADS"] = "1"
 
+
 #######################################################
 def call_gen_disk_2g(theta):
     """ call the disk model from a set of parameters. 2g SPF
@@ -396,42 +397,46 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
     # measure the PSF from the satspots and identify angles where the
     # disk intersect the satspots
-    if first_time == 1:
 
-        filelist = glob.glob(DATADIR + "*_distorcorr.fits")
-        dataset4psf = GPI.GPIData(filelist, quiet=True)
 
-        excluded_files = gpidiskpsf.check_satspots_disk_intersection(
-            dataset4psf, params_mcmc_yaml, quiet=True)
+    filelist = glob.glob(DATADIR + "*_distorcorr.fits")
+    dataset4psf = GPI.GPIData(filelist, quiet=True)
 
+    excluded_files = gpidiskpsf.check_satspots_disk_intersection(
+        dataset4psf, params_mcmc_yaml, quiet=True)
+
+    filelist4psf = filelist
+    for excluded_filesi in excluded_files:
+        if excluded_filesi in filelist4psf: filelist4psf.remove(excluded_filesi)
+
+    if rm_file_disk_cross_satspots == 1:
         for excluded_filesi in excluded_files:
             if excluded_filesi in filelist: filelist.remove(excluded_filesi)
 
-        excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
-                                                     params_mcmc_yaml,
-                                                     quiet=True)
+    excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
+                                                    params_mcmc_yaml,
+                                                    quiet=True)
 
-        dataset4psf = GPI.GPIData(filelist,
-                                  quiet=True,
-                                  skipslices=excluded_slices)
+    if first_time == 1:
+        dataset4psf = GPI.GPIData(filelist4psf,
+                                quiet=True,
+                                skipslices=excluded_slices)
 
         instrument_psf = gpidiskpsf.make_collapsed_psf(dataset4psf,
-                                                     params_mcmc_yaml,
-                                                     boxrad=14)
+                                                    params_mcmc_yaml,
+                                                    boxrad=14)
 
         #because we are monochromatic here, we only take the first one
         instrument_psf = instrument_psf[0]
 
         fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
-                     instrument_psf,
-                     overwrite=True)
+                    instrument_psf,
+                    overwrite=True)
 
-    # list of the raw data file
-    filelist = glob.glob(DATADIR + "*_distorcorr.fits")
-    if rm_file_disk_cross_satspots == 1:
-        for excluded_filesi in excluded_files:
-            if excluded_filesi in filelist: filelist.remove(excluded_filesi)
-
+    dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
+    excluded_slices = gpidiskpsf.check_satspots_snr(dataset,
+                                                params_mcmc_yaml,
+                                                quiet=True)
     # load the rww data
     dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
 
@@ -577,7 +582,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
                          basis_filename=KLIPDIR + file_prefix + '_klbasis.h5',
                          save_basis=True,
                          aligned_center=[xcen, ycen],
-                         numthreads =1)
+                         numthreads=1)
         # measure the KL basis and save it
         fm.klip_dataset(dataset,
                         diskobj,
@@ -602,7 +607,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
                      model_here_convolved,
                      basis_filename=KLIPDIR + file_prefix + '_klbasis.h5',
                      load_from_basis=True,
-                     numthreads =1)
+                     numthreads=1)
 
     # test the diskFM object
     diskobj.update_disk(model_here_convolved)

@@ -102,8 +102,8 @@ def gen_disk_dxdy_2g(dim,
     Returns:
         a 2d model
     """
-    # import datetime
-    # starttime=datetime.now()
+    import datetime
+    starttime=datetime.now()
 
     max_fov = dim / 2. * pixscale  #maximum radial distance in AU from the center to the edge
     npts = int(np.floor(dim / sampling))
@@ -228,7 +228,7 @@ def gen_disk_dxdy_2g(dim,
                                              g2_2, alpha, ci, si, maxe, dx, dy,
                                              k))[0]
 
-    # print("Running time: ", datetime.now()-starttime)
+    print("Running time: ", datetime.now()-starttime)
 
     # # normalize the HG function by the width
     image = image / a_r
