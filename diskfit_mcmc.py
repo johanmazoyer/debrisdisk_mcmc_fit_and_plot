@@ -855,7 +855,7 @@ if __name__ == '__main__':
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
     if len(sys.argv) == 1:
-        str_yalm = 'SPHERE_Hband_MCMC.yaml'
+        str_yalm = 'GPI_Hband_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
@@ -880,6 +880,8 @@ if __name__ == '__main__':
     MCMCRESULTDIR = DATADIR + 'results_MCMC/'
     distutils.dir_util.mkpath(MCMCRESULTDIR)
 
+    print(convert.pix_to_au(params_mcmc_yaml['OWA'],params_mcmc_yaml['PIXSCALE_INS'],params_mcmc_yaml['DISTANCE_STAR']))
+    asd
     # initialize the things necessary to do a
     dataset = initialize_mask_psf_noise(params_mcmc_yaml)
 
