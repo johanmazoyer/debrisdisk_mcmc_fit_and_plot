@@ -429,6 +429,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             DATADIR + "cube_H2.fits"
         )  ### we divide the data to keep the ~same prior as is GPI
         parangs = fits.getdata(DATADIR + "parang.fits")
+        parangs = parangs - 135.99 + 90  ## true north
+
 
         datacube_sphere_init = np.delete(datacube_sphere_init, (72, 81),
                                          0)  ## 2 slices are bad
@@ -445,16 +447,23 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                 i, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 +
                 1, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1]
 
+
+
+        # we flip the dataset (and therefore inverse the parangs) to obtain
+        # the good PA after pyklip reduction
+        parangs = - parangs
+        for i in range(datacube_sphere_newdim.shape[0]):
+            datacube_sphere_newdim[i] = np.flip(datacube_sphere_newdim[i], axis = 0)
+
         datacube_sphere = datacube_sphere_newdim
         size_datacube = datacube_sphere.shape
 
-        parangs = parangs - 135.99 + 90  ## true north
-        centers = np.zeros((size_datacube[0], 2)) + xcen
+        centers = np.zeros((size_datacube[0], 2)) + [xcen,ycen]
         dataset = Instrument.GenericData(datacube_sphere,
                                          centers,
                                          parangs=parangs,
                                          wvs=None)
-        dataset.flipx = False  #### The SPHERE DATA SET ALREADY HAVE THAT
+
 
     else:
         #only for GPI
