@@ -433,10 +433,6 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                     instrument_psf,
                     overwrite=True)
 
-    dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
-    excluded_slices = gpidiskpsf.check_satspots_snr(dataset,
-                                                params_mcmc_yaml,
-                                                quiet=True)
     # load the rww data
     dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
 
