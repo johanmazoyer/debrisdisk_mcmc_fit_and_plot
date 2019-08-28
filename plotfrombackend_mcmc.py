@@ -619,7 +619,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
                                         parangs=parangs_sphere,
                                         wvs=None)
     else:
-        #only for SPHERE
+        #only for GPI
         filelist = glob.glob(DATADIR + "*distorcorr.fits")
         dataset = GPI.GPIData(filelist, quiet=True)
 
@@ -923,7 +923,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC.yaml'
+        str_yalm = 'SPHERE_Hband_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
