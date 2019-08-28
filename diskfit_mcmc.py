@@ -36,6 +36,7 @@ import make_gpi_psf_for_disks as gpidiskpsf
 from anadisk_johan import gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import astro_unit_conversion as convert
 
+os.environ["OMP_NUM_THREADS"] = "1"
 
 #######################################################
 def call_gen_disk_2g(theta):
@@ -449,8 +450,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             dimension,
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(40, pixscale_ins, distance_star),
-            convert.au_to_pix(115, pixscale_ins, distance_star),
+            convert.au_to_pix(45, pixscale_ins, distance_star),
+            convert.au_to_pix(105, pixscale_ins, distance_star),
             xcen=xcen,
             ycen=ycen)
         mask2generatedisk = 1 - mask_disk_zeros
@@ -575,7 +576,8 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
                          model_here_convolved,
                          basis_filename=KLIPDIR + file_prefix + '_klbasis.h5',
                          save_basis=True,
-                         aligned_center=[xcen, ycen])
+                         aligned_center=[xcen, ycen],
+                         numthreads =1)
         # measure the KL basis and save it
         fm.klip_dataset(dataset,
                         diskobj,
@@ -599,7 +601,8 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
                      dataset,
                      model_here_convolved,
                      basis_filename=KLIPDIR + file_prefix + '_klbasis.h5',
-                     load_from_basis=True)
+                     load_from_basis=True,
+                     numthreads =1)
 
     # test the diskFM object
     diskobj.update_disk(model_here_convolved)
