@@ -25,7 +25,6 @@ import yaml
 
 import pyklip.instruments.GPI as GPI
 import pyklip.instruments.Instrument as Instrument
-# import pyklip.instruments.GenericData as GenericData
 
 import pyklip.parallelized as parallelized
 from pyklip.fmlib.diskfm import DiskFM
@@ -409,60 +408,75 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
     if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata/':
         #only for SPHERE
-        psf_init = fits.getdata(DATADIR + "psf_sphere_h2.fits")
-        size_init = psf_init.shape[1]
-        size_small = 31
-        small_psf = psf_init[size_init // 2 - size_small // 2:size_init // 2 +
-                             size_small // 2 + 1, size_init // 2 -
-                             size_small // 2:size_init // 2 + size_small // 2 +
-                             1]
+        if first_time == 1:
+            psf_init = fits.getdata(DATADIR + "psf_sphere_h2.fits")
+            size_init = psf_init.shape[1]
+            size_small = 31
+            small_psf = psf_init[size_init // 2 - size_small // 2:size_init // 2 +
+                                size_small // 2 + 1, size_init // 2 -
+                                size_small // 2:size_init // 2 + size_small // 2 +
+                                1]
 
-        small_psf = small_psf / np.max(small_psf)
-        small_psf[np.where(small_psf < 0.005)] = 0.
+            small_psf = small_psf / np.max(small_psf)
+            small_psf[np.where(small_psf < 0.005)] = 0.
 
-        fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
-                     small_psf,
+            fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
+                        small_psf,
+                        overwrite='True')
+
+            # load the raw data
+            datacube_sphere_init = fits.getdata(
+                DATADIR + "cube_H2.fits"
+            )  ### we divide the data to keep the ~same prior as is GPI
+            parangs = fits.getdata(DATADIR + "parang.fits")
+            parangs = parangs - 135.99 + 90  ## true north
+
+
+            datacube_sphere_init = np.delete(datacube_sphere_init, (72, 81),
+                                            0)  ## 2 slices are bad
+            parangs = np.delete(parangs, (72, 81), 0)  ## 2 slices are bad
+
+            olddim = datacube_sphere_init.shape[1]
+
+            newdim = 281  ## we resize the data to the same size as GPI to avoid a problem of centering
+            datacube_sphere_newdim = np.zeros(
+                (datacube_sphere_init.shape[0], newdim, newdim))
+
+            for i in range(datacube_sphere_init.shape[0]):
+                datacube_sphere_newdim[i, :, :] = datacube_sphere_init[
+                    i, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 +
+                    1, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1]
+
+
+
+            # we flip the dataset (and therefore inverse the parangs) to obtain
+            # the good PA after pyklip reduction
+            parangs = - parangs
+            for i in range(datacube_sphere_newdim.shape[0]):
+                datacube_sphere_newdim[i] = np.flip(datacube_sphere_newdim[i], axis = 0)
+
+            datacube_sphere = datacube_sphere_newdim
+
+
+
+            fits.writeto(DATADIR + file_prefix + '_true_parangs.fits',
+                     parangs,
                      overwrite='True')
 
-        # load the raw data
-        datacube_sphere_init = fits.getdata(
-            DATADIR + "cube_H2.fits"
-        )  ### we divide the data to keep the ~same prior as is GPI
-        parangs = fits.getdata(DATADIR + "parang.fits")
-        parangs = parangs - 135.99 + 90  ## true north
+            fits.writeto(DATADIR + file_prefix + '_true_dataset.fits',
+                        datacube_sphere,
+                        overwrite='True')
 
 
-        datacube_sphere_init = np.delete(datacube_sphere_init, (72, 81),
-                                         0)  ## 2 slices are bad
-        parangs = np.delete(parangs, (72, 81), 0)  ## 2 slices are bad
+        datacube_sphere = fits.getdata(DATADIR + file_prefix + '_true_dataset.fits')
+        parangs_sphere = fits.getdata(DATADIR + file_prefix + '_true_parangs.fits')
 
-        olddim = datacube_sphere_init.shape[1]
-
-        newdim = 281  ## we resize the data to the same size as GPI to avoid a problem of centering
-        datacube_sphere_newdim = np.zeros(
-            (datacube_sphere_init.shape[0], newdim, newdim))
-
-        for i in range(datacube_sphere_init.shape[0]):
-            datacube_sphere_newdim[i, :, :] = datacube_sphere_init[
-                i, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 +
-                1, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1]
-
-
-
-        # we flip the dataset (and therefore inverse the parangs) to obtain
-        # the good PA after pyklip reduction
-        parangs = - parangs
-        for i in range(datacube_sphere_newdim.shape[0]):
-            datacube_sphere_newdim[i] = np.flip(datacube_sphere_newdim[i], axis = 0)
-
-        datacube_sphere = datacube_sphere_newdim
         size_datacube = datacube_sphere.shape
-
-        centers = np.zeros((size_datacube[0], 2)) + [xcen,ycen]
+        centers_sphere = np.zeros((size_datacube[0], 2)) + [xcen,ycen]
         dataset = Instrument.GenericData(datacube_sphere,
-                                         centers,
-                                         parangs=parangs,
-                                         wvs=None)
+                                        centers_sphere,
+                                        parangs=parangs_sphere,
+                                        wvs=None)
 
 
     else:
@@ -618,7 +632,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
 
     first_time = params_mcmc_yaml['FIRST_TIME']
     xcen = params_mcmc_yaml['xcen']
-    ycen = params_mcmc_yaml['xcen']
+    ycen = params_mcmc_yaml['ycen']
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
     move_here = params_mcmc_yaml['MOVE_HERE']
 

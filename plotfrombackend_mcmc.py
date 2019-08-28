@@ -28,6 +28,7 @@ from emcee import backends
 import yaml
 
 import pyklip.instruments.GPI as GPI
+import pyklip.instruments.Instrument as Instrument
 from pyklip.fmlib.diskfm import DiskFM
 
 from anadisk_johan import gen_disk_dxdy_2g, gen_disk_dxdy_3g
@@ -602,11 +603,28 @@ def best_model_plot(params_mcmc_yaml, hdr):
     wheremask2generatedisk = (mask2generatedisk != mask2generatedisk)
 
     # load the raw data (necessary to create the DiskFM obj)
-    filelist = glob.glob(DATADIR + "*distorcorr.fits")
-    dataset = GPI.GPIData(filelist, quiet=True)
+    # this is the only part different for SPHERE and GPI
 
-    #collapse the data spectrally
-    dataset.spectral_collapse(align_frames=True)
+    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata/':
+        #only for SPHERE
+        xcen = params_mcmc_yaml['xcen']
+        ycen = params_mcmc_yaml['ycen']
+        datacube_sphere = fits.getdata(DATADIR + FILE_PREFIX + '_true_dataset.fits')
+        parangs_sphere = fits.getdata(DATADIR + FILE_PREFIX + '_true_parangs.fits')
+
+        size_datacube = datacube_sphere.shape
+        centers_sphere = np.zeros((size_datacube[0], 2)) + [xcen,ycen]
+        dataset = Instrument.GenericData(datacube_sphere,
+                                        centers_sphere,
+                                        parangs=parangs_sphere,
+                                        wvs=None)
+    else:
+        #only for SPHERE
+        filelist = glob.glob(DATADIR + "*distorcorr.fits")
+        dataset = GPI.GPIData(filelist, quiet=True)
+
+        #collapse the data spectrally
+        dataset.spectral_collapse(align_frames=True)
 
     DIMENSION = dataset.input.shape[1]
 
