@@ -545,10 +545,10 @@ def create_header(params_mcmc_yaml):
 ########################################################
 def best_model_plot(params_mcmc_yaml, hdr):
     """ Make the best models plot and save fits of
-        BestModelBeforeConv
-        BestModelAfterConv
-        BestModelAfterFM
-        BestModelResiduals
+        BestModel
+        BestModel_Conv
+        BestModel_FM
+        BestModel_Res
 
     Args:
         params_mcmc_yaml: dic, all the parameters of the MCMC and klip
@@ -694,7 +694,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     new_fits = fits.HDUList()
     new_fits.append(fits.ImageHDU(data=disk_ml, header=hdr))
-    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModelBeforeConv.fits',
+    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModel.fits',
                      overwrite=True)
 
     #convolve by the PSF
@@ -702,7 +702,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     new_fits = fits.HDUList()
     new_fits.append(fits.ImageHDU(data=disk_ml_convolved, header=hdr))
-    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModelAfterConv.fits',
+    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModel_Conv.fits',
                      overwrite=True)
 
     # load the KL numbers
@@ -720,17 +720,17 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     new_fits = fits.HDUList()
     new_fits.append(fits.ImageHDU(data=disk_ml_FM, header=hdr))
-    new_fits.writeto(mcmcresultdir + name_h5 + socket.gethostname() + '_BestModelAfterFM.fits',
+    new_fits.writeto(mcmcresultdir + name_h5 + socket.gethostname() + '_BestModel_FM.fits',
                      overwrite=True)
 
     new_fits = fits.HDUList()
     new_fits.append(
         fits.ImageHDU(data=np.abs(reduced_data - disk_ml_FM), header=hdr))
-    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModelResiduals.fits',
+    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModel_Res.fits',
                      overwrite=True)
 
     disk_ml_FM = fits.getdata(mcmcresultdir + name_h5 +
-                              '_BestModelAfterFM.fits')
+                              '_BestModel_FM.fits')
 
     #Set the colormap
     vmin = 0.3*np.min(disk_ml_FM)
@@ -834,7 +834,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     fig.tight_layout()
 
-    plt.savefig(mcmcresultdir + name_h5 + '_PlotBestModel.jpg')
+    plt.savefig(mcmcresultdir + name_h5 + '_BestModel_Plot.jpg')
 
 
 ########################################################

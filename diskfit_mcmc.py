@@ -649,17 +649,17 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
 
         #generate the model
         model_here = call_gen_disk_2g(theta_init)
-        fits.writeto(KLIPDIR + file_prefix + '_model_first.fits',
+        fits.writeto(KLIPDIR + file_prefix + '_FirstModel.fits',
                      model_here,
                      overwrite='True')
 
         model_here_convolved = convolve(model_here, PSF, boundary='wrap')
-        fits.writeto(KLIPDIR + file_prefix + '_model_convolved_first.fits',
+        fits.writeto(KLIPDIR + file_prefix + '_FirstModel_Conv.fits',
                      model_here_convolved,
                      overwrite='True')
 
     model_here_convolved = fits.getdata(KLIPDIR + file_prefix +
-                                        '_model_convolved_first.fits')
+                                        '_FirstModel_Conv.fits')
 
     if first_time == 1:
         # initialize the DiskFM object
@@ -701,7 +701,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
     diskobj.update_disk(model_here_convolved)
     modelfm_here = diskobj.fm_parallelized()[
         0]  ### we take only the first KL modemode
-    fits.writeto(KLIPDIR + file_prefix + '_modelfm_first.fits',
+    fits.writeto(KLIPDIR + file_prefix + '_FirstModel_FM.fits',
                  modelfm_here,
                  overwrite='True')
 
