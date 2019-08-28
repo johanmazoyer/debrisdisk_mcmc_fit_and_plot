@@ -281,10 +281,16 @@ def lnpb(theta):
     Returns:
         log of priors + log of likelyhood
     """
+    # from datetime import datetime
+    # starttime=datetime.now()
+
     lp = logp(theta)
     if not np.isfinite(lp):
         return -np.inf
-    return lp + logl(theta)
+    ll = logl(theta)
+    # print("Running time model + FM: ", datetime.now()-starttime)
+
+    return lp +ll
 
 
 ########################################################
