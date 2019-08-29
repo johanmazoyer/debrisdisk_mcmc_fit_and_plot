@@ -717,7 +717,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     fm.klip_dataset(dataset,
                         diskobj,
                         numbasis=numbasis,
-                        maxnumbasis=10,
+                        maxnumbasis=120,
                         annuli=1,
                         subsections=1,
                         mode='ADI',

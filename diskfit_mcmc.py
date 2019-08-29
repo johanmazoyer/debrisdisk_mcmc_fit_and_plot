@@ -584,7 +584,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         dataset.PAs = -dataset.PAs
         parallelized.klip_dataset(dataset,
                                   numbasis=numbasis,
-                                  maxnumbasis=10,
+                                  maxnumbasis=120,
                                   annuli=1,
                                   subsections=1,
                                   mode='ADI',
@@ -675,7 +675,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
         fm.klip_dataset(dataset,
                         diskobj,
                         numbasis=numbasis,
-                        maxnumbasis=10,
+                        maxnumbasis=120,
                         annuli=1,
                         subsections=1,
                         mode='ADI',
