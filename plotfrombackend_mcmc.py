@@ -980,6 +980,13 @@ if __name__ == '__main__':
     klipdir = DATADIR + 'klip_fm_files/'
     mcmcresultdir = DATADIR + 'results_MCMC/'
 
+    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
+    name_h5 = FILE_PREFIX + '_backend_file_mcmc'
+
+    if  not os.path.isfile(mcmcresultdir + name_h5 + '.h5'):
+        raise ValueError("the mcmc h5 file does not exist")
+
+
     # Plot the chain values
     make_chain_plot(params_mcmc_yaml)
 
