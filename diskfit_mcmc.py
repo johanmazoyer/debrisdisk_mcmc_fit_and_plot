@@ -481,7 +481,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
     else:
         #only for GPI
-        filelist = glob.glob(DATADIR + "*_distorcorr.fits")
+        filelist = sorted(glob.glob(DATADIR + "*_distorcorr.fits"))
 
         dataset4psf = GPI.GPIData(filelist, quiet=True)
 

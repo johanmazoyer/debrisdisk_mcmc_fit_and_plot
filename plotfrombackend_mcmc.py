@@ -15,6 +15,7 @@ import numpy as np
 import astropy.io.fits as fits
 from astropy.convolution import convolve
 import pyklip.parallelized as parallelized
+import pyklip.fm as fm
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -628,53 +629,53 @@ def best_model_plot(params_mcmc_yaml, hdr):
         xcen = params_mcmc_yaml['xcen']
         ycen = params_mcmc_yaml['ycen']
 
-        filelist = glob.glob(DATADIR + "*_distorcorr.fits")
+        filelist = sorted(glob.glob(DATADIR + "*_distorcorr.fits"))
 
-        dataset4psf = GPI.GPIData(filelist, quiet=True)
+        # dataset4psf = GPI.GPIData(filelist, quiet=True)
 
-        # measure the PSF from the satspots and identify angles where the
-        # disk intersect the satspots
-        excluded_files = gpidiskpsf.check_satspots_disk_intersection(
-            dataset4psf, params_mcmc_yaml, quiet=True)
+        # # measure the PSF from the satspots and identify angles where the
+        # # disk intersect the satspots
+        # excluded_files = gpidiskpsf.check_satspots_disk_intersection(
+        #     dataset4psf, params_mcmc_yaml, quiet=True)
 
-        filelist4psf = filelist
-        for excluded_filesi in excluded_files:
-            if excluded_filesi in filelist4psf:
-                filelist4psf.remove(excluded_filesi)
+        # filelist4psf = filelist
+        # for excluded_filesi in excluded_files:
+        #     if excluded_filesi in filelist4psf:
+        #         filelist4psf.remove(excluded_filesi)
 
-        rm_file_disk_cross_satspots = params_mcmc_yaml[
-            'RM_FILE_DISK_CROSS_SATSPOTS']
+        # rm_file_disk_cross_satspots = params_mcmc_yaml[
+        #     'RM_FILE_DISK_CROSS_SATSPOTS']
 
-        if rm_file_disk_cross_satspots == 1:
-            for excluded_filesi in excluded_files:
-                if excluded_filesi in filelist:
-                    filelist.remove(excluded_filesi)
+        # if rm_file_disk_cross_satspots == 1:
+        #     for excluded_filesi in excluded_files:
+        #         if excluded_filesi in filelist:
+        #             filelist.remove(excluded_filesi)
 
-        excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
-                                                        params_mcmc_yaml,
-                                                        quiet=True)
+        # excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
+        #                                                 params_mcmc_yaml,
+        #                                                 quiet=True)
         # load the rww data
+        excluded_slices = None
         dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
 
         #collapse the data spectrally
         dataset.spectral_collapse(align_frames=True, numthreads=1)
 
 
+    # parallelized.klip_dataset(dataset,
+    #                         numbasis=numbasis,
+    #                         maxnumbasis=100,
+    #                         annuli=1,
+    #                         subsections=1,
+    #                         mode='ADI',
+    #                         outputdir=klipdir,
+    #                         fileprefix= 'run_and_del',
+    #                         aligned_center=[xcen, ycen],
+    #                         highpass=False,
+    #                         minrot=move_here,
+    #                         calibrate_flux=False)
 
-    parallelized.klip_dataset(dataset,
-                            numbasis=numbasis,
-                            maxnumbasis=100,
-                            annuli=1,
-                            subsections=1,
-                            mode='ADI',
-                            outputdir=klipdir,
-                            fileprefix= 'run_and_del',
-                            aligned_center=[xcen, ycen],
-                            highpass=False,
-                            minrot=move_here,
-                            calibrate_flux=False)
-
-    os.remove(klipdir + 'run_and_del-KLmodes-all.fits')
+    # os.remove(klipdir + 'run_and_del-KLmodes-all.fits')
 
     DIMENSION = dataset.input.shape[1]
 
@@ -713,10 +714,29 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      basis_filename=klipdir + FILE_PREFIX + '_klbasis.h5',
                      load_from_basis=True)
 
+    fm.klip_dataset(dataset,
+                        diskobj,
+                        numbasis=numbasis,
+                        maxnumbasis=100,
+                        annuli=1,
+                        subsections=1,
+                        mode='ADI',
+                        outputdir='/Users/jmazoyer/Desktop/',
+                        fileprefix=FILE_PREFIX,
+                        aligned_center=[xcen, ycen],
+                        mute_progression=True,
+                        highpass=False,
+                        minrot=move_here,
+                        calibrate_flux=False,
+                        numthreads=1)
+
+
+    print("after that it is fm_parallelized")
     #do the FM
     diskobj.update_disk(disk_ml_convolved)
-    disk_ml_FM = diskobj.fm_parallelized()[
-        0]  ### we take only the first KL modemode
+    disk_ml_FM = diskobj.fm_parallelized()[0]
+    ### we take only the first KL modemode
+
 
     new_fits = fits.HDUList()
     new_fits.append(fits.ImageHDU(data=disk_ml_FM, header=hdr))
