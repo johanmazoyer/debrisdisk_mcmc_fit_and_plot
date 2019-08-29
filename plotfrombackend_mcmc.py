@@ -783,7 +783,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     cax = plt.imshow(disk_ml_convolved_crop,
                      origin='lower',
                      vmin=vmin,
-                     vmax=vmax,
+                     vmax=vmax * 2,
                      cmap=plt.cm.get_cmap('hot'))
 
     ax1.set_title("Model Convolved", fontsize=caracsize, pad=caracsize / 3.)
