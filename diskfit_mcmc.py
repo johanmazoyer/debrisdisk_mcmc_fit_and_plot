@@ -528,7 +528,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         filelist = sorted(glob.glob(DATADIR + "*_distorcorr.fits"))
 
 
-        # in the general case we can chosse to
+        # in the general case we can choose to
         # keep the files where the disk intersect the disk.
         # We can removed those if rm_file_disk_cross_satspots == 1
         rm_file_disk_cross_satspots = params_mcmc_yaml[

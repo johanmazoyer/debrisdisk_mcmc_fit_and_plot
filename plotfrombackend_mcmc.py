@@ -624,38 +624,44 @@ def best_model_plot(params_mcmc_yaml, hdr):
                                         parangs=parangs_sphere,
                                         wvs=None)
     else:
-        #only for GPI
+         #only for GPI
+        filelist4psf = sorted(glob.glob(DATADIR + "*_distorcorr.fits"))
 
-        xcen = params_mcmc_yaml['xcen']
-        ycen = params_mcmc_yaml['ycen']
+        dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
+
+        # identify angles where the
+        # disk intersect the satspots
+        excluded_files = gpidiskpsf.check_satspots_disk_intersection(
+            dataset4psf, params_mcmc_yaml, quiet=True)
+
+        # exclude those angles for the PSF measurement
+        for excluded_filesi in excluded_files:
+            if excluded_filesi in filelist4psf:
+                filelist4psf.remove(excluded_filesi)
+
+        # create the data this time wihtout the bad files
+        dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
+
+        # Find the IFS slices for which the satspots are too faint
+        # if SNR time_mean(sat spot) <3 they are removed
+        # Mostyly for K2 and sometime K1
+        excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
+                                                        params_mcmc_yaml,
+                                                        quiet=True)
 
         filelist = sorted(glob.glob(DATADIR + "*_distorcorr.fits"))
 
-        # dataset4psf = GPI.GPIData(filelist, quiet=True)
+        # in the general case we can chosse to
+        # keep the files where the disk intersect the disk.
+        # We can removed those if rm_file_disk_cross_satspots == 1
+        rm_file_disk_cross_satspots = params_mcmc_yaml[
+                            'RM_FILE_DISK_CROSS_SATSPOTS']
+        if rm_file_disk_cross_satspots == 1:
+            for excluded_filesi in excluded_files:
+                if excluded_filesi in filelist:
+                    filelist.remove(excluded_filesi)
 
-        # # measure the PSF from the satspots and identify angles where the
-        # # disk intersect the satspots
-        # excluded_files = gpidiskpsf.check_satspots_disk_intersection(
-        #     dataset4psf, params_mcmc_yaml, quiet=True)
-
-        # filelist4psf = filelist
-        # for excluded_filesi in excluded_files:
-        #     if excluded_filesi in filelist4psf:
-        #         filelist4psf.remove(excluded_filesi)
-
-        # rm_file_disk_cross_satspots = params_mcmc_yaml[
-        #     'RM_FILE_DISK_CROSS_SATSPOTS']
-
-        # if rm_file_disk_cross_satspots == 1:
-        #     for excluded_filesi in excluded_files:
-        #         if excluded_filesi in filelist:
-        #             filelist.remove(excluded_filesi)
-
-        # excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
-        #                                                 params_mcmc_yaml,
-        #                                                 quiet=True)
-        # load the rww data
-        excluded_slices = None
+        # load the raw data without the bad slices
         dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
 
         #collapse the data spectrally
@@ -723,7 +729,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
                         mode='ADI',
                         outputdir=mcmcresultdir,
                         fileprefix="todel",
-                        aligned_center=[xcen, ycen],
+                        aligned_center=[140, 140],
                         mute_progression=True,
                         highpass=False,
                         minrot=move_here,
