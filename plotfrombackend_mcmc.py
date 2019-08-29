@@ -14,21 +14,14 @@ import numpy as np
 
 import astropy.io.fits as fits
 from astropy.convolution import convolve
-import pyklip.parallelized as parallelized
-import pyklip.fm as fm
 
-import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 
-plt.switch_backend('agg')
-# There is a conflict when I import
-# matplotlib with pyklip if I don't use this line
+import yaml
 
 import corner
 from emcee import backends
-
-import yaml
 
 import pyklip.instruments.GPI as GPI
 import pyklip.instruments.Instrument as Instrument
@@ -38,6 +31,11 @@ from anadisk_johan import gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import astro_unit_conversion as convert
 from kowalsky import kowalsky
 import make_gpi_psf_for_disks as gpidiskpsf
+
+
+plt.switch_backend('agg')
+# There is a conflict when I import
+# matplotlib with pyklip if I don't use this line
 
 # define global variables in the global scope
 DISTANCE_STAR = PIXSCALE_INS = DIMENSION = None
@@ -239,18 +237,17 @@ def make_chain_plot(params_mcmc_yaml):
 
     if N_DIM_MCMC == 13:
         ## change log values to physical
-        chain[:,:,0]=np.exp(chain[:,:,0])
-        chain[:,:,1]=np.exp(chain[:,:,1])
-        chain[:,:,8]=np.degrees(np.arccos(chain[:,:,8]))
-        chain[:,:,12]=np.exp(chain[:,:,12])
+        chain[:, :, 0] = np.exp(chain[:, :, 0])
+        chain[:, :, 1] = np.exp(chain[:, :, 1])
+        chain[:, :, 8] = np.degrees(np.arccos(chain[:, :, 8]))
+        chain[:, :, 12] = np.exp(chain[:, :, 12])
 
         ## change g1, g2, g3, alpha1 and alpha2 to percentage
-        chain[:,:,3]=100*chain[:,:,3]
-        chain[:,:,4]=100*chain[:,:,4]
-        chain[:,:,5]=100*chain[:,:,5]
-        chain[:,:,6]=100*chain[:,:,6]
-        chain[:,:,7]=100*chain[:,:,7]
-
+        chain[:, :, 3] = 100 * chain[:, :, 3]
+        chain[:, :, 4] = 100 * chain[:, :, 4]
+        chain[:, :, 5] = 100 * chain[:, :, 5]
+        chain[:, :, 6] = 100 * chain[:, :, 6]
+        chain[:, :, 7] = 100 * chain[:, :, 7]
 
     _, axarr = plt.subplots(N_DIM_MCMC,
                             sharex=True,
@@ -315,18 +312,17 @@ def make_corner_plot(params_mcmc_yaml):
 
     if N_DIM_MCMC == 13:
         ## change log values to physical
-        chain[:,:,0]=np.exp(chain[:,:,0])
-        chain[:,:,1]=np.exp(chain[:,:,1])
-        chain[:,:,8]=np.degrees(np.arccos(chain[:,:,8]))
-        chain[:,:,12]=np.exp(chain[:,:,12])
+        chain[:, :, 0] = np.exp(chain[:, :, 0])
+        chain[:, :, 1] = np.exp(chain[:, :, 1])
+        chain[:, :, 8] = np.degrees(np.arccos(chain[:, :, 8]))
+        chain[:, :, 12] = np.exp(chain[:, :, 12])
 
         ## change g1, g2, g3, alpha1 and alpha2 to percentage
-        chain[:,:,3]=100*chain[:,:,3]
-        chain[:,:,4]=100*chain[:,:,4]
-        chain[:,:,5]=100*chain[:,:,5]
-        chain[:,:,6]=100*chain[:,:,6]
-        chain[:,:,7]=100*chain[:,:,7]
-
+        chain[:, :, 3] = 100 * chain[:, :, 3]
+        chain[:, :, 4] = 100 * chain[:, :, 4]
+        chain[:, :, 5] = 100 * chain[:, :, 5]
+        chain[:, :, 6] = 100 * chain[:, :, 6]
+        chain[:, :, 7] = 100 * chain[:, :, 7]
 
     samples = chain[:, :].reshape(-1, N_DIM_MCMC)
 
@@ -397,8 +393,6 @@ def create_header(params_mcmc_yaml):
     DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
     PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
 
-
-
     sigma = params_mcmc_yaml['sigma']
 
     FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
@@ -425,19 +419,17 @@ def create_header(params_mcmc_yaml):
 
     if N_DIM_MCMC == 13:
         ## change log values to physical
-        chain[:,:,0]=np.exp(chain[:,:,0])
-        chain[:,:,1]=np.exp(chain[:,:,1])
-        chain[:,:,8]=np.degrees(np.arccos(chain[:,:,8]))
-        chain[:,:,12]=np.exp(chain[:,:,12])
+        chain[:, :, 0] = np.exp(chain[:, :, 0])
+        chain[:, :, 1] = np.exp(chain[:, :, 1])
+        chain[:, :, 8] = np.degrees(np.arccos(chain[:, :, 8]))
+        chain[:, :, 12] = np.exp(chain[:, :, 12])
 
         ## change g1, g2, g3, alpha1 and alpha2 to percentage
-        chain[:,:,3]=100*chain[:,:,3]
-        chain[:,:,4]=100*chain[:,:,4]
-        chain[:,:,5]=100*chain[:,:,5]
-        chain[:,:,6]=100*chain[:,:,6]
-        chain[:,:,7]=100*chain[:,:,7]
-
-
+        chain[:, :, 3] = 100 * chain[:, :, 3]
+        chain[:, :, 4] = 100 * chain[:, :, 4]
+        chain[:, :, 5] = 100 * chain[:, :, 5]
+        chain[:, :, 6] = 100 * chain[:, :, 6]
+        chain[:, :, 7] = 100 * chain[:, :, 7]
 
     samples = chain[:, :].reshape(-1, chain.shape[2])
 
@@ -574,7 +566,6 @@ def best_model_plot(params_mcmc_yaml, hdr):
     name_h5 = FILE_PREFIX + '_backend_file_mcmc'
 
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
-    move_here = params_mcmc_yaml['MOVE_HERE']
     N_DIM_MCMC = hdr['n_param']
 
     #Format the most likely values
@@ -614,17 +605,19 @@ def best_model_plot(params_mcmc_yaml, hdr):
         #only for SPHERE
         xcen = params_mcmc_yaml['xcen']
         ycen = params_mcmc_yaml['ycen']
-        datacube_sphere = fits.getdata(DATADIR + FILE_PREFIX + '_true_dataset.fits')
-        parangs_sphere = fits.getdata(DATADIR + FILE_PREFIX + '_true_parangs.fits')
+        datacube_sphere = fits.getdata(DATADIR + FILE_PREFIX +
+                                       '_true_dataset.fits')
+        parangs_sphere = fits.getdata(DATADIR + FILE_PREFIX +
+                                      '_true_parangs.fits')
 
         size_datacube = datacube_sphere.shape
-        centers_sphere = np.zeros((size_datacube[0], 2)) + [xcen,ycen]
+        centers_sphere = np.zeros((size_datacube[0], 2)) + [xcen, ycen]
         dataset = Instrument.GenericData(datacube_sphere,
-                                        centers_sphere,
-                                        parangs=parangs_sphere,
-                                        wvs=None)
+                                         centers_sphere,
+                                         parangs=parangs_sphere,
+                                         wvs=None)
     else:
-         #only for GPI
+        #only for GPI
         filelist4psf = sorted(glob.glob(DATADIR + "*_distorcorr.fits"))
 
         dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
@@ -655,7 +648,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
         # keep the files where the disk intersect the disk.
         # We can removed those if rm_file_disk_cross_satspots == 1
         rm_file_disk_cross_satspots = params_mcmc_yaml[
-                            'RM_FILE_DISK_CROSS_SATSPOTS']
+            'RM_FILE_DISK_CROSS_SATSPOTS']
         if rm_file_disk_cross_satspots == 1:
             for excluded_filesi in excluded_files:
                 if excluded_filesi in filelist:
@@ -666,7 +659,6 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
         #collapse the data spectrally
         dataset.spectral_collapse(align_frames=True, numthreads=1)
-
 
     DIMENSION = dataset.input.shape[1]
 
@@ -710,7 +702,6 @@ def best_model_plot(params_mcmc_yaml, hdr):
     disk_ml_FM = diskobj.fm_parallelized()[0]
     ### we take only the first KL modemode
 
-
     new_fits = fits.HDUList()
     new_fits.append(fits.ImageHDU(data=disk_ml_FM, header=hdr))
     new_fits.writeto(mcmcresultdir + name_h5 + '_BestModel_FM.fits',
@@ -722,12 +713,12 @@ def best_model_plot(params_mcmc_yaml, hdr):
     new_fits.writeto(mcmcresultdir + name_h5 + '_BestModel_Res.fits',
                      overwrite=True)
 
-
     #Set the colormap
-    vmin = 0.3*np.min(disk_ml_FM)
-    vmax = 0.9*np.max(disk_ml_FM)
+    vmin = 0.3 * np.min(disk_ml_FM)
+    vmax = 0.9 * np.max(disk_ml_FM)
 
-    dim_crop_image = int(4*convert.au_to_pix(102, PIXSCALE_INS, DISTANCE_STAR)//2)
+    dim_crop_image = int(
+        4 * convert.au_to_pix(102, PIXSCALE_INS, DISTANCE_STAR) // 2)
 
     reduced_data_crop = crop_center(reduced_data, dim_crop_image)
     disk_ml_FM_crop = crop_center(disk_ml_FM, dim_crop_image)
@@ -983,9 +974,8 @@ if __name__ == '__main__':
     FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
     name_h5 = FILE_PREFIX + '_backend_file_mcmc'
 
-    if  not os.path.isfile(mcmcresultdir + name_h5 + '.h5'):
+    if not os.path.isfile(mcmcresultdir + name_h5 + '.h5'):
         raise ValueError("the mcmc h5 file does not exist")
-
 
     # Plot the chain values
     make_chain_plot(params_mcmc_yaml)

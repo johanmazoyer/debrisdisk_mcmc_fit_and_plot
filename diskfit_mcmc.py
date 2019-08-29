@@ -1,10 +1,10 @@
 # pylint: disable=C0103
 ####### This is the MCMC fitting code for fitting a disk to HR 4796 data #######
 import os
+
 import sys
 import glob
 import socket
-
 
 import distutils.dir_util
 import warnings
@@ -40,7 +40,6 @@ from anadisk_johan import gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import astro_unit_conversion as convert
 
 os.environ["OMP_NUM_THREADS"] = "1"
-
 
 #######################################################
 def call_gen_disk_2g(theta):
@@ -413,17 +412,18 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             psf_init = fits.getdata(DATADIR + "psf_sphere_h2.fits")
             size_init = psf_init.shape[1]
             size_small = 31
-            small_psf = psf_init[size_init // 2 - size_small // 2:size_init // 2 +
-                                size_small // 2 + 1, size_init // 2 -
-                                size_small // 2:size_init // 2 + size_small // 2 +
-                                1]
+            small_psf = psf_init[size_init // 2 -
+                                 size_small // 2:size_init // 2 +
+                                 size_small // 2 + 1, size_init // 2 -
+                                 size_small // 2:size_init // 2 +
+                                 size_small // 2 + 1]
 
             small_psf = small_psf / np.max(small_psf)
             small_psf[np.where(small_psf < 0.005)] = 0.
 
             fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
-                        small_psf,
-                        overwrite='True')
+                         small_psf,
+                         overwrite='True')
 
             # load the raw data
             datacube_sphere_init = fits.getdata(
@@ -432,14 +432,15 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             parangs = fits.getdata(DATADIR + "parang.fits")
             parangs = parangs - 135.99 + 90  ## true north
 
-
             datacube_sphere_init = np.delete(datacube_sphere_init, (72, 81),
-                                            0)  ## 2 slices are bad
+                                             0)  ## 2 slices are bad
             parangs = np.delete(parangs, (72, 81), 0)  ## 2 slices are bad
 
             olddim = datacube_sphere_init.shape[1]
 
-            newdim = 281  ## we resize the data to the same size as GPI to avoid a problem of centering
+            # we resize the SPHERE data to the same size as GPI (281)
+            # to avoid a problem of centering
+            newdim = 281
             datacube_sphere_newdim = np.zeros(
                 (datacube_sphere_init.shape[0], newdim, newdim))
 
@@ -448,37 +449,34 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                     i, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 +
                     1, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1]
 
-
-
             # we flip the dataset (and therefore inverse the parangs) to obtain
             # the good PA after pyklip reduction
-            parangs = - parangs
+            parangs = -parangs
             for i in range(datacube_sphere_newdim.shape[0]):
-                datacube_sphere_newdim[i] = np.flip(datacube_sphere_newdim[i], axis = 0)
+                datacube_sphere_newdim[i] = np.flip(datacube_sphere_newdim[i],
+                                                    axis=0)
 
             datacube_sphere = datacube_sphere_newdim
 
-
-
             fits.writeto(DATADIR + file_prefix + '_true_parangs.fits',
-                     parangs,
-                     overwrite='True')
+                         parangs,
+                         overwrite='True')
 
             fits.writeto(DATADIR + file_prefix + '_true_dataset.fits',
-                        datacube_sphere,
-                        overwrite='True')
+                         datacube_sphere,
+                         overwrite='True')
 
-
-        datacube_sphere = fits.getdata(DATADIR + file_prefix + '_true_dataset.fits')
-        parangs_sphere = fits.getdata(DATADIR + file_prefix + '_true_parangs.fits')
+        datacube_sphere = fits.getdata(DATADIR + file_prefix +
+                                       '_true_dataset.fits')
+        parangs_sphere = fits.getdata(DATADIR + file_prefix +
+                                      '_true_parangs.fits')
 
         size_datacube = datacube_sphere.shape
-        centers_sphere = np.zeros((size_datacube[0], 2)) + [xcen,ycen]
+        centers_sphere = np.zeros((size_datacube[0], 2)) + [xcen, ycen]
         dataset = Instrument.GenericData(datacube_sphere,
-                                        centers_sphere,
-                                        parangs=parangs_sphere,
-                                        wvs=None)
-
+                                         centers_sphere,
+                                         parangs=parangs_sphere,
+                                         wvs=None)
 
     else:
         #only for GPI
@@ -527,12 +525,11 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
         filelist = sorted(glob.glob(DATADIR + "*_distorcorr.fits"))
 
-
         # in the general case we can choose to
         # keep the files where the disk intersect the disk.
         # We can removed those if rm_file_disk_cross_satspots == 1
         rm_file_disk_cross_satspots = params_mcmc_yaml[
-                            'RM_FILE_DISK_CROSS_SATSPOTS']
+            'RM_FILE_DISK_CROSS_SATSPOTS']
         if rm_file_disk_cross_satspots == 1:
             for excluded_filesi in excluded_files:
                 if excluded_filesi in filelist:
