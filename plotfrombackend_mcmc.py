@@ -729,8 +729,6 @@ def best_model_plot(params_mcmc_yaml, hdr):
     new_fits.writeto(mcmcresultdir + name_h5 + '_BestModel_Res.fits',
                      overwrite=True)
 
-    disk_ml_FM = fits.getdata(mcmcresultdir + name_h5 +
-                              '_BestModel_FM.fits')
 
     #Set the colormap
     vmin = 0.3*np.min(disk_ml_FM)
