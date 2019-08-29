@@ -727,10 +727,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     vmin = 0.3*np.min(disk_ml_FM)
     vmax = 0.9*np.max(disk_ml_FM)
 
-    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata/':
-        dim_crop_image = 232
-    else:
-        dim_crop_image = 196
+    dim_crop_image = int(4*convert.au_to_pix(102, PIXSCALE_INS, DISTANCE_STAR)//2)
 
     reduced_data_crop = crop_center(reduced_data, dim_crop_image)
     disk_ml_FM_crop = crop_center(disk_ml_FM, dim_crop_image)
