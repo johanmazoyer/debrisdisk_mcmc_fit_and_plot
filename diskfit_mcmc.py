@@ -483,48 +483,48 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         #only for GPI
         filelist = sorted(glob.glob(DATADIR + "*_distorcorr.fits"))
 
-        dataset4psf = GPI.GPIData(filelist, quiet=True)
+        # dataset4psf = GPI.GPIData(filelist, quiet=True)
 
         # measure the PSF from the satspots and identify angles where the
         # disk intersect the satspots
-        excluded_files = gpidiskpsf.check_satspots_disk_intersection(
-            dataset4psf, params_mcmc_yaml, quiet=True)
+        # excluded_files = gpidiskpsf.check_satspots_disk_intersection(
+        #     dataset4psf, params_mcmc_yaml, quiet=True)
 
-        filelist4psf = filelist
-        for excluded_filesi in excluded_files:
-            if excluded_filesi in filelist4psf:
-                filelist4psf.remove(excluded_filesi)
+        # filelist4psf = filelist
+        # for excluded_filesi in excluded_files:
+        #     if excluded_filesi in filelist4psf:
+        #         filelist4psf.remove(excluded_filesi)
 
-        rm_file_disk_cross_satspots = params_mcmc_yaml[
-            'RM_FILE_DISK_CROSS_SATSPOTS']
+        # rm_file_disk_cross_satspots = params_mcmc_yaml[
+        #     'RM_FILE_DISK_CROSS_SATSPOTS']
 
-        if rm_file_disk_cross_satspots == 1:
-            for excluded_filesi in excluded_files:
-                if excluded_filesi in filelist:
-                    filelist.remove(excluded_filesi)
+        # if rm_file_disk_cross_satspots == 1:
+        #     for excluded_filesi in excluded_files:
+        #         if excluded_filesi in filelist:
+        #             filelist.remove(excluded_filesi)
 
-        excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
-                                                        params_mcmc_yaml,
-                                                        quiet=True)
+        # excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
+        #                                                 params_mcmc_yaml,
+        #                                                 quiet=True)
 
-        if first_time == 1:
-            dataset4psf = GPI.GPIData(filelist4psf,
-                                      quiet=True,
-                                      skipslices=excluded_slices)
+        # if first_time == 1:
+        #     dataset4psf = GPI.GPIData(filelist4psf,
+        #                               quiet=True,
+        #                               skipslices=excluded_slices)
 
-            instrument_psf = gpidiskpsf.make_collapsed_psf(dataset4psf,
-                                                           params_mcmc_yaml,
-                                                           boxrad=14)
+        #     instrument_psf = gpidiskpsf.make_collapsed_psf(dataset4psf,
+        #                                                    params_mcmc_yaml,
+        #                                                    boxrad=14)
 
-            #because we are monochromatic here, we only take the first one
-            instrument_psf = instrument_psf[0]
+        #     #because we are monochromatic here, we only take the first one
+        #     instrument_psf = instrument_psf[0]
 
-            fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
-                         instrument_psf,
-                         overwrite=True)
+        #     fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
+        #                  instrument_psf,
+        #                  overwrite=True)
 
         # load the rww data
-        dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
+        dataset = GPI.GPIData(filelist, quiet=True, skipslices=None)
 
         #collapse the data spectrally
         dataset.spectral_collapse(align_frames=True, numthreads=1)
