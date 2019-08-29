@@ -668,21 +668,6 @@ def best_model_plot(params_mcmc_yaml, hdr):
         dataset.spectral_collapse(align_frames=True, numthreads=1)
 
 
-    # parallelized.klip_dataset(dataset,
-    #                         numbasis=numbasis,
-    #                         maxnumbasis=120,
-    #                         annuli=1,
-    #                         subsections=1,
-    #                         mode='ADI',
-    #                         outputdir=klipdir,
-    #                         fileprefix= 'run_and_del',
-    #                         aligned_center=[xcen, ycen],
-    #                         highpass=False,
-    #                         minrot=move_here,
-    #                         calibrate_flux=False)
-
-    # os.remove(klipdir + 'run_and_del-KLmodes-all.fits')
-
     DIMENSION = dataset.input.shape[1]
 
     # load the data
@@ -720,24 +705,6 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      basis_filename=klipdir + FILE_PREFIX + '_klbasis.h5',
                      load_from_basis=True)
 
-    fm.klip_dataset(dataset,
-                        diskobj,
-                        numbasis=numbasis,
-                        maxnumbasis=120,
-                        annuli=1,
-                        subsections=1,
-                        mode='ADI',
-                        outputdir=mcmcresultdir,
-                        fileprefix="todel",
-                        aligned_center=[140, 140],
-                        mute_progression=True,
-                        highpass=False,
-                        minrot=move_here,
-                        calibrate_flux=False,
-                        numthreads=1)
-
-
-    print("after that it is fm_parallelized")
     #do the FM
     diskobj.update_disk(disk_ml_convolved)
     disk_ml_FM = diskobj.fm_parallelized()[0]
