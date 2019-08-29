@@ -713,7 +713,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     new_fits = fits.HDUList()
     new_fits.append(fits.ImageHDU(data=disk_ml_FM, header=hdr))
-    new_fits.writeto(mcmcresultdir + name_h5 + socket.gethostname() + '_BestModel_FM.fits',
+    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModel_FM.fits',
                      overwrite=True)
 
     new_fits = fits.HDUList()
@@ -846,7 +846,7 @@ def print_geometry_parameter(params_mcmc_yaml, hdr):
 
     reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
 
-    f1 = open(mcmcresultdir + name_h5 + 'mcmcfit_geometrical_params.txt', 'w+')
+    f1 = open(mcmcresultdir + name_h5 + '_fit_geometrical_params.txt', 'w+')
     f1.write("\n'{0} / {1}".format(reader.iteration, reader.iteration * 192))
     f1.write("\n")
 
