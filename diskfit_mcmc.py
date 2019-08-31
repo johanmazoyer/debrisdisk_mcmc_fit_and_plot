@@ -236,19 +236,19 @@ def logp(theta):
             return -np.inf
 
     if len(theta) == 13:
-        if (g1 < -0.9999999 or g1 > 0.9999999):
+        if (g1 < -1 or g1 > 1):
             return -np.inf
 
-        if (g2 < -0.999999 or g2 > 0.999999):
+        if (g2 < -1 or g2 > 1):
             return -np.inf
 
-        if (g3 < -0.999999 or g3 > 0.999999):
+        if (g3 < -1 or g3 > 1):
             return -np.inf
 
-        if (alpha1 < -0.9999999 or alpha1 > 0.9999999):
+        if (alpha1 < -1 or alpha1 > 1):
             return -np.inf
 
-        if (alpha2 < -0.999999 or alpha2 > 0.999999):
+        if (alpha2 < -1 or alpha2 > 1):
             return -np.inf
 
     if (np.arccos(cinc) < np.radians(70) or np.arccos(cinc) > np.radians(80)):
@@ -881,7 +881,7 @@ if __name__ == '__main__':
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC.yaml'
+        str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 

@@ -735,7 +735,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      origin='lower',
                      vmin=vmin,
                      vmax=vmax,
-                     cmap=plt.cm.get_cmap('hot'))
+                     cmap=plt.cm.get_cmap('viridis'))
     ax1.set_title("Original Data", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
     cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
@@ -747,7 +747,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      origin='lower',
                      vmin=0,
                      vmax=vmax / 3.,
-                     cmap=plt.cm.get_cmap('hot'))
+                     cmap=plt.cm.get_cmap('viridis'))
     ax1.set_title("Residuals", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
     cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
@@ -759,7 +759,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      origin='lower',
                      vmin=0,
                      vmax=2,
-                     cmap=plt.cm.get_cmap('hot'))
+                     cmap=plt.cm.get_cmap('viridis'))
     ax1.set_title("SNR Residuals", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, ticks=[0, 1, 2], fraction=0.046, pad=0.04)
     cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
@@ -772,7 +772,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      origin='lower',
                      vmin=-2,
                      vmax=np.max(disk_ml_crop) / 1.5,
-                     cmap=plt.cm.get_cmap('hot'))
+                     cmap=plt.cm.get_cmap('plasma'))
     ax1.set_title("Best Model", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
     cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
@@ -784,7 +784,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      origin='lower',
                      vmin=vmin,
                      vmax=vmax * 2,
-                     cmap=plt.cm.get_cmap('hot'))
+                     cmap=plt.cm.get_cmap('viridis'))
 
     ax1.set_title("Model Convolved", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
@@ -797,7 +797,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      origin='lower',
                      vmin=vmin,
                      vmax=vmax,
-                     cmap=plt.cm.get_cmap('hot'))
+                     cmap=plt.cm.get_cmap('viridis'))
     ax1.set_title("Model Convolved + FM",
                   fontsize=caracsize,
                   pad=caracsize / 3.)
@@ -978,10 +978,10 @@ if __name__ == '__main__':
         raise ValueError("the mcmc h5 file does not exist")
 
     # Plot the chain values
-    make_chain_plot(params_mcmc_yaml)
+    # make_chain_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
-    make_corner_plot(params_mcmc_yaml)
+    # make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)

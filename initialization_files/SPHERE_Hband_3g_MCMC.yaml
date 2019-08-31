@@ -28,18 +28,18 @@ N_DIM_MCMC: 13  #Number of parmeter in the MCMC
 r1_init: 74.3
 r2_init: 99.9
 beta_init: 12
-g1_init: 0.78
-g2_init: -0.21
-alpha1_init: 0.31
+g1_init: 0.99997991
+g2_init: 0.05085574
+alpha1_init: 0.99949596
 inc_init: 76.79
 pa_init: 26.73
 dx_init: -1.7
 dy_init: 0.85
 N_init: 189
-
+# 0.99997991  0.05085574  0.04775487  0.99949596 -0.03397267
 # fill if 3g SPF (N_DIM_MCMC = 13)
-g3_init: 0.
-alpha2_init: 0.
+g3_init: 0.04775487
+alpha2_init: -0.03397267
 
 # MCMC READING PARAMETERS
 BURNIN: 0   #We remove the first BURNIN iteration
