@@ -1,5 +1,5 @@
 # PYKLIP PARAMETERS
-FIRST_TIME: 1
+FIRST_TIME: 0
 #if FIRST_TIME=1 the masks, reduced data, noise map, and KL vectors are recalculated.
 KLMODE_NUMBER: 3
 RM_FILE_DISK_CROSS_SATSPOTS: 0
@@ -18,10 +18,10 @@ DISTANCE_STAR: 72.0
 PIXSCALE_INS: 0.01414
 
 # MCMC PARAMETERS
-NEW_BACKEND: 1
+NEW_BACKEND: 0
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
 NWALKERS: 192 #Number of walkers
-N_ITER_MCMC: 1 #Number of interation
+N_ITER_MCMC: 10000 #Number of interation
 NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
 
 N_DIM_MCMC: 11  #Number of parmeter in the MCMC
