@@ -134,7 +134,7 @@ def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet=True):
     Returns:
         the PSF
     """
-    return None
+
     wls = np.unique(dataset_multi_wl.wvs)
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     xcen = params_mcmc_yaml['xcen']
@@ -237,7 +237,7 @@ def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=20):
 
     print(return_psf.shape)
 
-    r_smooth = 12 / 1.6 * dataset.wvs[0]
+    r_smooth = 13 / 1.6 * dataset.wvs[0]
     # # create rho2D for the psf square
     x_square = np.arange(2 * boxrad + 1,
                          dtype=np.float)[None, :] - boxrad

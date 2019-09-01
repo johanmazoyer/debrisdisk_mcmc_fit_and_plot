@@ -513,7 +513,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             # finally measure the good psf
             instrument_psf = gpidiskpsf.make_collapsed_psf(dataset4psf,
                                                            params_mcmc_yaml,
-                                                           boxrad=16)
+                                                           boxrad=15)
 
             #save the psf
             fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
