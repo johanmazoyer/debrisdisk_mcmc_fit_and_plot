@@ -134,7 +134,7 @@ def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet=True):
     Returns:
         the PSF
     """
-
+    return None
     wls = np.unique(dataset_multi_wl.wvs)
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     xcen = params_mcmc_yaml['xcen']
@@ -230,15 +230,19 @@ def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=20):
         mask_triangle = np.ones((dimx, dimy))
 
     dataset.input = dataset.input * mask_triangle
-    dataset.spectral_collapse(align_frames=True)
 
     dataset.generate_psfs(boxrad=boxrad)
+
+    return_psf = np.nanmean(dataset.psfs,axis = 0)
+
+    print(return_psf.shape)
+
     r_smooth = 12 / 1.6 * dataset.wvs[0]
     # # create rho2D for the psf square
     x_square = np.arange(2 * boxrad + 1,
-                         dtype=np.float)[None, :] - dataset.psfs.shape[1] // 2
+                         dtype=np.float)[None, :] - boxrad
     y_square = np.arange(2 * boxrad + 1,
-                         dtype=np.float)[:, None] - dataset.psfs.shape[2] // 2
+                         dtype=np.float)[:, None] - boxrad
     rho2d_square = np.sqrt(x_square**2 + y_square**2)
 
     smooth_mask = np.ones((2 * boxrad + 1, 2 * boxrad + 1))
@@ -247,7 +251,7 @@ def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=20):
     smooth_mask[np.where(rho2d_square < r_smooth)] = 1.
     smooth_mask[np.where(smooth_mask < 0.01)] = 0.
 
-    return_psf = dataset.psfs * smooth_mask
+    return_psf = return_psf*smooth_mask
     return_psf = return_psf / np.max(return_psf)
     return_psf[np.where(return_psf < 0.)] = 0.
     return return_psf

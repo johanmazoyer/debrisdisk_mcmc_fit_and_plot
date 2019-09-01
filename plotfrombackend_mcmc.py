@@ -17,6 +17,7 @@ from astropy.convolution import convolve
 
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
+from matplotlib.patches import Rectangle
 
 import yaml
 
@@ -31,7 +32,6 @@ from anadisk_johan import gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import astro_unit_conversion as convert
 from kowalsky import kowalsky
 import make_gpi_psf_for_disks as gpidiskpsf
-
 
 plt.switch_backend('agg')
 # There is a conflict when I import
@@ -779,12 +779,24 @@ def best_model_plot(params_mcmc_yaml, hdr):
     plt.axis('off')
 
     #The convolved model
+
+    rect = Rectangle((9.5, 9.5),
+                  psf.shape[0],
+                  psf.shape[1],
+                  edgecolor='white',
+                  facecolor='none',
+                  linewidth=2)
+
+    disk_ml_convolved_crop[10:10 + psf.shape[0], 10:10 +
+                           psf.shape[1]] = 2 * vmax * psf
+
     ax1 = fig.add_subplot(234)
     cax = plt.imshow(disk_ml_convolved_crop,
                      origin='lower',
                      vmin=vmin,
                      vmax=vmax * 2,
                      cmap=plt.cm.get_cmap('viridis'))
+    ax1.add_patch(rect)
 
     ax1.set_title("Model Convolved", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
@@ -952,7 +964,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC.yaml'
+        str_yalm = 'SPHERE_Hband_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
@@ -978,10 +990,10 @@ if __name__ == '__main__':
         raise ValueError("the mcmc h5 file does not exist")
 
     # Plot the chain values
-    # make_chain_plot(params_mcmc_yaml)
+    make_chain_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
-    # make_corner_plot(params_mcmc_yaml)
+    make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)
