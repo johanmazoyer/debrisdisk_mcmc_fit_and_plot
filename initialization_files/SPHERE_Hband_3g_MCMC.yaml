@@ -57,8 +57,8 @@ NAMES:
 - g1
 - g2
 - g3
-- Alpha1
-- Alpha2
+- Alph1
+- Alph2
 - inc
 - PA
 - dx
@@ -66,12 +66,13 @@ NAMES:
 - Norm
 - RA
 - Decl
-- RApix
-- Depix
-- a
-- ecc
+- RAp
+- Declp
+- Rkowa
+- ekowa
+- ikowa
 - Omega
-- ARGPE
+- Argpe
 
 LABELS:
   Alph1: $\alpha$1[%]
