@@ -64,11 +64,11 @@ def call_gen_disk_2g(theta):
     pa = theta[7]
     dx = theta[8]
     dy = theta[9]
-    norm = theta[10]
+    norm = mt.exp(theta[10])
     # offset = theta[11]
 
     #generate the model
-    model = mt.exp(norm) * gen_disk_dxdy_2g(DIMENSION,
+    model = norm * gen_disk_dxdy_2g(DIMENSION,
                                             R1=r1,
                                             R2=r2,
                                             beta=beta,
@@ -115,7 +115,7 @@ def call_gen_disk_3g(theta):
     norm = mt.exp(theta[12])
 
     #generate the model
-    model = mt.exp(norm) * gen_disk_dxdy_3g(DIMENSION,
+    model = norm * gen_disk_dxdy_3g(DIMENSION,
                                             R1=r1,
                                             R2=r2,
                                             beta=beta,
@@ -285,7 +285,6 @@ def lnpb(theta):
     """
     # from datetime import datetime
     # starttime=datetime.now()
-
     lp = logp(theta)
     if not np.isfinite(lp):
         return -np.inf
@@ -644,8 +643,8 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
     ycen = params_mcmc_yaml['ycen']
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
     move_here = params_mcmc_yaml['MOVE_HERE']
-
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
+    n_dim_mcmc = params_mcmc_yaml['N_DIM_MCMC']
 
     if first_time == 1:
         # create a first model to check the begining parameter and initialize the FM.
@@ -657,7 +656,11 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
         theta_init = from_param_to_theta_init(params_mcmc_yaml)
 
         #generate the model
-        model_here = call_gen_disk_2g(theta_init)
+        if n_dim_mcmc == 11:
+            model_here = call_gen_disk_2g(theta_init)
+        if n_dim_mcmc == 13:
+            model_here = call_gen_disk_3g(theta_init)
+
         fits.writeto(KLIPDIR + file_prefix + '_FirstModel.fits',
                      model_here,
                      overwrite='True')
@@ -878,7 +881,8 @@ if __name__ == '__main__':
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC.yaml'
+        # str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
+        str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 

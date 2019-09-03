@@ -65,25 +65,25 @@ def call_gen_disk_2g(theta):
     pa = theta[7]
     dx = theta[8]
     dy = theta[9]
-    norm = theta[10]
+    norm = mt.exp(theta[10])
     # offset = theta[11]
 
     #generate the model
-    model = mt.exp(norm) * gen_disk_dxdy_2g(DIMENSION,
-                                            R1=r1,
-                                            R2=r2,
-                                            beta=beta,
-                                            aspect_ratio=0.01,
-                                            g1=g1,
-                                            g2=g2,
-                                            alpha=alpha,
-                                            inc=inc,
-                                            pa=pa,
-                                            dx=dx,
-                                            dy=dy,
-                                            mask=wheremask2generatedisk,
-                                            pixscale=PIXSCALE_INS,
-                                            distance=DISTANCE_STAR)  #+ offset
+    model = norm * gen_disk_dxdy_2g(DIMENSION,
+                                    R1=r1,
+                                    R2=r2,
+                                    beta=beta,
+                                    aspect_ratio=0.01,
+                                    g1=g1,
+                                    g2=g2,
+                                    alpha=alpha,
+                                    inc=inc,
+                                    pa=pa,
+                                    dx=dx,
+                                    dy=dy,
+                                    mask=wheremask2generatedisk,
+                                    pixscale=PIXSCALE_INS,
+                                    distance=DISTANCE_STAR)  #+ offset
 
     return model
 
@@ -116,23 +116,23 @@ def call_gen_disk_3g(theta):
     norm = mt.exp(theta[12])
 
     #generate the model
-    model = mt.exp(norm) * gen_disk_dxdy_3g(DIMENSION,
-                                            R1=r1,
-                                            R2=r2,
-                                            beta=beta,
-                                            aspect_ratio=0.01,
-                                            g1=g1,
-                                            g2=g2,
-                                            g3=g3,
-                                            alpha1=alpha1,
-                                            alpha2=alpha2,
-                                            inc=inc,
-                                            pa=pa,
-                                            dx=dx,
-                                            dy=dy,
-                                            mask=wheremask2generatedisk,
-                                            pixscale=PIXSCALE_INS,
-                                            distance=DISTANCE_STAR)  #+ offset
+    model = norm * gen_disk_dxdy_3g(DIMENSION,
+                                    R1=r1,
+                                    R2=r2,
+                                    beta=beta,
+                                    aspect_ratio=0.01,
+                                    g1=g1,
+                                    g2=g2,
+                                    g3=g3,
+                                    alpha1=alpha1,
+                                    alpha2=alpha2,
+                                    inc=inc,
+                                    pa=pa,
+                                    dx=dx,
+                                    dy=dy,
+                                    mask=wheremask2generatedisk,
+                                    pixscale=PIXSCALE_INS,
+                                    distance=DISTANCE_STAR)  #+ offset
     return model
 
 
@@ -781,11 +781,11 @@ def best_model_plot(params_mcmc_yaml, hdr):
     #The convolved model
 
     rect = Rectangle((9.5, 9.5),
-                  psf.shape[0],
-                  psf.shape[1],
-                  edgecolor='white',
-                  facecolor='none',
-                  linewidth=2)
+                     psf.shape[0],
+                     psf.shape[1],
+                     edgecolor='white',
+                     facecolor='none',
+                     linewidth=2)
 
     disk_ml_convolved_crop[10:10 + psf.shape[0], 10:10 +
                            psf.shape[1]] = 2 * vmax * psf
@@ -999,7 +999,7 @@ if __name__ == '__main__':
     hdr = create_header(params_mcmc_yaml)
 
     # save the fits, plot the model and residuals
-    best_model_plot(params_mcmc_yaml, hdr)
+    # best_model_plot(params_mcmc_yaml, hdr)
 
     # print the values to put in excel sheet easily
     # print_geometry_parameter(params_mcmc_yaml, hdr)
