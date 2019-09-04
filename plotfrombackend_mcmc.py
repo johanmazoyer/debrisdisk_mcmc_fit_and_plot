@@ -287,6 +287,8 @@ def make_corner_plot(params_mcmc_yaml):
     NAMES = params_mcmc_yaml['NAMES']
     sigma = params_mcmc_yaml['sigma']
 
+    N_DIM_MCMC = params_mcmc_yaml['N_DIM_MCMC']
+
     FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
 
     name_h5 = FILE_PREFIX + '_backend_file_mcmc'
@@ -294,37 +296,35 @@ def make_corner_plot(params_mcmc_yaml):
     BAND_NAME = params_mcmc_yaml['BAND_NAME']
 
     reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
-    chain = reader.get_chain(discard=BURNIN, thin=THIN)
+    chain_flat = reader.get_chain(discard=BURNIN, thin=THIN, flat = True)
 
-    N_DIM_MCMC = chain.shape[2]
 
     if N_DIM_MCMC == 11:
         ## change log and arccos values to physical
-        chain[:, :, 0] = np.exp(chain[:, :, 0])
-        chain[:, :, 1] = np.exp(chain[:, :, 1])
-        chain[:, :, 6] = np.degrees(np.arccos(chain[:, :, 6]))
-        chain[:, :, 10] = np.exp(chain[:, :, 10])
+        chain_flat[:, 0] = np.exp(chain_flat[:, 0])
+        chain_flat[:, 1] = np.exp(chain_flat[:, 1])
+        chain_flat[:, 6] = np.degrees(np.arccos(chain_flat[:, 6]))
+        chain_flat[:, 10] = np.exp(chain_flat[:, 10])
 
         ## change g1, g2 and alpha to percentage
-        chain[:, :, 3] = 100 * chain[:, :, 3]
-        chain[:, :, 4] = 100 * chain[:, :, 4]
-        chain[:, :, 5] = 100 * chain[:, :, 5]
+        chain_flat[:, 3] = 100 * chain_flat[:, 3]
+        chain_flat[:, 4] = 100 * chain_flat[:, 4]
+        chain_flat[:, 5] = 100 * chain_flat[:, 5]
 
     if N_DIM_MCMC == 13:
         ## change log values to physical
-        chain[:, :, 0] = np.exp(chain[:, :, 0])
-        chain[:, :, 1] = np.exp(chain[:, :, 1])
-        chain[:, :, 8] = np.degrees(np.arccos(chain[:, :, 8]))
-        chain[:, :, 12] = np.exp(chain[:, :, 12])
+        chain_flat[:, 0] = np.exp(chain_flat[:, 0])
+        chain_flat[:, 1] = np.exp(chain_flat[:, 1])
+        chain_flat[:, 8] = np.degrees(np.arccos(chain_flat[:, 8]))
+        chain_flat[:, 12] = np.exp(chain_flat[:, 12])
 
         ## change g1, g2, g3, alpha1 and alpha2 to percentage
-        chain[:, :, 3] = 100 * chain[:, :, 3]
-        chain[:, :, 4] = 100 * chain[:, :, 4]
-        chain[:, :, 5] = 100 * chain[:, :, 5]
-        chain[:, :, 6] = 100 * chain[:, :, 6]
-        chain[:, :, 7] = 100 * chain[:, :, 7]
+        chain_flat[:, 3] = 100 * chain_flat[:, 3]
+        chain_flat[:, 4] = 100 * chain_flat[:, 4]
+        chain_flat[:, 5] = 100 * chain_flat[:, 5]
+        chain_flat[:, 6] = 100 * chain_flat[:, 6]
+        chain_flat[:, 7] = 100 * chain_flat[:, 7]
 
-    samples = chain[:, :].reshape(-1, N_DIM_MCMC)
 
     rcParams['axes.labelsize'] = 19
     rcParams['axes.titlesize'] = 14
@@ -346,7 +346,7 @@ def make_corner_plot(params_mcmc_yaml):
     #### Check truths = bests parameters
 
     LABELS_hash = [LABELS[NAMES[i]] for i in range(N_DIM_MCMC)]
-    fig = corner.corner(samples,
+    fig = corner.corner(chain_flat,
                         labels=LABELS_hash,
                         quantiles=quants,
                         show_titles=True,
