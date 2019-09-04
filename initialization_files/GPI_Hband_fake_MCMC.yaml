@@ -1,5 +1,5 @@
 # PYKLIP PARAMETERS
-FIRST_TIME: 0
+FIRST_TIME: 1
 #if FIRST_TIME=1 the masks, reduced data, noise map, and KL vectors are recalculated.
 KLMODE_NUMBER: 3
 RM_FILE_DISK_CROSS_SATSPOTS: 0
@@ -9,41 +9,41 @@ xcen: 140.
 ycen: 140.
 
 # LOCATION AND NAME PARAMETERS
-BAND_DIR: 150403_K2_Spec/
-FILE_PREFIX: K2band_hr4796
-BAND_NAME: GPI K2 band
+BAND_DIR: 20180128_H_Spec_injection/
+FILE_PREFIX: Hband_hd48524_fake
+BAND_NAME: GPI H band injected
 
 # STAR OBSERVATION PARAMETERS
 DISTANCE_STAR: 72.0
 PIXSCALE_INS: 0.01414
 
 # MCMC PARAMETERS
-NEW_BACKEND: 0
+NEW_BACKEND: 1
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
 NWALKERS: 192 #Number of walkers
-N_ITER_MCMC: 10000 #Number of interation
-NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
+N_ITER_MCMC: 1 #Number of interation
+NOISE_MULTIPLICATION_FACTOR: 4 # multiplicative factor for the chains
 
 N_DIM_MCMC: 11  #Number of parmeter in the MCMC
 # INITIAL MODEL PARAMETERS
-r1_init: 74.3
-r2_init: 85
-beta_init: 11
-g1_init: 0.99
-g2_init: -0.18
-alpha1_init: 0.99
-inc_init: 76.5
-pa_init: 26.6
-dx_init: -1.9
-dy_init: 1.7
-N_init: 108
+r1_init: 74
+r2_init: 98
+beta_init: 13
+g1_init: 0.8
+g2_init: -0.24
+alpha1_init: 0.32
+inc_init: 76.9
+pa_init: 26.7
+dx_init: -1.6
+dy_init: 0.8
+N_init: 90
 
 # fill if 3g SPF (N_DIM_MCMC = 13)
 g3_init: 0.
 alpha2_init: 0.
 
 # MCMC READING PARAMETERS
-BURNIN: 1300   #We remove the first BURNIN iteration
+BURNIN: 0   #We remove the first BURNIN iteration
 THIN: 1       #thin (bin) the chains
 QUALITY_PLOT: 4
 sigma: 1

@@ -882,7 +882,7 @@ if __name__ == '__main__':
     # warnings.simplefilter('ignore', category=AstropyWarning)
     if len(sys.argv) == 1:
         # str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
-        str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
+        str_yalm = 'GPI_Hband_fake_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 

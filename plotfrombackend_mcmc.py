@@ -585,8 +585,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
             1 / 100. * hdr['g2_ML'], 1 / 100. * hdr['g3_ML'],
             1 / 100. * hdr['Alph1_ML'], 1 / 100. * hdr['Alph2_ML'],
             np.cos(np.radians(hdr['inc_ML'])), hdr['PA_ML'], hdr['dx_ML'],
-            hdr['dy_ML'],
-            np.log(hdr['Norm_ML'])
+            hdr['dy_ML'], np.log(1391)
+            # np.log(hdr['Norm_ML'])
         ]
 
     psf = fits.getdata(DATADIR + FILE_PREFIX + '_SatSpotPSF.fits')
@@ -964,7 +964,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Jband_MCMC.yaml'
+        str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 

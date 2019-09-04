@@ -1,6 +1,6 @@
 #pylint: disable=C0103
 """ author: J MAZOYER
-A code that tahke the return of the MCMC and plot the SPFs for hr 4796
+A code that tahke the chain return of the MCMCs and plot the SPFs for hr 4796
 """
 import csv
 import numpy as np
@@ -363,27 +363,31 @@ color4 = '#FFCF0B'
 plot.figure()
 name_pdf = 'compare_SPHERE_GPI_H.pdf'
 
+plot.fill_between(scattered_angles,
+                  spf_sphere_h['errorbar_sup'],
+                  spf_sphere_h['errorbar_inf'],
+                  facecolor=color0,
+                  alpha=0.1)
+
+plot.fill_between(scattered_angles,
+                  spf_gpi_not1at90['errorbar_sup'],
+                  spf_gpi_not1at90['errorbar_inf'],
+                  facecolor=color1,
+                  alpha=0.1)
+
 plot.plot(scattered_angles,
           spf_sphere_h['best_spf'],
           linewidth=2,
           color=color0,
           label="SPHERE H2 (extraction MCMC, this work)")
-plot.fill_between(scattered_angles,
-                  spf_sphere_h['errorbar_sup'],
-                  spf_sphere_h['errorbar_inf'],
-                  facecolor=color0,
-                  alpha=0.2)
+
 
 plot.plot(scattered_angles,
           spf_gpi_not1at90['best_spf'],
           linewidth=2,
           color=color1,
           label="GPI H")
-plot.fill_between(scattered_angles,
-                  spf_gpi_not1at90['errorbar_sup'],
-                  spf_gpi_not1at90['errorbar_inf'],
-                  facecolor=color1,
-                  alpha=0.2)
+
 
 plot.errorbar(angles_sphere_extractJulien,
               1.38 * spf_shpere_extractJulien,
@@ -429,60 +433,70 @@ plot.close()
 name_pdf = 'compare_GPI_color.pdf'
 plot.figure()
 
-plot.plot(scattered_angles,
-          spf_gpi_j['best_spf'],
-          linewidth=2,
-          color=color4,
-          label="GPI J")
+
 plot.fill_between(scattered_angles,
                   spf_gpi_j['errorbar_sup'],
                   spf_gpi_j['errorbar_inf'],
                   facecolor=color4,
-                  alpha=0.2)
+                  alpha=0.1)
 
-plot.plot(scattered_angles,
-          spf_sphere_h['best_spf'],
-          linewidth=2,
-          color=color0,
-          label="SPHERE H2 (extraction MCMC, this work)")
+plot.fill_between(scattered_angles,
+                  spf_gpi_h_1at90['errorbar_sup'],
+                  spf_gpi_h_1at90['errorbar_inf'],
+                  facecolor=color1,
+                  alpha=0.1)
+
 plot.fill_between(scattered_angles,
                   spf_sphere_h['errorbar_sup'],
                   spf_sphere_h['errorbar_inf'],
                   facecolor=color0,
-                  alpha=0.2)
+                  alpha=0.1)
+
+plot.fill_between(scattered_angles,
+                  spf_gpi_k1['errorbar_sup'],
+                  spf_gpi_k1['errorbar_inf'],
+                  facecolor=color2,
+                  alpha=0.1)
+
+
+plot.fill_between(scattered_angles,
+                  spf_gpi_k2['errorbar_sup'],
+                  spf_gpi_k2['errorbar_inf'],
+                  facecolor=color3,
+                  alpha=0.1)
+
+plot.plot(scattered_angles,
+          spf_gpi_j['best_spf'],
+          linewidth=2,
+          color=color4,
+          label="GPI J (extraction MCMC)")
+
 
 plot.plot(scattered_angles,
           spf_gpi_h_1at90['best_spf'],
           linewidth=2,
           color=color1,
-          label="GPI H")
-plot.fill_between(scattered_angles,
-                  spf_gpi_h_1at90['errorbar_sup'],
-                  spf_gpi_h_1at90['errorbar_inf'],
-                  facecolor=color1,
-                  alpha=0.2)
+          label="GPI H (extraction MCMC)")
+
+plot.plot(scattered_angles,
+          spf_sphere_h['best_spf'],
+          linewidth=2,
+          color=color0,
+          label="SPHERE H2 (extraction MCMC)")
 
 plot.plot(scattered_angles,
           spf_gpi_k1['best_spf'],
           linewidth=2,
           color=color2,
-          label="GPI K1")
-plot.fill_between(scattered_angles,
-                  spf_gpi_k1['errorbar_sup'],
-                  spf_gpi_k1['errorbar_inf'],
-                  facecolor=color2,
-                  alpha=0.2)
+          label="GPI K1 (extraction MCMC)")
+
 
 plot.plot(scattered_angles,
           spf_gpi_k2['best_spf'],
           linewidth=2,
           color=color3,
-          label="GPI k2")
-plot.fill_between(scattered_angles,
-                  spf_gpi_k2['errorbar_sup'],
-                  spf_gpi_k2['errorbar_inf'],
-                  facecolor=color3,
-                  alpha=0.2)
+          label="GPI K2 (extraction MCMC)")
+
 
 plot.legend()
 plot.yscale('log')
@@ -503,27 +517,38 @@ plot.close()
 name_pdf = 'compare_3g_SPF.pdf'
 plot.figure()
 
-plot.plot(scattered_angles,
-          spf_sphere_h['best_spf'],
-          linewidth=2,
-          color=color0,
-          label="2 HG SPF extraction MCMC (this work)")
+
 plot.fill_between(scattered_angles,
                   spf_sphere_h['errorbar_sup'],
                   spf_sphere_h['errorbar_inf'],
                   facecolor=color0,
-                  alpha=0.2)
+                  alpha=0.1)
+
+
+plot.fill_between(scattered_angles,
+                  spf_sphere_h_3g['errorbar_sup'],
+                  spf_sphere_h_3g['errorbar_inf'],
+                  facecolor=color1,
+                  alpha=0.1)
 
 plot.plot(scattered_angles,
           spf_sphere_h_3g['best_spf'],
           linewidth=2,
           color=color1,
           label="3 HG SPF extraction MCMC (this work)")
-plot.fill_between(scattered_angles,
-                  spf_sphere_h_3g['errorbar_sup'],
-                  spf_sphere_h_3g['errorbar_inf'],
-                  facecolor=color1,
-                  alpha=0.2)
+
+plot.plot(scattered_angles,
+          spf_sphere_h['best_spf'],
+          linewidth=2,
+          color=color0,
+          label="2 HG SPF extraction MCMC (this work)")
+
+
+plot.plot(scattered_angles,
+          1.38 * hg3g_fitted_Milliextraction,
+          linewidth=2,
+          color=color3,
+          label="3 HG SPF fit to the SPF extracted in Milli et al. 2017")
 
 plot.errorbar(angles_sphere_extractJulien,
               1.38 * spf_shpere_extractJulien,
@@ -536,11 +561,6 @@ plot.errorbar(angles_sphere_extractJulien,
               elinewidth=1,
               markeredgewidth=1,
               color='grey')
-plot.plot(scattered_angles,
-          1.38 * hg3g_fitted_Milliextraction,
-          linewidth=2,
-          color=color3,
-          label="3 HG SPF fit to the SPF extracted in Milli et al. 2017")
 
 handles, labels = plot.gca().get_legend_handles_labels()
 order = [3, 2, 1, 0]

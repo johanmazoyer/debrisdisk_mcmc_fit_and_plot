@@ -235,8 +235,6 @@ def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=20):
 
     return_psf = np.nanmean(dataset.psfs,axis = 0)
 
-    print(return_psf.shape)
-
     r_smooth = 13 / 1.6 * dataset.wvs[0]
     # # create rho2D for the psf square
     x_square = np.arange(2 * boxrad + 1,
