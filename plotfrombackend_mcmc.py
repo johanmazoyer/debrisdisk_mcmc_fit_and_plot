@@ -394,61 +394,60 @@ def create_header(params_mcmc_yaml):
     PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
 
     sigma = params_mcmc_yaml['sigma']
+    N_DIM_MCMC = params_mcmc_yaml['N_DIM_MCMC']
+    NWALKERS = params_mcmc_yaml['NWALKERS']
 
     FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
     name_h5 = FILE_PREFIX + '_backend_file_mcmc'
 
     reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
-    chain = reader.get_chain(discard=BURNIN, thin=THIN)
+    chain_flat = reader.get_chain(discard=BURNIN, thin=THIN, flat =True)
     log_prob_samples_flat = reader.get_log_prob(discard=BURNIN,
                                                 flat=True,
                                                 thin=THIN)
 
-    N_DIM_MCMC = chain.shape[2]
+
+
     if N_DIM_MCMC == 11:
         ## change log and arccos values to physical
-        chain[:, :, 0] = np.exp(chain[:, :, 0])
-        chain[:, :, 1] = np.exp(chain[:, :, 1])
-        chain[:, :, 6] = np.degrees(np.arccos(chain[:, :, 6]))
-        chain[:, :, 10] = np.exp(chain[:, :, 10])
+        chain_flat[:, 0] = np.exp(chain_flat[:, 0])
+        chain_flat[:, 1] = np.exp(chain_flat[:, 1])
+        chain_flat[:, 6] = np.degrees(np.arccos(chain_flat[:, 6]))
+        chain_flat[:, 10] = np.exp(chain_flat[:, 10])
 
         ## change g1, g2 and alpha to percentage
-        chain[:, :, 3] = 100 * chain[:, :, 3]
-        chain[:, :, 4] = 100 * chain[:, :, 4]
-        chain[:, :, 5] = 100 * chain[:, :, 5]
+        chain_flat[:, 3] = 100 * chain_flat[:, 3]
+        chain_flat[:, 4] = 100 * chain_flat[:, 4]
+        chain_flat[:, 5] = 100 * chain_flat[:, 5]
 
     if N_DIM_MCMC == 13:
         ## change log values to physical
-        chain[:, :, 0] = np.exp(chain[:, :, 0])
-        chain[:, :, 1] = np.exp(chain[:, :, 1])
-        chain[:, :, 8] = np.degrees(np.arccos(chain[:, :, 8]))
-        chain[:, :, 12] = np.exp(chain[:, :, 12])
+        chain_flat[:, 0] = np.exp(chain_flat[:, 0])
+        chain_flat[:, 1] = np.exp(chain_flat[:, 1])
+        chain_flat[:, 8] = np.degrees(np.arccos(chain_flat[:, 8]))
+        chain_flat[:, 12] = np.exp(chain_flat[:, 12])
 
         ## change g1, g2, g3, alpha1 and alpha2 to percentage
-        chain[:, :, 3] = 100 * chain[:, :, 3]
-        chain[:, :, 4] = 100 * chain[:, :, 4]
-        chain[:, :, 5] = 100 * chain[:, :, 5]
-        chain[:, :, 6] = 100 * chain[:, :, 6]
-        chain[:, :, 7] = 100 * chain[:, :, 7]
+        chain_flat[:, 3] = 100 * chain_flat[:, 3]
+        chain_flat[:, 4] = 100 * chain_flat[:, 4]
+        chain_flat[:, 5] = 100 * chain_flat[:, 5]
+        chain_flat[:, 6] = 100 * chain_flat[:, 6]
+        chain_flat[:, 7] = 100 * chain_flat[:, 7]
 
-    samples = chain[:, :].reshape(-1, chain.shape[2])
-
-    N_DIM_MCMC = chain.shape[2]
-    NWALKERS = chain.shape[1]
 
     samples_dict = dict()
     comments_dict = COMMENTS
     MLval_mcmc_val_mcmc_err_dict = dict()
 
     for i, key in enumerate(NAMES[:N_DIM_MCMC]):
-        samples_dict[key] = samples[:, i]
+        samples_dict[key] = chain_flat[:, i]
 
     for i, key in enumerate(NAMES[N_DIM_MCMC:]):
-        samples_dict[key] = samples[:, i] * 0.
+        samples_dict[key] = chain_flat[:, i] * 0.
 
     # measure of 6 other parameters:  right ascension, declination, and Kowalsky
     # (true_a, true_ecc, longnode, argperi)
-    for j in range(samples.shape[0]):
+    for j in range(chain_flat.shape[0]):
         r1_here = samples_dict['R1'][j]
         inc_here = samples_dict['inc'][j]
         pa_here = samples_dict['PA'][j]
@@ -476,11 +475,11 @@ def create_header(params_mcmc_yaml):
     wheremin0 = np.array(wheremin).flatten()[0]
 
     if sigma == 1:
-        quants = [0.159, 0.5, 0.841]
+        quants = [15.9, 50., 84.1]
     if sigma == 2:
-        quants = [0.023, 0.5, 0.977]
+        quants = [2.3, 50., 97.77]
     if sigma == 3:
-        quants = [0.001, 0.5, 0.999]
+        quants = [0.1, 50., 99.9]
 
     for key in samples_dict.keys():
         MLval_mcmc_val_mcmc_err_dict[key] = np.zeros(4)
@@ -733,8 +732,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
     ax1 = fig.add_subplot(235)
     cax = plt.imshow(reduced_data_crop + 0.1,
                      origin='lower',
-                     vmin=vmin,
-                     vmax=vmax,
+                     vmin=int(np.round(vmin)),
+                     vmax=int(np.round(vmax)),
                      cmap=plt.cm.get_cmap('viridis'))
     ax1.set_title("Original Data", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
@@ -746,12 +745,13 @@ def best_model_plot(params_mcmc_yaml, hdr):
     cax = plt.imshow(np.abs(reduced_data_crop - disk_ml_FM_crop),
                      origin='lower',
                      vmin=0,
-                     vmax=vmax / 3.,
+                     vmax=int(np.round(vmax / 3.)),
                      cmap=plt.cm.get_cmap('viridis'))
     ax1.set_title("Residuals", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
     cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
     plt.axis('off')
+
 
     #The SNR of the residuals
     ax1 = fig.add_subplot(236)
@@ -771,7 +771,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     cax = plt.imshow(disk_ml_crop,
                      origin='lower',
                      vmin=-2,
-                     vmax=np.max(disk_ml_crop) / 1.5,
+                     vmax=int(np.round(np.max(disk_ml_crop) / 1.5)),
                      cmap=plt.cm.get_cmap('plasma'))
     ax1.set_title("Best Model", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
@@ -793,8 +793,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
     ax1 = fig.add_subplot(234)
     cax = plt.imshow(disk_ml_convolved_crop,
                      origin='lower',
-                     vmin=vmin,
-                     vmax=vmax * 2,
+                     vmin=int(np.round(vmin)),
+                     vmax=int(np.round(vmax * 2)),
                      cmap=plt.cm.get_cmap('viridis'))
     ax1.add_patch(rect)
 
@@ -807,8 +807,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
     ax1 = fig.add_subplot(232)
     cax = plt.imshow(disk_ml_FM_crop,
                      origin='lower',
-                     vmin=vmin,
-                     vmax=vmax,
+                     vmin=int(np.round(vmin)),
+                     vmax=int(np.round(vmax)),
                      cmap=plt.cm.get_cmap('viridis'))
     ax1.set_title("Model Convolved + FM",
                   fontsize=caracsize,
@@ -964,7 +964,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
+        str_yalm = 'GPI_Jband_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
@@ -993,7 +993,7 @@ if __name__ == '__main__':
     make_chain_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
-    # make_corner_plot(params_mcmc_yaml)
+    make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)
@@ -1002,4 +1002,4 @@ if __name__ == '__main__':
     best_model_plot(params_mcmc_yaml, hdr)
 
     # print the values to put in excel sheet easily
-    # print_geometry_parameter(params_mcmc_yaml, hdr)
+    print_geometry_parameter(params_mcmc_yaml, hdr)
