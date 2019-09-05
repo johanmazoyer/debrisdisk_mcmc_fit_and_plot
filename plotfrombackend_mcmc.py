@@ -39,14 +39,14 @@ plt.switch_backend('agg')
 # matplotlib with pyklip if I don't use this line
 
 # define global variables in the global scope
-DISTANCE_STAR = PIXSCALE_INS = DIMENSION = None
+distance_star = PIXSCALE_INS = DIMENSION = None
 wheremask2generatedisk = 12310120398
 
 
 ########################################################
 def call_gen_disk_2g(theta):
     """ call the disk model from a set of parameters. 2g SPF
-        use DIMENSION, PIXSCALE_INS and DISTANCE_STAR  and
+        use DIMENSION, PIXSCALE_INS and distance_star  and
         wheremask2generatedisk as global variables
 
     Args:
@@ -230,24 +230,25 @@ def make_chain_plot(params_mcmc_yaml):
         None
     """
 
-    THIN = params_mcmc_yaml['THIN']
-    BURNIN = params_mcmc_yaml['BURNIN']
-    QUALITY_PLOT = params_mcmc_yaml['QUALITY_PLOT']
-    LABELS = params_mcmc_yaml['LABELS']
-    NAMES = params_mcmc_yaml['NAMES']
+    thin = params_mcmc_yaml['THIN']
+    burnin = params_mcmc_yaml['BURNIN']
+    quality_plot = params_mcmc_yaml['QUALITY_PLOT']
+    labels = params_mcmc_yaml['LABELS']
+    names = params_mcmc_yaml['NAMES']
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
 
     name_h5 = file_prefix + '_backend_file_mcmc'
 
     reader = backends.HDFBackend(os.path.join(mcmcresultdir, name_h5 + '.h5'))
-    chain = reader.get_chain(discard=0, thin=THIN)
-    log_prob_samples_flat = reader.get_log_prob(discard=BURNIN,
+    chain = reader.get_chain(discard=0, thin=thin)
+    log_prob_samples_flat = reader.get_log_prob(discard=burnin,
                                                 flat=True,
-                                                thin=THIN)
+                                                thin=thin)
     # print(log_prob_samples_flat)
     tau = reader.get_autocorr_time(tol=0)
-
+    if burnin > reader.iteration -1:
+        raise ValueError("the burnin cannot be larger than the # of iterations")
     print("")
     print("")
     print(name_h5)
@@ -256,16 +257,16 @@ def make_chain_plot(params_mcmc_yaml):
     print("Max Tau times 50: {0}".format(50 * np.max(tau)))
     print("")
 
-    print("Maximum Likelyhood: {0}".format(np.max(log_prob_samples_flat)))
+    print("Maximum Likelyhood: {0}".format(np.nanmax(log_prob_samples_flat)))
 
-    print("burn-in: {0}".format(BURNIN))
-    print("thin: {0}".format(THIN))
+    print("burn-in: {0}".format(burnin))
+    print("thin: {0}".format(thin))
     print("chain shape: {0}".format(chain.shape))
 
-    N_DIM_MCMC = chain.shape[2]
-    NWALKERS = chain.shape[1]
+    n_dim_mcmc = chain.shape[2]
+    nwalkers = chain.shape[1]
 
-    if N_DIM_MCMC == 11:
+    if n_dim_mcmc == 11:
         ## change log and arccos values to physical
         chain[:, :, 0] = np.exp(chain[:, :, 0])
         chain[:, :, 1] = np.exp(chain[:, :, 1])
@@ -277,7 +278,7 @@ def make_chain_plot(params_mcmc_yaml):
         chain[:, :, 4] = 100 * chain[:, :, 4]
         chain[:, :, 5] = 100 * chain[:, :, 5]
 
-    if N_DIM_MCMC == 13:
+    if n_dim_mcmc == 13:
         ## change log values to physical
         chain[:, :, 0] = np.exp(chain[:, :, 0])
         chain[:, :, 1] = np.exp(chain[:, :, 1])
@@ -291,21 +292,21 @@ def make_chain_plot(params_mcmc_yaml):
         chain[:, :, 6] = 100 * chain[:, :, 6]
         chain[:, :, 7] = 100 * chain[:, :, 7]
 
-    _, axarr = plt.subplots(N_DIM_MCMC,
+    _, axarr = plt.subplots(n_dim_mcmc,
                             sharex=True,
-                            figsize=(6.4 * QUALITY_PLOT, 4.8 * QUALITY_PLOT))
+                            figsize=(6.4 * quality_plot, 4.8 * quality_plot))
 
-    for i in range(N_DIM_MCMC):
-        axarr[i].set_ylabel(LABELS[NAMES[i]], fontsize=5 * QUALITY_PLOT)
-        axarr[i].tick_params(axis='y', labelsize=4 * QUALITY_PLOT)
+    for i in range(n_dim_mcmc):
+        axarr[i].set_ylabel(labels[names[i]], fontsize=5 * quality_plot)
+        axarr[i].tick_params(axis='y', labelsize=4 * quality_plot)
 
-        for j in range(NWALKERS):
-            axarr[i].plot(chain[:, j, i], linewidth=QUALITY_PLOT)
+        for j in range(nwalkers):
+            axarr[i].plot(chain[:, j, i], linewidth=quality_plot)
 
-        axarr[i].axvline(x=BURNIN, color='black', linewidth=1.5 * QUALITY_PLOT)
+        axarr[i].axvline(x=burnin, color='black', linewidth=1.5 * quality_plot)
 
-    axarr[N_DIM_MCMC - 1].tick_params(axis='x', labelsize=6 * QUALITY_PLOT)
-    axarr[N_DIM_MCMC - 1].set_xlabel('Iterations', fontsize=10 * QUALITY_PLOT)
+    axarr[n_dim_mcmc - 1].tick_params(axis='x', labelsize=6 * quality_plot)
+    axarr[n_dim_mcmc - 1].set_xlabel('Iterations', fontsize=10 * quality_plot)
 
     plt.savefig(os.path.join(mcmcresultdir, name_h5 + '_chains.jpg'))
 
@@ -323,25 +324,25 @@ def make_corner_plot(params_mcmc_yaml):
         None
     """
 
-    THIN = params_mcmc_yaml['THIN']
-    BURNIN = params_mcmc_yaml['BURNIN']
-    LABELS = params_mcmc_yaml['LABELS']
-    NAMES = params_mcmc_yaml['NAMES']
+    thin = params_mcmc_yaml['THIN']
+    burnin = params_mcmc_yaml['BURNIN']
+    labels = params_mcmc_yaml['LABELS']
+    names = params_mcmc_yaml['NAMES']
     sigma = params_mcmc_yaml['sigma']
-    NWALKERS = params_mcmc_yaml['NWALKERS']
+    nwalkers = params_mcmc_yaml['NWALKERS']
 
-    N_DIM_MCMC = params_mcmc_yaml['N_DIM_MCMC']
+    n_dim_mcmc = params_mcmc_yaml['N_DIM_MCMC']
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
 
     name_h5 = file_prefix + '_backend_file_mcmc'
 
-    BAND_NAME = params_mcmc_yaml['BAND_NAME']
+    band_name = params_mcmc_yaml['BAND_NAME']
 
     reader = backends.HDFBackend(os.path.join(mcmcresultdir, name_h5 + '.h5'))
-    chain_flat = reader.get_chain(discard=BURNIN, thin=THIN, flat=True)
+    chain_flat = reader.get_chain(discard=burnin, thin=thin, flat=True)
 
-    if N_DIM_MCMC == 11:
+    if n_dim_mcmc == 11:
         ## change log and arccos values to physical
         chain_flat[:, 0] = np.exp(chain_flat[:, 0])
         chain_flat[:, 1] = np.exp(chain_flat[:, 1])
@@ -353,7 +354,7 @@ def make_corner_plot(params_mcmc_yaml):
         chain_flat[:, 4] = 100 * chain_flat[:, 4]
         chain_flat[:, 5] = 100 * chain_flat[:, 5]
 
-    if N_DIM_MCMC == 13:
+    if n_dim_mcmc == 13:
         ## change log values to physical
         chain_flat[:, 0] = np.exp(chain_flat[:, 0])
         chain_flat[:, 1] = np.exp(chain_flat[:, 1])
@@ -386,9 +387,9 @@ def make_corner_plot(params_mcmc_yaml):
 
     #### Check truths = bests parameters
 
-    LABELS_hash = [LABELS[NAMES[i]] for i in range(N_DIM_MCMC)]
+    labels_hash = [labels[names[i]] for i in range(n_dim_mcmc)]
     fig = corner.corner(chain_flat,
-                        labels=LABELS_hash,
+                        labels=labels_hash,
                         quantiles=quants,
                         show_titles=True,
                         plot_datapoints=False,
@@ -407,9 +408,9 @@ def make_corner_plot(params_mcmc_yaml):
                    bbox_to_anchor=(-1, 10),
                    fontsize=30)
 
-        # log_prob_samples_flat = reader.get_log_prob(discard=BURNIN,
+        # log_prob_samples_flat = reader.get_log_prob(discard=burnin,
         #                                             flat=True,
-        #                                             thin=THIN)
+        #                                             thin=thin)
         # wheremin = np.where(
         #     log_prob_samples_flat == np.max(log_prob_samples_flat))
         # wheremin0 = np.array(wheremin).flatten()[0]
@@ -423,16 +424,16 @@ def make_corner_plot(params_mcmc_yaml):
         #         fontsize=30)
 
         # Extract the axes
-        axes = np.array(fig.axes).reshape((N_DIM_MCMC, N_DIM_MCMC))
+        axes = np.array(fig.axes).reshape((n_dim_mcmc, n_dim_mcmc))
 
         # Loop over the diagonal
-        for i in range(N_DIM_MCMC):
+        for i in range(n_dim_mcmc):
             ax = axes[i, i]
             ax.axvline(initial_values[i], color="g")
             # ax.axvline(samples[wheremin0, i], color="r")
 
         # Loop over the histograms
-        for yi in range(N_DIM_MCMC):
+        for yi in range(n_dim_mcmc):
             for xi in range(yi):
                 ax = axes[yi, xi]
                 ax.axvline(initial_values[xi], color="g")
@@ -445,9 +446,9 @@ def make_corner_plot(params_mcmc_yaml):
     fig.subplots_adjust(wspace=0)
 
     fig.gca().annotate(
-        BAND_NAME +
+        band_name +
         ": {0:,} iterations, Burn-in phase {1:,} iterations".format(
-            reader.iteration, BURNIN),
+            reader.iteration, burnin),
         xy=(0.55, 0.99),
         xycoords="figure fraction",
         xytext=(-20, -10),
@@ -457,7 +458,7 @@ def make_corner_plot(params_mcmc_yaml):
         fontsize=44)
 
     fig.gca().annotate("{0:,} walkers: {1:,} models".format(
-        NWALKERS, reader.iteration * NWALKERS),
+        nwalkers, reader.iteration * nwalkers),
                        xy=(0.55, 0.95),
                        xycoords="figure fraction",
                        xytext=(-20, -10),
@@ -483,29 +484,29 @@ def create_header(params_mcmc_yaml):
         header for all the fits
     """
 
-    THIN = params_mcmc_yaml['THIN']
-    BURNIN = params_mcmc_yaml['BURNIN']
+    thin = params_mcmc_yaml['THIN']
+    burnin= params_mcmc_yaml['BURNIN']
 
-    COMMENTS = params_mcmc_yaml['COMMENTS']
-    NAMES = params_mcmc_yaml['NAMES']
+    comments = params_mcmc_yaml['COMMENTS']
+    names = params_mcmc_yaml['NAMES']
 
-    DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
+    distance_star = params_mcmc_yaml['DISTANCE_STAR']
     PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
 
     sigma = params_mcmc_yaml['sigma']
-    N_DIM_MCMC = params_mcmc_yaml['N_DIM_MCMC']
-    NWALKERS = params_mcmc_yaml['NWALKERS']
+    n_dim_mcmc = params_mcmc_yaml['N_DIM_MCMC']
+    nwalkers = params_mcmc_yaml['NWALKERS']
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     name_h5 = file_prefix + '_backend_file_mcmc'
 
     reader = backends.HDFBackend(os.path.join(mcmcresultdir, name_h5 + '.h5'))
-    chain_flat = reader.get_chain(discard=BURNIN, thin=THIN, flat=True)
-    log_prob_samples_flat = reader.get_log_prob(discard=BURNIN,
+    chain_flat = reader.get_chain(discard=burnin, thin=thin, flat=True)
+    log_prob_samples_flat = reader.get_log_prob(discard=burnin,
                                                 flat=True,
-                                                thin=THIN)
+                                                thin=thin)
 
-    if N_DIM_MCMC == 11:
+    if n_dim_mcmc == 11:
         ## change log and arccos values to physical
         chain_flat[:, 0] = np.exp(chain_flat[:, 0])
         chain_flat[:, 1] = np.exp(chain_flat[:, 1])
@@ -517,7 +518,7 @@ def create_header(params_mcmc_yaml):
         chain_flat[:, 4] = 100 * chain_flat[:, 4]
         chain_flat[:, 5] = 100 * chain_flat[:, 5]
 
-    if N_DIM_MCMC == 13:
+    if n_dim_mcmc == 13:
         ## change log values to physical
         chain_flat[:, 0] = np.exp(chain_flat[:, 0])
         chain_flat[:, 1] = np.exp(chain_flat[:, 1])
@@ -532,13 +533,13 @@ def create_header(params_mcmc_yaml):
         chain_flat[:, 7] = 100 * chain_flat[:, 7]
 
     samples_dict = dict()
-    comments_dict = COMMENTS
+    comments_dict = comments
     MLval_mcmc_val_mcmc_err_dict = dict()
 
-    for i, key in enumerate(NAMES[:N_DIM_MCMC]):
+    for i, key in enumerate(names[:n_dim_mcmc]):
         samples_dict[key] = chain_flat[:, i]
 
-    for i, key in enumerate(NAMES[N_DIM_MCMC:]):
+    for i, key in enumerate(names[n_dim_mcmc:]):
         samples_dict[key] = chain_flat[:, i] * 0.
 
     # measure of 6 other parameters:  right ascension, declination, and Kowalsky
@@ -550,12 +551,12 @@ def create_header(params_mcmc_yaml):
         dx_here = samples_dict['dx'][j]
         dy_here = samples_dict['dy'][j]
         dAlpha, dDelta = offset_2_RA_dec(dx_here, dy_here, inc_here, pa_here,
-                                         DISTANCE_STAR)
+                                         distance_star)
 
         samples_dict['RA'][j] = dAlpha
         samples_dict['Decl'][j] = dDelta
 
-        semimajoraxis = convert.au_to_mas(r1_here, DISTANCE_STAR)
+        semimajoraxis = convert.au_to_mas(r1_here, distance_star)
         ecc = np.sin(np.radians(inc_here))
 
         true_a, true_ecc, argperi, inc, longnode = kowalsky(
@@ -609,13 +610,13 @@ def create_header(params_mcmc_yaml):
     hdr['COMMENT'] = 'PARAM_M and PARAM_P are the -/+ sigma error bars (16%, 84%)'
     hdr['KL_FILE'] = name_h5
     hdr['FITSDATE'] = str(datetime.now())
-    hdr['BURNIN'] = BURNIN
-    hdr['THIN'] = THIN
+    hdr['BURNIN'] = burnin
+    hdr['THIN'] = thin
 
     hdr['TOT_ITER'] = reader.iteration
 
-    hdr['n_walker'] = NWALKERS
-    hdr['n_param'] = N_DIM_MCMC
+    hdr['n_walker'] = nwalkers
+    hdr['n_param'] = n_dim_mcmc
 
     hdr['MAX_LH'] = (np.max(log_prob_samples_flat),
                      'Max likelyhood, obtained for the ML parameters')
@@ -655,20 +656,20 @@ def best_model_plot(params_mcmc_yaml, hdr):
     DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
     PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
 
-    QUALITY_PLOT = params_mcmc_yaml['QUALITY_PLOT']
+    quality_plot = params_mcmc_yaml['QUALITY_PLOT']
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
-    BAND_NAME = params_mcmc_yaml['BAND_NAME']
+    band_name = params_mcmc_yaml['BAND_NAME']
     name_h5 = file_prefix + '_backend_file_mcmc'
 
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
-    N_DIM_MCMC = hdr['n_param']
+    n_dim_mcmc = hdr['n_param']
 
     xcen = params_mcmc_yaml['xcen']
     ycen = params_mcmc_yaml['ycen']
 
     #Format the most likely values
     #generate the best model
-    if N_DIM_MCMC == 11:
+    if n_dim_mcmc == 11:
         theta_ml = [
             np.log(hdr['R1_ML']),
             np.log(hdr['R2_ML']), hdr['Beta_ML'], 1 / 100. * hdr['g1_ML'],
@@ -677,7 +678,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
             hdr['dy_ML'],
             np.log(hdr['Norm_ML'])
         ]
-    if N_DIM_MCMC == 13:
+    if n_dim_mcmc == 13:
         theta_ml = [
             np.log(hdr['R1_ML']),
             np.log(hdr['R2_ML']), hdr['Beta_ML'], 1 / 100. * hdr['g1_ML'],
@@ -770,9 +771,9 @@ def best_model_plot(params_mcmc_yaml, hdr):
     noise = fits.getdata(os.path.join(klipdir, file_prefix + '_noisemap.fits'))
 
     #generate the best model
-    if N_DIM_MCMC == 11:
+    if n_dim_mcmc == 11:
         disk_ml = call_gen_disk_2g(theta_ml)
-    if N_DIM_MCMC == 13:
+    if n_dim_mcmc == 13:
         disk_ml = call_gen_disk_3g(theta_ml)
 
     new_fits = fits.HDUList()
@@ -832,8 +833,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
             disk_ml_FM.shape[0],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(40, PIXSCALE_INS, DISTANCE_STAR),
-            convert.au_to_pix(41, PIXSCALE_INS, DISTANCE_STAR),
+            convert.au_to_pix(40, PIXSCALE_INS, distance_star),
+            convert.au_to_pix(41, PIXSCALE_INS, distance_star),
             xcen=xcen,
             ycen=ycen)
 
@@ -841,8 +842,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
             disk_ml_FM.shape[0],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(129, PIXSCALE_INS, DISTANCE_STAR),
-            convert.au_to_pix(130, PIXSCALE_INS, DISTANCE_STAR),
+            convert.au_to_pix(129, PIXSCALE_INS, distance_star),
+            convert.au_to_pix(130, PIXSCALE_INS, distance_star),
             xcen=xcen,
             ycen=ycen)
 
@@ -852,7 +853,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
         disk_ml_FM = disk_ml_FM * mask_disk_int * mask_disk_ext
 
     dim_crop_image = int(
-        4 * convert.au_to_pix(102, PIXSCALE_INS, DISTANCE_STAR) // 2)
+        4 * convert.au_to_pix(102, PIXSCALE_INS, distance_star) // 2)
 
     disk_ml_crop = crop_center(disk_ml, dim_crop_image)
     disk_ml_convolved_crop = crop_center(disk_ml_convolved, dim_crop_image)
@@ -862,9 +863,9 @@ def best_model_plot(params_mcmc_yaml, hdr):
     residuals_crop = crop_center(residuals, dim_crop_image)
     snr_residuals_crop = crop_center(snr_residuals, dim_crop_image)
 
-    caracsize = 40 * QUALITY_PLOT / 2.
+    caracsize = 40 * quality_plot / 2.
 
-    fig = plt.figure(figsize=(6.4 * 2 * QUALITY_PLOT, 4.8 * 2 * QUALITY_PLOT))
+    fig = plt.figure(figsize=(6.4 * 2 * quality_plot, 4.8 * 2 * quality_plot))
     #The data
     ax1 = fig.add_subplot(235)
     cax = plt.imshow(reduced_data_crop + 0.1,
@@ -953,7 +954,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     fig.subplots_adjust(hspace=-0.4, wspace=0.2)
 
-    fig.suptitle(BAND_NAME + ': Best Model and Residuals',
+    fig.suptitle(band_name + ': Best Model and Residuals',
                  fontsize=5 / 4. * caracsize,
                  y=0.985)
 
@@ -977,7 +978,7 @@ def print_geometry_parameter(params_mcmc_yaml, hdr):
     """
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
-    DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
+    distance_star = params_mcmc_yaml['DISTANCE_STAR']
 
     name_h5 = file_prefix + '_backend_file_mcmc'
 
@@ -994,7 +995,7 @@ def print_geometry_parameter(params_mcmc_yaml, hdr):
         hdr[to_print_str + '_MC'], hdr[to_print_str + '_M'],
         hdr[to_print_str + '_P']
     ]
-    to_print = convert.au_to_mas(to_print, DISTANCE_STAR)
+    to_print = convert.au_to_mas(to_print, distance_star)
     f1.write("\n'{0:.3f} {1:.3f} +{2:.3f}".format(to_print[0], to_print[1],
                                                   to_print[2]))
 
@@ -1003,7 +1004,7 @@ def print_geometry_parameter(params_mcmc_yaml, hdr):
         hdr[to_print_str + '_MC'], hdr[to_print_str + '_M'],
         hdr[to_print_str + '_P']
     ]
-    to_print = convert.au_to_mas(to_print, DISTANCE_STAR)
+    to_print = convert.au_to_mas(to_print, distance_star)
     f1.write("\n'{0:.3f} {1:.3f} +{2:.3f}".format(to_print[0], to_print[1],
                                                   to_print[2]))
 
@@ -1036,7 +1037,7 @@ def print_geometry_parameter(params_mcmc_yaml, hdr):
         hdr[to_print_str + '_MC'], hdr[to_print_str + '_M'],
         hdr[to_print_str + '_P']
     ]
-    to_print = convert.au_to_mas(to_print, DISTANCE_STAR)
+    to_print = convert.au_to_mas(to_print, distance_star)
     f1.write("\n'{0:.3f} {1:.3f} +{2:.3f}".format(to_print[0], to_print[1],
                                                   to_print[2]))
 
@@ -1045,7 +1046,7 @@ def print_geometry_parameter(params_mcmc_yaml, hdr):
         hdr[to_print_str + '_MC'], hdr[to_print_str + '_M'],
         hdr[to_print_str + '_P']
     ]
-    to_print = convert.au_to_mas(to_print, DISTANCE_STAR)
+    to_print = convert.au_to_mas(to_print, distance_star)
     f1.write("\n'{0:.3f} {1:.3f} +{2:.3f}".format(to_print[0], to_print[1],
                                                   to_print[2]))
 
@@ -1100,7 +1101,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_fake_MCMC.yaml'
+        str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
@@ -1113,8 +1114,6 @@ if __name__ == '__main__':
         basedir = '/Users/jmazoyer/Dropbox/ExchangeFolder/data_python/Aurora/'
     else:
         basedir = '/home/jmazoyer/data_python/Aurora/'
-
-    BAND_DIR = params_mcmc_yaml['BAND_DIR']
 
     DATADIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
     klipdir = os.path.join(DATADIR, 'klip_fm_files')

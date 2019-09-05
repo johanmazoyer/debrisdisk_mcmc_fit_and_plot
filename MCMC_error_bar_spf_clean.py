@@ -2,6 +2,7 @@
 """ author: J MAZOYER
 A code that tahke the chain return of the MCMCs and plot the SPFs for hr 4796
 """
+import os
 import csv
 import numpy as np
 
@@ -142,13 +143,15 @@ def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1.):
         Number_rand_mcmc: number of randomnly selected psf we use to
                         plot the error bars
         Norm_90_inplot: the value at which you want to normalize the spf
-                        in the plot ay 90 degree (to re-measure the error bars properly)
+                        in the plot ay 90 degree (to re-measure the error
+                        bars properly)
 
     Returns:
-        a dic that contains the 'best_spf', 'errorbar_sup', 'errorbar_sup', 'errorbar'
+        a dic that contains the 'best_spf', 'errorbar_sup',
+                                'errorbar_sup', 'errorbar'
     """
 
-    with open('initialization_files/' + yaml_file_str + '.yaml',
+    with open(os.path.join('initialization_files', yaml_file_str + '.yaml'),
               'r') as yaml_file:
         params_mcmc_yaml = yaml.load(yaml_file, Loader=yaml.FullLoader)
 
@@ -157,16 +160,14 @@ def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1.):
     thin = params_mcmc_yaml['THIN']
     n_dim_mcmc = params_mcmc_yaml['N_DIM_MCMC']
 
-    band_dir = params_mcmc_yaml['BAND_DIR']
+    datadir = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
 
-    datadir = basedir + band_dir
-
-    mcmcresultdir = datadir + 'results_MCMC/'
+    mcmcresultdir = os.path.join(datadir, 'results_MCMC')
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     name_h5 = file_prefix + "_backend_file_mcmc"
 
-    chain_name = mcmcresultdir + name_h5 + ".h5"
+    chain_name = os.path.join(mcmcresultdir, name_h5 + ".h5")
 
     reader = backends.HDFBackend(chain_name)
     chain_flat = reader.get_chain(discard=burnin, flat=True, thin=thin)
@@ -256,7 +257,7 @@ basedir = '/Users/jmazoyer/Dropbox/ExchangeFolder/data_python/Aurora/'
 min_scat = 13.3
 max_scat = 166.7
 
-folder_save_pdf = basedir + 'Spf_plots_produced/'
+folder_save_pdf = os.path.join(basedir, 'Spf_plots_produced')
 
 scattered_angles = np.arange(np.round(max_scat - min_scat)) + np.round(
     np.min(min_scat))
@@ -270,7 +271,7 @@ spf_shpere_extractJulien = np.zeros(49)
 errors_sphere_extractJulien = np.zeros(49)
 
 i = 0
-with open(basedir + 'SPHERE_Hdata/' + 'SPHERE_extraction_Milli.csv',
+with open(os.path.join(basedir, 'SPHERE_Hdata', 'SPHERE_extraction_Milli.csv'),
           'rt') as f:
     readercsv = csv.reader(f)
     for row in readercsv:
@@ -308,15 +309,18 @@ hg3g_fitted_Milliextraction = hg_3g(
 # # GPI K1 extracted by Pauline from Pol
 # ##############################
 
-dir_exctract_Pauline = basedir + '150403_K1_Spec/Pauline_SPF_from_Pol/'
+dir_exctract_Pauline = os.path.join(basedir, '150403_K1_Spec',
+                                    'Pauline_SPF_from_Pol')
 
-data_exctract_Pauline = dir_exctract_Pauline + 'Pauline_SPF_ktot_NE_errs.txt'
+data_exctract_Pauline = os.path.join(dir_exctract_Pauline,
+                                     'Pauline_SPF_ktot_NE_errs.txt')
 text_array = np.loadtxt(data_exctract_Pauline)
 angles_GPIPolK1_extractPauline = text_array[:, 0]
 spf_GPIPolK1_extractPaulineNE = text_array[:, 1]
 errors_GPIPolK1_extractPaulineNE = text_array[:, 2]
 
-data_exctract_Pauline = dir_exctract_Pauline + 'Pauline_SPF_ktot_SW_errs.txt'
+data_exctract_Pauline = os.path.join(dir_exctract_Pauline,
+                                     'Pauline_SPF_ktot_SW_errs.txt')
 
 text_array = np.loadtxt(data_exctract_Pauline)
 # angles_GPIPolK1_extractPaulineSW =  text_array[:, 0] ## identical to NE
@@ -381,13 +385,11 @@ plot.plot(scattered_angles,
           color=color0,
           label="SPHERE H2 (extraction MCMC, this work)")
 
-
 plot.plot(scattered_angles,
           spf_gpi_not1at90['best_spf'],
           linewidth=2,
           color=color1,
           label="GPI H")
-
 
 plot.errorbar(angles_sphere_extractJulien,
               1.38 * spf_shpere_extractJulien,
@@ -423,7 +425,7 @@ plot.ylabel('Normalized total intensity')
 
 plot.tight_layout()
 
-plot.savefig(folder_save_pdf + name_pdf)
+plot.savefig(os.path.join(folder_save_pdf, name_pdf))
 
 plot.close()
 
@@ -432,7 +434,6 @@ plot.close()
 ####################################################################################
 name_pdf = 'compare_GPI_color.pdf'
 plot.figure()
-
 
 plot.fill_between(scattered_angles,
                   spf_gpi_j['errorbar_sup'],
@@ -458,7 +459,6 @@ plot.fill_between(scattered_angles,
                   facecolor=color2,
                   alpha=0.1)
 
-
 plot.fill_between(scattered_angles,
                   spf_gpi_k2['errorbar_sup'],
                   spf_gpi_k2['errorbar_inf'],
@@ -470,7 +470,6 @@ plot.plot(scattered_angles,
           linewidth=2,
           color=color4,
           label="GPI J (extraction MCMC)")
-
 
 plot.plot(scattered_angles,
           spf_gpi_h_1at90['best_spf'],
@@ -490,13 +489,11 @@ plot.plot(scattered_angles,
           color=color2,
           label="GPI K1 (extraction MCMC)")
 
-
 plot.plot(scattered_angles,
           spf_gpi_k2['best_spf'],
           linewidth=2,
           color=color3,
           label="GPI K2 (extraction MCMC)")
-
 
 plot.legend()
 plot.yscale('log')
@@ -508,7 +505,7 @@ plot.ylabel('Normalized total intensity')
 
 plot.tight_layout()
 
-plot.savefig(folder_save_pdf + name_pdf)
+plot.savefig(os.path.join(folder_save_pdf, name_pdf))
 
 plot.close()
 ####################################################################################
@@ -517,13 +514,11 @@ plot.close()
 name_pdf = 'compare_3g_SPF.pdf'
 plot.figure()
 
-
 plot.fill_between(scattered_angles,
                   spf_sphere_h['errorbar_sup'],
                   spf_sphere_h['errorbar_inf'],
                   facecolor=color0,
                   alpha=0.1)
-
 
 plot.fill_between(scattered_angles,
                   spf_sphere_h_3g['errorbar_sup'],
@@ -542,7 +537,6 @@ plot.plot(scattered_angles,
           linewidth=2,
           color=color0,
           label="2 HG SPF extraction MCMC (this work)")
-
 
 plot.plot(scattered_angles,
           1.38 * hg3g_fitted_Milliextraction,
@@ -575,6 +569,6 @@ plot.ylabel('Normalized total intensity')
 
 plot.tight_layout()
 
-plot.savefig(folder_save_pdf + name_pdf)
+plot.savefig(os.path.join(folder_save_pdf, name_pdf))
 
 plot.close()
