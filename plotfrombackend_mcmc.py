@@ -18,6 +18,7 @@ from astropy.convolution import convolve
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.patches import Rectangle
+import matplotlib.lines as mlines
 
 import yaml
 
@@ -145,6 +146,47 @@ def crop_center(img, crop):
 
 
 ########################################################
+def make_disk_mask(dim,
+                   estimPA,
+                   estiminclin,
+                   estimminr,
+                   estimmaxr,
+                   xcen=140.,
+                   ycen=140.):
+    """ make a zeros mask for a disk
+
+
+    Args:
+        dim: pixel, dimension of the square mask
+        estimPA: degree, estimation of the PA
+        estiminclin: degree, estimation of the inclination
+        estimminr: pixel, inner radius of the mask
+        estimmaxr: pixel, outer radius of the mask
+        xcen: pixel, center of the mask
+        ycen: pixel, center of the mask
+
+    Returns:
+        a [dim,dim] array where the mask is at 0 and the rest at 1
+    """
+
+    PA_rad = (90 + estimPA) * np.pi / 180.
+    x = np.arange(dim, dtype=np.float)[None, :] - xcen
+    y = np.arange(dim, dtype=np.float)[:, None] - ycen
+
+    x1 = x * np.cos(PA_rad) + y * np.sin(PA_rad)
+    y1 = -x * np.sin(PA_rad) + y * np.cos(PA_rad)
+    x = x1
+    y = y1 / np.cos(estiminclin * np.pi / 180.)
+    rho2dellip = np.sqrt(x**2 + y**2)
+
+    mask_object_astro_zeros = np.ones((dim, dim))
+    mask_object_astro_zeros[np.where((rho2dellip > estimminr)
+                                     & (rho2dellip < estimmaxr))] = 0.
+
+    return mask_object_astro_zeros
+
+
+########################################################
 def offset_2_RA_dec(dx, dy, inclination, principal_angle, distance_star):
     """ right ascension and declination of the ellipse centre with respect to the star
         location from the offset in AU in the disk plane define by the max disk code
@@ -194,11 +236,11 @@ def make_chain_plot(params_mcmc_yaml):
     LABELS = params_mcmc_yaml['LABELS']
     NAMES = params_mcmc_yaml['NAMES']
 
-    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
+    file_prefix = params_mcmc_yaml['FILE_PREFIX']
 
-    name_h5 = FILE_PREFIX + '_backend_file_mcmc'
+    name_h5 = file_prefix + '_backend_file_mcmc'
 
-    reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
+    reader = backends.HDFBackend(os.path.join(mcmcresultdir, name_h5 + '.h5'))
     chain = reader.get_chain(discard=0, thin=THIN)
     log_prob_samples_flat = reader.get_log_prob(discard=BURNIN,
                                                 flat=True,
@@ -265,7 +307,7 @@ def make_chain_plot(params_mcmc_yaml):
     axarr[N_DIM_MCMC - 1].tick_params(axis='x', labelsize=6 * QUALITY_PLOT)
     axarr[N_DIM_MCMC - 1].set_xlabel('Iterations', fontsize=10 * QUALITY_PLOT)
 
-    plt.savefig(mcmcresultdir + name_h5 + '_chains.jpg')
+    plt.savefig(os.path.join(mcmcresultdir, name_h5 + '_chains.jpg'))
 
 
 ########################################################
@@ -286,18 +328,18 @@ def make_corner_plot(params_mcmc_yaml):
     LABELS = params_mcmc_yaml['LABELS']
     NAMES = params_mcmc_yaml['NAMES']
     sigma = params_mcmc_yaml['sigma']
+    NWALKERS = params_mcmc_yaml['NWALKERS']
 
     N_DIM_MCMC = params_mcmc_yaml['N_DIM_MCMC']
 
-    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
+    file_prefix = params_mcmc_yaml['FILE_PREFIX']
 
-    name_h5 = FILE_PREFIX + '_backend_file_mcmc'
+    name_h5 = file_prefix + '_backend_file_mcmc'
 
     BAND_NAME = params_mcmc_yaml['BAND_NAME']
 
-    reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
-    chain_flat = reader.get_chain(discard=BURNIN, thin=THIN, flat = True)
-
+    reader = backends.HDFBackend(os.path.join(mcmcresultdir, name_h5 + '.h5'))
+    chain_flat = reader.get_chain(discard=BURNIN, thin=THIN, flat=True)
 
     if N_DIM_MCMC == 11:
         ## change log and arccos values to physical
@@ -324,7 +366,6 @@ def make_corner_plot(params_mcmc_yaml):
         chain_flat[:, 5] = 100 * chain_flat[:, 5]
         chain_flat[:, 6] = 100 * chain_flat[:, 6]
         chain_flat[:, 7] = 100 * chain_flat[:, 7]
-
 
     rcParams['axes.labelsize'] = 19
     rcParams['axes.titlesize'] = 14
@@ -353,13 +394,71 @@ def make_corner_plot(params_mcmc_yaml):
                         plot_datapoints=False,
                         verbose=False)  # levels=(1-np.exp(-0.5),) , ))
 
+    if file_prefix == 'Hband_hd48524_fake':
+        initial_values = [
+            74.5, 100, 12.4, 82.5, -20.1, 29.8, 76.8, 26.64, -2., 0.94, 80
+        ]
+
+        green_line = mlines.Line2D([], [],
+                                   color='green',
+                                   label='True injected values')
+        plt.legend(handles=[green_line],
+                   loc='upper right',
+                   bbox_to_anchor=(-1, 10),
+                   fontsize=30)
+
+        # log_prob_samples_flat = reader.get_log_prob(discard=BURNIN,
+        #                                             flat=True,
+        #                                             thin=THIN)
+        # wheremin = np.where(
+        #     log_prob_samples_flat == np.max(log_prob_samples_flat))
+        # wheremin0 = np.array(wheremin).flatten()[0]
+
+        # red_line = mlines.Line2D([], [],
+        #                         color='red',
+        #                         label='Maximum likelyhood values')
+        # plt.legend(handles=[green_line, red_line],
+        #         loc='upper right',
+        #         bbox_to_anchor=(-1, 10),
+        #         fontsize=30)
+
+        # Extract the axes
+        axes = np.array(fig.axes).reshape((N_DIM_MCMC, N_DIM_MCMC))
+
+        # Loop over the diagonal
+        for i in range(N_DIM_MCMC):
+            ax = axes[i, i]
+            ax.axvline(initial_values[i], color="g")
+            # ax.axvline(samples[wheremin0, i], color="r")
+
+        # Loop over the histograms
+        for yi in range(N_DIM_MCMC):
+            for xi in range(yi):
+                ax = axes[yi, xi]
+                ax.axvline(initial_values[xi], color="g")
+                ax.axhline(initial_values[yi], color="g")
+
+                # ax.axvline(samples[wheremin0, xi], color="r")
+                # ax.axhline(samples[wheremin0, yi], color="r")
+
     fig.subplots_adjust(hspace=0)
     fig.subplots_adjust(wspace=0)
 
-    fig.gca().annotate(BAND_NAME +
-                       ": {0:,} iterations (192 walkers): {1:,} models".format(
-                           reader.iteration, reader.iteration * 192),
-                       xy=(0.55, 0.99),
+    fig.gca().annotate(
+        BAND_NAME +
+        ": {0:,} iterations, Burn-in phase {1:,} iterations".format(
+            reader.iteration, BURNIN),
+        xy=(0.55, 0.99),
+        xycoords="figure fraction",
+        xytext=(-20, -10),
+        textcoords="offset points",
+        ha="center",
+        va="top",
+        fontsize=44)
+
+    fig.gca().annotate("{0:,} walkers: {1:,} models".format(
+        NWALKERS, reader.iteration * NWALKERS),
+                       xy=(0.55, 0.95),
                        xycoords="figure fraction",
                        xytext=(-20, -10),
                        textcoords="offset points",
@@ -367,7 +466,7 @@ def make_corner_plot(params_mcmc_yaml):
                        va="top",
                        fontsize=44)
 
-    plt.savefig(mcmcresultdir + name_h5 + '_pdfs.pdf')
+    plt.savefig(os.path.join(mcmcresultdir, name_h5 + '_pdfs.pdf'))
 
 
 ########################################################
@@ -397,16 +496,14 @@ def create_header(params_mcmc_yaml):
     N_DIM_MCMC = params_mcmc_yaml['N_DIM_MCMC']
     NWALKERS = params_mcmc_yaml['NWALKERS']
 
-    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
-    name_h5 = FILE_PREFIX + '_backend_file_mcmc'
+    file_prefix = params_mcmc_yaml['FILE_PREFIX']
+    name_h5 = file_prefix + '_backend_file_mcmc'
 
-    reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
-    chain_flat = reader.get_chain(discard=BURNIN, thin=THIN, flat =True)
+    reader = backends.HDFBackend(os.path.join(mcmcresultdir, name_h5 + '.h5'))
+    chain_flat = reader.get_chain(discard=BURNIN, thin=THIN, flat=True)
     log_prob_samples_flat = reader.get_log_prob(discard=BURNIN,
                                                 flat=True,
                                                 thin=THIN)
-
-
 
     if N_DIM_MCMC == 11:
         ## change log and arccos values to physical
@@ -433,7 +530,6 @@ def create_header(params_mcmc_yaml):
         chain_flat[:, 5] = 100 * chain_flat[:, 5]
         chain_flat[:, 6] = 100 * chain_flat[:, 6]
         chain_flat[:, 7] = 100 * chain_flat[:, 7]
-
 
     samples_dict = dict()
     comments_dict = COMMENTS
@@ -560,12 +656,15 @@ def best_model_plot(params_mcmc_yaml, hdr):
     PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
 
     QUALITY_PLOT = params_mcmc_yaml['QUALITY_PLOT']
-    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
+    file_prefix = params_mcmc_yaml['FILE_PREFIX']
     BAND_NAME = params_mcmc_yaml['BAND_NAME']
-    name_h5 = FILE_PREFIX + '_backend_file_mcmc'
+    name_h5 = file_prefix + '_backend_file_mcmc'
 
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
     N_DIM_MCMC = hdr['n_param']
+
+    xcen = params_mcmc_yaml['xcen']
+    ycen = params_mcmc_yaml['ycen']
 
     #Format the most likely values
     #generate the best model
@@ -585,14 +684,15 @@ def best_model_plot(params_mcmc_yaml, hdr):
             1 / 100. * hdr['g2_ML'], 1 / 100. * hdr['g3_ML'],
             1 / 100. * hdr['Alph1_ML'], 1 / 100. * hdr['Alph2_ML'],
             np.cos(np.radians(hdr['inc_ML'])), hdr['PA_ML'], hdr['dx_ML'],
-            hdr['dy_ML'], np.log(1391)
+            hdr['dy_ML'],
+            np.log(1391)
             # np.log(hdr['Norm_ML'])
         ]
 
-    psf = fits.getdata(DATADIR + FILE_PREFIX + '_SatSpotPSF.fits')
+    psf = fits.getdata(os.path.join(DATADIR, file_prefix + '_SatSpotPSF.fits'))
 
-    mask2generatedisk = fits.getdata(klipdir + FILE_PREFIX +
-                                     '_mask2generatedisk.fits')
+    mask2generatedisk = fits.getdata(
+        os.path.join(klipdir, file_prefix + '_mask2generatedisk.fits'))
 
     mask2generatedisk[np.where(mask2generatedisk == 0.)] = np.nan
     wheremask2generatedisk = (mask2generatedisk != mask2generatedisk)
@@ -600,14 +700,12 @@ def best_model_plot(params_mcmc_yaml, hdr):
     # load the raw data (necessary to create the DiskFM obj)
     # this is the only part different for SPHERE and GPI
 
-    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata/':
+    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata':
         #only for SPHERE
-        xcen = params_mcmc_yaml['xcen']
-        ycen = params_mcmc_yaml['ycen']
-        datacube_sphere = fits.getdata(DATADIR + FILE_PREFIX +
-                                       '_true_dataset.fits')
-        parangs_sphere = fits.getdata(DATADIR + FILE_PREFIX +
-                                      '_true_parangs.fits')
+        datacube_sphere = fits.getdata(
+            os.path.join(DATADIR, file_prefix + '_true_dataset.fits'))
+        parangs_sphere = fits.getdata(
+            os.path.join(DATADIR, file_prefix + '_true_parangs.fits'))
 
         size_datacube = datacube_sphere.shape
         centers_sphere = np.zeros((size_datacube[0], 2)) + [xcen, ycen]
@@ -617,7 +715,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
                                          wvs=None)
     else:
         #only for GPI
-        filelist4psf = sorted(glob.glob(DATADIR + "*_distorcorr.fits"))
+        filelist4psf = sorted(
+            glob.glob(os.path.join(DATADIR, "*_distorcorr.fits")))
 
         dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
 
@@ -641,7 +740,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
                                                         params_mcmc_yaml,
                                                         quiet=True)
 
-        filelist = sorted(glob.glob(DATADIR + "*_distorcorr.fits"))
+        filelist = sorted(glob.glob(os.path.join(DATADIR,
+                                                 "*_distorcorr.fits")))
 
         # in the general case we can chosse to
         # keep the files where the disk intersect the disk.
@@ -662,12 +762,12 @@ def best_model_plot(params_mcmc_yaml, hdr):
     DIMENSION = dataset.input.shape[1]
 
     # load the data
-    reduced_data = fits.getdata(klipdir + FILE_PREFIX +
-                                '-klipped-KLmodes-all.fits')[
-                                    0]  ### we take only the first KL mode
+    reduced_data = fits.getdata(
+        os.path.join(klipdir, file_prefix + '-klipped-KLmodes-all.fits'))[
+            0]  ### we take only the first KL mode
 
     # load the noise
-    noise = fits.getdata(klipdir + FILE_PREFIX + '_noisemap.fits')
+    noise = fits.getdata(os.path.join(klipdir, file_prefix + '_noisemap.fits'))
 
     #generate the best model
     if N_DIM_MCMC == 11:
@@ -677,7 +777,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     new_fits = fits.HDUList()
     new_fits.append(fits.ImageHDU(data=disk_ml, header=hdr))
-    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModel.fits',
+    new_fits.writeto(os.path.join(mcmcresultdir, name_h5 + '_BestModel.fits'),
                      overwrite=True)
 
     #convolve by the PSF
@@ -685,7 +785,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     new_fits = fits.HDUList()
     new_fits.append(fits.ImageHDU(data=disk_ml_convolved, header=hdr))
-    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModel_Conv.fits',
+    new_fits.writeto(os.path.join(mcmcresultdir,
+                                  name_h5 + '_BestModel_Conv.fits'),
                      overwrite=True)
 
     # load the KL numbers
@@ -693,7 +794,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      numbasis,
                      dataset,
                      disk_ml_convolved,
-                     basis_filename=klipdir + FILE_PREFIX + '_klbasis.h5',
+                     basis_filename=os.path.join(klipdir,
+                                                 file_prefix + '_klbasis.h5'),
                      load_from_basis=True)
 
     #do the FM
@@ -703,27 +805,62 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     new_fits = fits.HDUList()
     new_fits.append(fits.ImageHDU(data=disk_ml_FM, header=hdr))
-    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModel_FM.fits',
+    new_fits.writeto(os.path.join(mcmcresultdir,
+                                  name_h5 + '_BestModel_FM.fits'),
                      overwrite=True)
 
     new_fits = fits.HDUList()
     new_fits.append(
         fits.ImageHDU(data=np.abs(reduced_data - disk_ml_FM), header=hdr))
-    new_fits.writeto(mcmcresultdir + name_h5 + '_BestModel_Res.fits',
+    new_fits.writeto(os.path.join(mcmcresultdir,
+                                  name_h5 + '_BestModel_Res.fits'),
                      overwrite=True)
+
+    #Mesaure the residuals
+    residuals = np.abs(reduced_data - disk_ml_FM)
+    snr_residuals = np.abs(reduced_data - disk_ml_FM) / noise
 
     #Set the colormap
     vmin = 0.3 * np.min(disk_ml_FM)
     vmax = 0.9 * np.max(disk_ml_FM)
 
+    #The convolved model
+    if file_prefix == 'Hband_hd48524_fake':
+        # We are showing only here a white line the extension of the minimization line
+
+        mask_disk_int = make_disk_mask(
+            disk_ml_FM.shape[0],
+            params_mcmc_yaml['pa_init'],
+            params_mcmc_yaml['inc_init'],
+            convert.au_to_pix(40, PIXSCALE_INS, DISTANCE_STAR),
+            convert.au_to_pix(41, PIXSCALE_INS, DISTANCE_STAR),
+            xcen=xcen,
+            ycen=ycen)
+
+        mask_disk_ext = make_disk_mask(
+            disk_ml_FM.shape[0],
+            params_mcmc_yaml['pa_init'],
+            params_mcmc_yaml['inc_init'],
+            convert.au_to_pix(129, PIXSCALE_INS, DISTANCE_STAR),
+            convert.au_to_pix(130, PIXSCALE_INS, DISTANCE_STAR),
+            xcen=xcen,
+            ycen=ycen)
+
+        mask_disk_int[np.where(mask_disk_int == 0.)] = np.nan
+        mask_disk_ext[np.where(mask_disk_ext == 0.)] = np.nan
+
+        disk_ml_FM = disk_ml_FM * mask_disk_int * mask_disk_ext
+
     dim_crop_image = int(
         4 * convert.au_to_pix(102, PIXSCALE_INS, DISTANCE_STAR) // 2)
 
-    reduced_data_crop = crop_center(reduced_data, dim_crop_image)
-    disk_ml_FM_crop = crop_center(disk_ml_FM, dim_crop_image)
-    disk_ml_convolved_crop = crop_center(disk_ml_convolved, dim_crop_image)
-    noise_crop = crop_center(noise, dim_crop_image)
     disk_ml_crop = crop_center(disk_ml, dim_crop_image)
+    disk_ml_convolved_crop = crop_center(disk_ml_convolved, dim_crop_image)
+    disk_ml_FM_crop = crop_center(disk_ml_FM, dim_crop_image)
+
+    reduced_data_crop = crop_center(reduced_data, dim_crop_image)
+    residuals_crop = crop_center(residuals, dim_crop_image)
+    snr_residuals_crop = crop_center(snr_residuals, dim_crop_image)
 
     caracsize = 40 * QUALITY_PLOT / 2.
 
@@ -742,7 +879,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     #The residuals
     ax1 = fig.add_subplot(233)
-    cax = plt.imshow(np.abs(reduced_data_crop - disk_ml_FM_crop),
+    cax = plt.imshow(residuals_crop,
                      origin='lower',
                      vmin=0,
                      vmax=int(np.round(vmax / 3.)),
@@ -752,10 +889,9 @@ def best_model_plot(params_mcmc_yaml, hdr):
     cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
     plt.axis('off')
 
-
     #The SNR of the residuals
     ax1 = fig.add_subplot(236)
-    cax = plt.imshow(np.abs(reduced_data_crop - disk_ml_FM_crop) / noise_crop,
+    cax = plt.imshow(snr_residuals_crop,
                      origin='lower',
                      vmin=0,
                      vmax=2,
@@ -777,8 +913,6 @@ def best_model_plot(params_mcmc_yaml, hdr):
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
     cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
     plt.axis('off')
-
-    #The convolved model
 
     rect = Rectangle((9.5, 9.5),
                      psf.shape[0],
@@ -825,7 +959,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     fig.tight_layout()
 
-    plt.savefig(mcmcresultdir + name_h5 + '_BestModel_Plot.jpg')
+    plt.savefig(os.path.join(mcmcresultdir, name_h5 + '_BestModel_Plot.jpg'))
 
 
 ########################################################
@@ -842,14 +976,16 @@ def print_geometry_parameter(params_mcmc_yaml, hdr):
         None
     """
 
-    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
+    file_prefix = params_mcmc_yaml['FILE_PREFIX']
     DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
 
-    name_h5 = FILE_PREFIX + '_backend_file_mcmc'
+    name_h5 = file_prefix + '_backend_file_mcmc'
 
-    reader = backends.HDFBackend(mcmcresultdir + name_h5 + '.h5')
+    reader = backends.HDFBackend(os.path.join(mcmcresultdir, name_h5 + '.h5'))
 
-    f1 = open(mcmcresultdir + name_h5 + '_fit_geometrical_params.txt', 'w+')
+    f1 = open(
+        os.path.join(mcmcresultdir, name_h5 + '_fit_geometrical_params.txt'),
+        'w+')
     f1.write("\n'{0} / {1}".format(reader.iteration, reader.iteration * 192))
     f1.write("\n")
 
@@ -964,11 +1100,12 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
+        str_yalm = 'GPI_Hband_fake_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
-    with open('initialization_files/' + str_yalm, 'r') as yaml_file:
+    with open(os.path.join('initialization_files', str_yalm),
+              'r') as yaml_file:
         params_mcmc_yaml = yaml.load(yaml_file)
 
     # test on which machine I am
@@ -979,14 +1116,14 @@ if __name__ == '__main__':
 
     BAND_DIR = params_mcmc_yaml['BAND_DIR']
 
-    DATADIR = basedir + BAND_DIR
-    klipdir = DATADIR + 'klip_fm_files/'
-    mcmcresultdir = DATADIR + 'results_MCMC/'
+    DATADIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
+    klipdir = os.path.join(DATADIR, 'klip_fm_files')
+    mcmcresultdir = os.path.join(DATADIR, 'results_MCMC')
 
-    FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
-    name_h5 = FILE_PREFIX + '_backend_file_mcmc'
+    file_prefix = params_mcmc_yaml['FILE_PREFIX']
+    name_h5 = file_prefix + '_backend_file_mcmc'
 
-    if not os.path.isfile(mcmcresultdir + name_h5 + '.h5'):
+    if not os.path.isfile(os.path.join(mcmcresultdir, name_h5 + '.h5')):
         raise ValueError("the mcmc h5 file does not exist")
 
     # Plot the chain values

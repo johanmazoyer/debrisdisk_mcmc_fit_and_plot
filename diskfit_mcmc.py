@@ -41,6 +41,7 @@ import astro_unit_conversion as convert
 
 os.environ["OMP_NUM_THREADS"] = "1"
 
+
 #######################################################
 def call_gen_disk_2g(theta):
     """ call the disk model from a set of parameters. 2g SPF
@@ -69,20 +70,20 @@ def call_gen_disk_2g(theta):
 
     #generate the model
     model = norm * gen_disk_dxdy_2g(DIMENSION,
-                                            R1=r1,
-                                            R2=r2,
-                                            beta=beta,
-                                            aspect_ratio=0.01,
-                                            g1=g1,
-                                            g2=g2,
-                                            alpha=alpha,
-                                            inc=inc,
-                                            pa=pa,
-                                            dx=dx,
-                                            dy=dy,
-                                            mask=WHEREMASK2GENERATEDISK,
-                                            pixscale=PIXSCALE_INS,
-                                            distance=DISTANCE_STAR)  #+ offset
+                                    R1=r1,
+                                    R2=r2,
+                                    beta=beta,
+                                    aspect_ratio=0.01,
+                                    g1=g1,
+                                    g2=g2,
+                                    alpha=alpha,
+                                    inc=inc,
+                                    pa=pa,
+                                    dx=dx,
+                                    dy=dy,
+                                    mask=WHEREMASK2GENERATEDISK,
+                                    pixscale=PIXSCALE_INS,
+                                    distance=DISTANCE_STAR)  #+ offset
 
     return model
 
@@ -116,22 +117,22 @@ def call_gen_disk_3g(theta):
 
     #generate the model
     model = norm * gen_disk_dxdy_3g(DIMENSION,
-                                            R1=r1,
-                                            R2=r2,
-                                            beta=beta,
-                                            aspect_ratio=0.01,
-                                            g1=g1,
-                                            g2=g2,
-                                            g3=g3,
-                                            alpha1=alpha1,
-                                            alpha2=alpha2,
-                                            inc=inc,
-                                            pa=pa,
-                                            dx=dx,
-                                            dy=dy,
-                                            mask=WHEREMASK2GENERATEDISK,
-                                            pixscale=PIXSCALE_INS,
-                                            distance=DISTANCE_STAR)  #+ offset
+                                    R1=r1,
+                                    R2=r2,
+                                    beta=beta,
+                                    aspect_ratio=0.01,
+                                    g1=g1,
+                                    g2=g2,
+                                    g3=g3,
+                                    alpha1=alpha1,
+                                    alpha2=alpha2,
+                                    inc=inc,
+                                    pa=pa,
+                                    dx=dx,
+                                    dy=dy,
+                                    mask=WHEREMASK2GENERATEDISK,
+                                    pixscale=PIXSCALE_INS,
+                                    distance=DISTANCE_STAR)  #+ offset
     return model
 
 
@@ -396,6 +397,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     noise_multiplication_factor = params_mcmc_yaml[
         'NOISE_MULTIPLICATION_FACTOR']
 
+    klipdir = os.path.join(DATADIR, 'klip_fm_files') + os.path.sep
+
     #The PSF centers
     xcen = params_mcmc_yaml['xcen']
     ycen = params_mcmc_yaml['ycen']
@@ -405,10 +408,11 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     # For GPI, we load the raw data, emasure hte PSF from sat spots and
     # collaspe the data
 
-    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata/':
+    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata':
         #only for SPHERE
         if first_time == 1:
-            psf_init = fits.getdata(DATADIR + "psf_sphere_h2.fits")
+            psf_init = fits.getdata(os.path.join(DATADIR,
+                                                 "psf_sphere_h2.fits"))
             size_init = psf_init.shape[1]
             size_small = 31
             small_psf = psf_init[size_init // 2 -
@@ -420,15 +424,16 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             small_psf = small_psf / np.max(small_psf)
             small_psf[np.where(small_psf < 0.005)] = 0.
 
-            fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
+            fits.writeto(os.path.join(DATADIR,
+                                      file_prefix + '_SatSpotPSF.fits'),
                          small_psf,
                          overwrite='True')
 
             # load the raw data
             datacube_sphere_init = fits.getdata(
-                DATADIR + "cube_H2.fits"
+                os.path.join(DATADIR, "cube_H2.fits")
             )  ### we divide the data to keep the ~same prior as is GPI
-            parangs = fits.getdata(DATADIR + "parang.fits")
+            parangs = fits.getdata(os.path.join(DATADIR, "parang.fits"))
             parangs = parangs - 135.99 + 90  ## true north
 
             datacube_sphere_init = np.delete(datacube_sphere_init, (72, 81),
@@ -457,18 +462,20 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
             datacube_sphere = datacube_sphere_newdim
 
-            fits.writeto(DATADIR + file_prefix + '_true_parangs.fits',
+            fits.writeto(os.path.join(DATADIR,
+                                      file_prefix + '_true_parangs.fits'),
                          parangs,
                          overwrite='True')
 
-            fits.writeto(DATADIR + file_prefix + '_true_dataset.fits',
+            fits.writeto(os.path.join(DATADIR,
+                                      file_prefix + '_true_dataset.fits'),
                          datacube_sphere,
                          overwrite='True')
 
-        datacube_sphere = fits.getdata(DATADIR + file_prefix +
-                                       '_true_dataset.fits')
-        parangs_sphere = fits.getdata(DATADIR + file_prefix +
-                                      '_true_parangs.fits')
+        datacube_sphere = fits.getdata(
+            os.path.join(DATADIR, file_prefix + '_true_dataset.fits'))
+        parangs_sphere = fits.getdata(
+            os.path.join(DATADIR, file_prefix + '_true_parangs.fits'))
 
         size_datacube = datacube_sphere.shape
         centers_sphere = np.zeros((size_datacube[0], 2)) + [xcen, ycen]
@@ -479,7 +486,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
     else:
         #only for GPI
-        filelist4psf = sorted(glob.glob(DATADIR + "*_distorcorr.fits"))
+        filelist4psf = sorted(
+            glob.glob(os.path.join(DATADIR, "*_distorcorr.fits")))
 
         dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
 
@@ -515,11 +523,13 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                                                            boxrad=15)
 
             #save the psf
-            fits.writeto(DATADIR + file_prefix + '_SatSpotPSF.fits',
+            fits.writeto(os.path.join(DATADIR,
+                                      file_prefix + '_SatSpotPSF.fits'),
                          instrument_psf,
                          overwrite=True)
 
-        filelist = sorted(glob.glob(DATADIR + "*_distorcorr.fits"))
+        filelist = sorted(glob.glob(os.path.join(DATADIR,
+                                                 "*_distorcorr.fits")))
 
         # in the general case we can choose to
         # keep the files where the disk intersect the disk.
@@ -556,7 +566,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             xcen=xcen,
             ycen=ycen)
         mask2generatedisk = 1 - mask_disk_zeros
-        fits.writeto(KLIPDIR + file_prefix + '_mask2generatedisk.fits',
+        fits.writeto(os.path.join(klipdir,
+                                  file_prefix + '_mask2generatedisk.fits'),
                      mask2generatedisk,
                      overwrite='True')
 
@@ -579,13 +590,15 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         # mask_speckle_region[np.where(rho2d < 21)] = 0.
         mask2minimize = mask_speckle_region * (1 - mask_disk_zeros)
 
-        fits.writeto(KLIPDIR + file_prefix + '_mask2minimize.fits',
+        fits.writeto(os.path.join(klipdir,
+                                  file_prefix + '_mask2minimize.fits'),
                      mask2minimize,
                      overwrite='True')
 
-    mask2generatedisk = fits.getdata(KLIPDIR + file_prefix +
-                                     '_mask2generatedisk.fits')
-    mask2minimize = fits.getdata(KLIPDIR + file_prefix + '_mask2minimize.fits')
+    mask2generatedisk = fits.getdata(
+        os.path.join(klipdir, file_prefix + '_mask2generatedisk.fits'))
+    mask2minimize = fits.getdata(
+        os.path.join(klipdir, file_prefix + '_mask2minimize.fits'))
 
     if first_time == 1:
         #measure the noise Wahhaj trick
@@ -596,7 +609,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                                   annuli=1,
                                   subsections=1,
                                   mode='ADI',
-                                  outputdir=KLIPDIR,
+                                  outputdir=klipdir,
                                   fileprefix=file_prefix + '_WahhajTrick',
                                   aligned_center=[xcen, ycen],
                                   highpass=False,
@@ -604,7 +617,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                                   calibrate_flux=False)
 
         reduced_data_wahhajtrick = fits.getdata(
-            KLIPDIR + file_prefix + '_WahhajTrick-KLmodes-all.fits')[0]
+            os.path.join(klipdir,
+                         file_prefix + '_WahhajTrick-KLmodes-all.fits'))[0]
         noise = make_noise_map_no_mask(reduced_data_wahhajtrick,
                                        xcen=xcen,
                                        ycen=ycen,
@@ -614,12 +628,14 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         #### We know our noise is too small
         noise = noise_multiplication_factor * noise
 
-        fits.writeto(KLIPDIR + file_prefix + '_noisemap.fits',
+        fits.writeto(os.path.join(klipdir, file_prefix + '_noisemap.fits'),
                      noise,
                      overwrite='True')
 
         dataset.PAs = -dataset.PAs
-        os.remove(KLIPDIR + file_prefix + '_WahhajTrick-KLmodes-all.fits')
+        os.remove(
+            os.path.join(klipdir,
+                         file_prefix + '_WahhajTrick-KLmodes-all.fits'))
         del reduced_data_wahhajtrick
 
     return dataset
@@ -646,6 +662,8 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     n_dim_mcmc = params_mcmc_yaml['N_DIM_MCMC']
 
+    klipdir = os.path.join(DATADIR, 'klip_fm_files')
+
     if first_time == 1:
         # create a first model to check the begining parameter and initialize the FM.
         # We will clear all useless variables befire starting the MCMC
@@ -661,17 +679,18 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
         if n_dim_mcmc == 13:
             model_here = call_gen_disk_3g(theta_init)
 
-        fits.writeto(KLIPDIR + file_prefix + '_FirstModel.fits',
+        fits.writeto(os.path.join(klipdir, file_prefix + '_FirstModel.fits'),
                      model_here,
                      overwrite='True')
 
         model_here_convolved = convolve(model_here, PSF, boundary='wrap')
-        fits.writeto(KLIPDIR + file_prefix + '_FirstModel_Conv.fits',
+        fits.writeto(os.path.join(klipdir,
+                                  file_prefix + '_FirstModel_Conv.fits'),
                      model_here_convolved,
                      overwrite='True')
 
-    model_here_convolved = fits.getdata(KLIPDIR + file_prefix +
-                                        '_FirstModel_Conv.fits')
+    model_here_convolved = fits.getdata(
+        os.path.join(klipdir, file_prefix + '_FirstModel_Conv.fits'))
 
     if first_time == 1:
         # initialize the DiskFM object
@@ -679,7 +698,8 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
                          numbasis,
                          dataset,
                          model_here_convolved,
-                         basis_filename=KLIPDIR + file_prefix + '_klbasis.h5',
+                         basis_filename=os.path.join(
+                             klipdir, file_prefix + '_klbasis.h5'),
                          save_basis=True,
                          aligned_center=[xcen, ycen],
                          numthreads=1)
@@ -691,7 +711,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
                         annuli=1,
                         subsections=1,
                         mode='ADI',
-                        outputdir=KLIPDIR,
+                        outputdir=klipdir,
                         fileprefix=file_prefix,
                         aligned_center=[xcen, ycen],
                         mute_progression=True,
@@ -705,7 +725,8 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
                      numbasis,
                      dataset,
                      model_here_convolved,
-                     basis_filename=KLIPDIR + file_prefix + '_klbasis.h5',
+                     basis_filename=os.path.join(klipdir,
+                                                 file_prefix + '_klbasis.h5'),
                      load_from_basis=True,
                      numthreads=1)
 
@@ -713,7 +734,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
     diskobj.update_disk(model_here_convolved)
     modelfm_here = diskobj.fm_parallelized()[
         0]  ### we take only the first KL modemode
-    fits.writeto(KLIPDIR + file_prefix + '_FirstModel_FM.fits',
+    fits.writeto(os.path.join(klipdir, file_prefix + '_FirstModel_FM.fits'),
                  modelfm_here,
                  overwrite='True')
 
@@ -745,11 +766,14 @@ def initialize_walkers_backend(params_mcmc_yaml):
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
 
+    mcmcresultdir = os.path.join(DATADIR, 'results_MCMC')
+
     theta_init = from_param_to_theta_init(params_mcmc_yaml)
 
     # Set up the backend
     # Don't forget to clear it in case the file already exists
-    filename_backend = MCMCRESULTDIR + file_prefix + "_backend_file_mcmc.h5"
+    filename_backend = os.path.join(mcmcresultdir,
+                                    file_prefix + "_backend_file_mcmc.h5")
     backend_ini = backends.HDFBackend(filename_backend)
 
     #############################################################
@@ -880,8 +904,8 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
+
     if len(sys.argv) == 1:
-        # str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
         str_yalm = 'GPI_Hband_fake_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
@@ -895,17 +919,18 @@ if __name__ == '__main__':
         progress = False
 
     # open the parameter file
-    with open('initialization_files/' + str_yalm, 'r') as yaml_file:
+    with open(os.path.join('initialization_files', str_yalm),
+              'r') as yaml_file:
         params_mcmc_yaml = yaml.load(yaml_file)
 
-    DATADIR = basedir + params_mcmc_yaml['BAND_DIR']
+    DATADIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
     FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
 
-    KLIPDIR = DATADIR + 'klip_fm_files/'
-    distutils.dir_util.mkpath(KLIPDIR)
+    klipdir = os.path.join(DATADIR, 'klip_fm_files')
+    distutils.dir_util.mkpath(klipdir)
 
-    MCMCRESULTDIR = DATADIR + 'results_MCMC/'
-    distutils.dir_util.mkpath(MCMCRESULTDIR)
+    mcmcresultdir = os.path.join(DATADIR, 'results_MCMC')
+    distutils.dir_util.mkpath(mcmcresultdir)
 
     # initialize the things necessary to do a
     dataset = initialize_mask_psf_noise(params_mcmc_yaml)
@@ -916,26 +941,27 @@ if __name__ == '__main__':
     DIMENSION = dataset.input.shape[1]
 
     # load PSF and make it global
-    PSF = fits.getdata(DATADIR + FILE_PREFIX + '_SatSpotPSF.fits')
+    PSF = fits.getdata(os.path.join(DATADIR, FILE_PREFIX + '_SatSpotPSF.fits'))
 
     # load wheremask2generatedisk and make it global
-    WHEREMASK2GENERATEDISK = (fits.getdata(KLIPDIR + FILE_PREFIX +
-                                           '_mask2generatedisk.fits') == 0)
+    WHEREMASK2GENERATEDISK = (fits.getdata(
+        os.path.join(klipdir, FILE_PREFIX + '_mask2generatedisk.fits')) == 0)
 
     # load noise and make it global
-    NOISE = fits.getdata(KLIPDIR + FILE_PREFIX + '_noisemap.fits')
+    NOISE = fits.getdata(os.path.join(klipdir, FILE_PREFIX + '_noisemap.fits'))
 
     # initialize_diskfm and make diskobj global
     DISKOBJ = initialize_diskfm(dataset, params_mcmc_yaml)
 
     # load reduced_dataand make it a global variable
-    REDUCED_DATA = fits.getdata(KLIPDIR + FILE_PREFIX +
-                                '-klipped-KLmodes-all.fits')[
-                                    0]  ### we take only the first KL mode
+    REDUCED_DATA = fits.getdata(
+        os.path.join(klipdir, FILE_PREFIX + '-klipped-KLmodes-all.fits'))[
+            0]  ### we take only the first KL mode
 
     # we multiply the reduced_data by the mask2minimize to avoid having
     # to pass it as a global variable
-    mask2minimize = fits.getdata(KLIPDIR + FILE_PREFIX + '_mask2minimize.fits')
+    mask2minimize = fits.getdata(
+        os.path.join(klipdir, FILE_PREFIX + '_mask2minimize.fits'))
     mask2minimize[np.where(mask2minimize == 0.)] = np.nan
     REDUCED_DATA *= mask2minimize
     del mask2minimize, dataset
