@@ -71,6 +71,8 @@ NAMES:
 - ikowa
 - Omega
 - Argpe
+- R1mas
+- R2mas
 
 LABELS:
   Alph1: $\alpha$1[%]
@@ -110,3 +112,5 @@ COMMENTS:
   g2: '%, 2nd HG param'
   g3: '%, 3rd HG param'
   inc: degree, inclination
+  R1mas: 'mas, inner radius'
+  R2mas: 'mas, outer radius'

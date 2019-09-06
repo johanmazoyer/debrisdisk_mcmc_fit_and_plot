@@ -596,6 +596,11 @@ def create_header(params_mcmc_yaml):
     MLval_mcmc_val_mcmc_err_dict['Declp'] = convert.mas_to_pix(
         MLval_mcmc_val_mcmc_err_dict['Decl'], PIXSCALE_INS)
 
+    MLval_mcmc_val_mcmc_err_dict['R1au'] = convert.au_to_mas(
+        MLval_mcmc_val_mcmc_err_dict['R1'], distance_star)
+    MLval_mcmc_val_mcmc_err_dict['R2au'] = convert.au_to_mas(
+        MLval_mcmc_val_mcmc_err_dict['R2'], distance_star)
+
     print(" ")
 
     for key in samples_dict.keys():
@@ -1111,6 +1116,7 @@ if __name__ == '__main__':
     else:
         basedir = '/home/jmazoyer/data_python/Aurora/'
 
+    print(params_mcmc_yaml['BAND_NAME'])
     DATADIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
     klipdir = os.path.join(DATADIR, 'klip_fm_files')
     mcmcresultdir = os.path.join(DATADIR, 'results_MCMC')
@@ -1122,10 +1128,10 @@ if __name__ == '__main__':
         raise ValueError("the mcmc h5 file does not exist")
 
     # Plot the chain values
-    make_chain_plot(params_mcmc_yaml)
+    # make_chain_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
-    make_corner_plot(params_mcmc_yaml)
+    # make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)
