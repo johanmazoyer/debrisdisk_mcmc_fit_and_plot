@@ -765,19 +765,18 @@ def best_model_plot(params_mcmc_yaml, hdr):
     if n_dim_mcmc == 13:
         disk_ml = call_gen_disk_3g(theta_ml)
 
-    new_fits = fits.HDUList()
-    new_fits.append(fits.ImageHDU(data=disk_ml, header=hdr))
-    new_fits.writeto(os.path.join(mcmcresultdir, name_h5 + '_BestModel.fits'),
-                     overwrite=True)
+    fits.writeto(os.path.join(mcmcresultdir, name_h5 + '_BestModel.fits'),
+                         disk_ml,
+                         header=hdr,
+                         overwrite=True)
 
     #convolve by the PSF
     disk_ml_convolved = convolve(disk_ml, psf, boundary='wrap')
 
-    new_fits = fits.HDUList()
-    new_fits.append(fits.ImageHDU(data=disk_ml_convolved, header=hdr))
-    new_fits.writeto(os.path.join(mcmcresultdir,
-                                  name_h5 + '_BestModel_Conv.fits'),
-                     overwrite=True)
+    fits.writeto(os.path.join(mcmcresultdir, name_h5 + '_BestModel_Conv.fits'),
+                         disk_ml_convolved,
+                         header=hdr,
+                         overwrite=True)
 
     # load the KL numbers
     diskobj = DiskFM(dataset.input.shape,
@@ -793,18 +792,15 @@ def best_model_plot(params_mcmc_yaml, hdr):
     disk_ml_FM = diskobj.fm_parallelized()[0]
     ### we take only the first KL modemode
 
-    new_fits = fits.HDUList()
-    new_fits.append(fits.ImageHDU(data=disk_ml_FM, header=hdr))
-    new_fits.writeto(os.path.join(mcmcresultdir,
-                                  name_h5 + '_BestModel_FM.fits'),
-                     overwrite=True)
+    fits.writeto(os.path.join(mcmcresultdir, name_h5 + '_BestModel_FM.fits'),
+                         disk_ml_FM,
+                         header=hdr,
+                         overwrite=True)
 
-    new_fits = fits.HDUList()
-    new_fits.append(
-        fits.ImageHDU(data=np.abs(reduced_data - disk_ml_FM), header=hdr))
-    new_fits.writeto(os.path.join(mcmcresultdir,
-                                  name_h5 + '_BestModel_Res.fits'),
-                     overwrite=True)
+    fits.writeto(os.path.join(mcmcresultdir, name_h5 + '_BestModel_Res.fits'),
+                         np.abs(reduced_data - disk_ml_FM),
+                         header=hdr,
+                         overwrite=True)
 
     #Mesaure the residuals
     residuals = np.abs(reduced_data - disk_ml_FM)
