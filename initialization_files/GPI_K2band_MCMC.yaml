@@ -109,3 +109,12 @@ COMMENTS:
   g2: '%, 2nd HG param'
   g3: '%, 3rd HG param'
   inc: degree, inclination
+excluded_slices:
+- 29
+- 30
+- 31
+- 32
+- 33
+- 34
+- 35
+- 36
