@@ -247,8 +247,9 @@ def make_chain_plot(params_mcmc_yaml):
                                                 thin=thin)
     # print(log_prob_samples_flat)
     tau = reader.get_autocorr_time(tol=0)
-    if burnin > reader.iteration -1:
-        raise ValueError("the burnin cannot be larger than the # of iterations")
+    if burnin > reader.iteration - 1:
+        raise ValueError(
+            "the burnin cannot be larger than the # of iterations")
     print("")
     print("")
     print(name_h5)
@@ -448,17 +449,16 @@ def make_corner_plot(params_mcmc_yaml):
     fig.subplots_adjust(hspace=0)
     fig.subplots_adjust(wspace=0)
 
-    fig.gca().annotate(
-        band_name +
-        ": {0:,} iterations (with {1:,} burn-in)".format(
-            reader.iteration, burnin),
-        xy=(0.55, 0.99),
-        xycoords="figure fraction",
-        xytext=(-20, -10),
-        textcoords="offset points",
-        ha="center",
-        va="top",
-        fontsize=44)
+    fig.gca().annotate(band_name +
+                       ": {0:,} iterations (with {1:,} burn-in)".format(
+                           reader.iteration, burnin),
+                       xy=(0.55, 0.99),
+                       xycoords="figure fraction",
+                       xytext=(-20, -10),
+                       textcoords="offset points",
+                       ha="center",
+                       va="top",
+                       fontsize=44)
 
     fig.gca().annotate("{0:,} walkers: {1:,} models".format(
         nwalkers, reader.iteration * nwalkers),
@@ -488,7 +488,7 @@ def create_header(params_mcmc_yaml):
     """
 
     thin = params_mcmc_yaml['THIN']
-    burnin= params_mcmc_yaml['BURNIN']
+    burnin = params_mcmc_yaml['BURNIN']
 
     comments = params_mcmc_yaml['COMMENTS']
     names = params_mcmc_yaml['NAMES']
@@ -729,19 +729,20 @@ def best_model_plot(params_mcmc_yaml, hdr):
         if rm_file_disk_spots == 1:
             dataset_for_exclusion = GPI.GPIData(filelist, quiet=True)
             excluded_files = gpidiskpsf.check_satspots_disk_intersection(
-                        dataset_for_exclusion, params_mcmc_yaml, quiet=True)
+                dataset_for_exclusion, params_mcmc_yaml, quiet=True)
             for excluded_filesi in excluded_files:
                 if excluded_filesi in filelist:
                     filelist.remove(excluded_filesi)
 
         # load the bad slices in the psf header
-        hdr_psf = fits.getheader(os.path.join(DATADIR,
-                                      file_prefix + '_SatSpotPSF.fits'))
+        hdr_psf = fits.getheader(
+            os.path.join(DATADIR, file_prefix + '_SatSpotPSF.fits'))
 
-        excluded_slices =[]
+        excluded_slices = []
         if hdr_psf['N_BADSLI'] > 0:
             for badslice_i in range(hdr_psf['N_BADSLI']):
-                excluded_slices.append(hdr_psf['BADSLI'+str(badslice_i).zfill(2)])
+                excluded_slices.append(hdr_psf['BADSLI' +
+                                               str(badslice_i).zfill(2)])
 
         # load the raw data without the bad slices
         dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
@@ -766,17 +767,17 @@ def best_model_plot(params_mcmc_yaml, hdr):
         disk_ml = call_gen_disk_3g(theta_ml)
 
     fits.writeto(os.path.join(mcmcresultdir, name_h5 + '_BestModel.fits'),
-                         disk_ml,
-                         header=hdr,
-                         overwrite=True)
+                 disk_ml,
+                 header=hdr,
+                 overwrite=True)
 
     #convolve by the PSF
     disk_ml_convolved = convolve(disk_ml, psf, boundary='wrap')
 
     fits.writeto(os.path.join(mcmcresultdir, name_h5 + '_BestModel_Conv.fits'),
-                         disk_ml_convolved,
-                         header=hdr,
-                         overwrite=True)
+                 disk_ml_convolved,
+                 header=hdr,
+                 overwrite=True)
 
     # load the KL numbers
     diskobj = DiskFM(dataset.input.shape,
@@ -793,14 +794,14 @@ def best_model_plot(params_mcmc_yaml, hdr):
     ### we take only the first KL modemode
 
     fits.writeto(os.path.join(mcmcresultdir, name_h5 + '_BestModel_FM.fits'),
-                         disk_ml_FM,
-                         header=hdr,
-                         overwrite=True)
+                 disk_ml_FM,
+                 header=hdr,
+                 overwrite=True)
 
     fits.writeto(os.path.join(mcmcresultdir, name_h5 + '_BestModel_Res.fits'),
-                         np.abs(reduced_data - disk_ml_FM),
-                         header=hdr,
-                         overwrite=True)
+                 np.abs(reduced_data - disk_ml_FM),
+                 header=hdr,
+                 overwrite=True)
 
     #Mesaure the residuals
     residuals = np.abs(reduced_data - disk_ml_FM)
@@ -868,13 +869,13 @@ def best_model_plot(params_mcmc_yaml, hdr):
     cax = plt.imshow(residuals_crop,
                      origin='lower',
                      vmin=0,
-                     vmax=int(np.round(vmax)//2),
+                     vmax=int(np.round(vmax) // 2),
                      cmap=plt.cm.get_cmap('viridis'))
     ax1.set_title("Residuals", fontsize=caracsize, pad=caracsize / 3.)
 
     # make the colobar ticks integer only for gpi
     if params_mcmc_yaml['BAND_DIR'] != 'SPHERE_Hdata':
-        tick_int = list(np.arange(int(np.round(vmax)//2) + 1))
+        tick_int = list(np.arange(int(np.round(vmax) // 2) + 1))
         tick_int_st = [str(i) for i in tick_int]
         cbar = fig.colorbar(cax, ticks=tick_int, fraction=0.046, pad=0.04)
         cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
@@ -1121,10 +1122,10 @@ if __name__ == '__main__':
         raise ValueError("the mcmc h5 file does not exist")
 
     # Plot the chain values
-    # make_chain_plot(params_mcmc_yaml)
+    make_chain_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
-    # make_corner_plot(params_mcmc_yaml)
+    make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)
