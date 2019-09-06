@@ -486,32 +486,35 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
     else:
         #only for GPI
-        filelist4psf = sorted(
-            glob.glob(os.path.join(DATADIR, "*_distorcorr.fits")))
-
-        dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
-
-        # identify angles where the
-        # disk intersect the satspots
-        excluded_files = gpidiskpsf.check_satspots_disk_intersection(
-            dataset4psf, params_mcmc_yaml, quiet=True)
-
-        # exclude those angles for the PSF measurement
-        for excluded_filesi in excluded_files:
-            if excluded_filesi in filelist4psf:
-                filelist4psf.remove(excluded_filesi)
-
-        # create the data this time wihtout the bad files
-        dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
-
-        # Find the IFS slices for which the satspots are too faint
-        # if SNR time_mean(sat spot) <3 they are removed
-        # Mostyly for K2 and sometime K1
-        excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
-                                                        params_mcmc_yaml,
-                                                        quiet=True)
-
         if first_time == 1:
+
+            filelist4psf = sorted(
+                glob.glob(os.path.join(DATADIR, "*_distorcorr.fits")))
+
+            dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
+
+            # identify angles where the
+            # disk intersect the satspots
+            excluded_files = gpidiskpsf.check_satspots_disk_intersection(
+                dataset4psf, params_mcmc_yaml, quiet=True)
+
+            # exclude those angles for the PSF measurement
+            for excluded_filesi in excluded_files:
+                if excluded_filesi in filelist4psf:
+                    filelist4psf.remove(excluded_filesi)
+
+            # create the data this time wihtout the bad files
+            dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
+
+            # Find the IFS slices for which the satspots are too faint
+            # if SNR time_mean(sat spot) <3 they are removed
+            # Mostly for K2 and sometime K1
+            excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
+                                                            params_mcmc_yaml,
+                                                            quiet=True)
+
+            params_mcmc_yaml['EXCLUDED_SLICES'] = excluded_slices
+
             # extract the data this time wihtout the bad files nor slices
             dataset4psf = GPI.GPIData(filelist4psf,
                                       quiet=True,
@@ -522,10 +525,18 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                                                            params_mcmc_yaml,
                                                            boxrad=15)
 
+            # save the excluded_slices in the psf header
+            hdr_psf = fits.Header()
+            hdr_psf['N_BADSLI'] = len(excluded_slices)
+            for badslice_i, excluded_slices_num in enumerate(excluded_slices):
+                hdr_psf['BADSLI' +
+                        str(badslice_i).zfill(2)] = excluded_slices_num
+
             #save the psf
             fits.writeto(os.path.join(DATADIR,
                                       file_prefix + '_SatSpotPSF.fits'),
                          instrument_psf,
+                         header=hdr_psf,
                          overwrite=True)
 
         filelist = sorted(glob.glob(os.path.join(DATADIR,
@@ -537,9 +548,22 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         rm_file_disk_cross_satspots = params_mcmc_yaml[
             'RM_FILE_DISK_CROSS_SATSPOTS']
         if rm_file_disk_cross_satspots == 1:
+            dataset_for_exclusion = GPI.GPIData(filelist, quiet=True)
+            excluded_files = gpidiskpsf.check_satspots_disk_intersection(
+                dataset_for_exclusion, params_mcmc_yaml, quiet=True)
             for excluded_filesi in excluded_files:
                 if excluded_filesi in filelist:
                     filelist.remove(excluded_filesi)
+
+        # load the bad slices in the psf header
+        hdr_psf = fits.getheader(
+            os.path.join(DATADIR, file_prefix + '_SatSpotPSF.fits'))
+
+        excluded_slices = []
+        if hdr_psf['N_BADSLI'] > 0:
+            for badslice_i in range(hdr_psf['N_BADSLI']):
+                excluded_slices.append(hdr_psf['BADSLI' +
+                                               str(badslice_i).zfill(2)])
 
         # load the raw data without the bad slices
         dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
@@ -547,7 +571,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         #collapse the data spectrally
         dataset.spectral_collapse(align_frames=True, numthreads=1)
 
-    #put the outer working angle
+    #define the outer working angle
     dataset.OWA = owa
 
     #assuming square data
@@ -906,7 +930,7 @@ if __name__ == '__main__':
     # warnings.simplefilter('ignore', category=AstropyWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_fake_MCMC.yaml'
+        str_yalm = 'GPI_K2band_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
@@ -919,8 +943,9 @@ if __name__ == '__main__':
         progress = False
 
     # open the parameter file
-    with open(os.path.join('initialization_files', str_yalm),
-              'r') as yaml_file:
+    yaml_path_file = os.path.join(os.getcwd(), 'initialization_files',
+                                  str_yalm)
+    with open(yaml_path_file, 'r') as yaml_file:
         params_mcmc_yaml = yaml.load(yaml_file)
 
     DATADIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])

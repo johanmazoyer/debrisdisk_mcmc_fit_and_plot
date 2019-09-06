@@ -39,7 +39,7 @@ plt.switch_backend('agg')
 # matplotlib with pyklip if I don't use this line
 
 # define global variables in the global scope
-distance_star = PIXSCALE_INS = DIMENSION = None
+DISTANCE_STAR = PIXSCALE_INS = DIMENSION = None
 wheremask2generatedisk = 12310120398
 
 
@@ -386,14 +386,17 @@ def make_corner_plot(params_mcmc_yaml):
         quants = (0.001, 0.5, 0.999)
 
     #### Check truths = bests parameters
-
+    if file_prefix == 'Hband_hd48524_fake':
+        shouldweplotalldatapoints = True
+    else:
+        shouldweplotalldatapoints = False
     labels_hash = [labels[names[i]] for i in range(n_dim_mcmc)]
     fig = corner.corner(chain_flat,
                         labels=labels_hash,
                         quantiles=quants,
                         show_titles=True,
-                        plot_datapoints=False,
-                        verbose=False)  # levels=(1-np.exp(-0.5),) , ))
+                        plot_datapoints=shouldweplotalldatapoints,
+                        verbose=False)
 
     if file_prefix == 'Hband_hd48524_fake':
         initial_values = [
@@ -447,7 +450,7 @@ def make_corner_plot(params_mcmc_yaml):
 
     fig.gca().annotate(
         band_name +
-        ": {0:,} iterations, Burn-in phase {1:,} iterations".format(
+        ": {0:,} iterations (with {1:,} burn-in)".format(
             reader.iteration, burnin),
         xy=(0.55, 0.99),
         xycoords="figure fraction",
@@ -716,43 +719,29 @@ def best_model_plot(params_mcmc_yaml, hdr):
                                          wvs=None)
     else:
         #only for GPI
-        filelist4psf = sorted(
-            glob.glob(os.path.join(DATADIR, "*_distorcorr.fits")))
-
-        dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
-
-        # identify angles where the
-        # disk intersect the satspots
-        excluded_files = gpidiskpsf.check_satspots_disk_intersection(
-            dataset4psf, params_mcmc_yaml, quiet=True)
-
-        # exclude those angles for the PSF measurement
-        for excluded_filesi in excluded_files:
-            if excluded_filesi in filelist4psf:
-                filelist4psf.remove(excluded_filesi)
-
-        # create the data this time wihtout the bad files
-        dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
-
-        # Find the IFS slices for which the satspots are too faint
-        # if SNR time_mean(sat spot) <3 they are removed
-        # Mostyly for K2 and sometime K1
-        excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
-                                                        params_mcmc_yaml,
-                                                        quiet=True)
-
         filelist = sorted(glob.glob(os.path.join(DATADIR,
                                                  "*_distorcorr.fits")))
 
-        # in the general case we can chosse to
+        # in the general case we can choose to
         # keep the files where the disk intersect the disk.
         # We can removed those if rm_file_disk_cross_satspots == 1
-        rm_file_disk_cross_satspots = params_mcmc_yaml[
-            'RM_FILE_DISK_CROSS_SATSPOTS']
-        if rm_file_disk_cross_satspots == 1:
+        rm_file_disk_spots = params_mcmc_yaml['RM_FILE_DISK_CROSS_SATSPOTS']
+        if rm_file_disk_spots == 1:
+            dataset_for_exclusion = GPI.GPIData(filelist, quiet=True)
+            excluded_files = gpidiskpsf.check_satspots_disk_intersection(
+                        dataset_for_exclusion, params_mcmc_yaml, quiet=True)
             for excluded_filesi in excluded_files:
                 if excluded_filesi in filelist:
                     filelist.remove(excluded_filesi)
+
+        # load the bad slices in the psf header
+        hdr_psf = fits.getheader(os.path.join(DATADIR,
+                                      file_prefix + '_SatSpotPSF.fits'))
+
+        excluded_slices =[]
+        if hdr_psf['N_BADSLI'] > 0:
+            for badslice_i in range(hdr_psf['N_BADSLI']):
+                excluded_slices.append(hdr_psf['BADSLI'+str(badslice_i).zfill(2)])
 
         # load the raw data without the bad slices
         dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
@@ -833,8 +822,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
             disk_ml_FM.shape[0],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(40, PIXSCALE_INS, distance_star),
-            convert.au_to_pix(41, PIXSCALE_INS, distance_star),
+            convert.au_to_pix(40, PIXSCALE_INS, DISTANCE_STAR),
+            convert.au_to_pix(41, PIXSCALE_INS, DISTANCE_STAR),
             xcen=xcen,
             ycen=ycen)
 
@@ -842,8 +831,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
             disk_ml_FM.shape[0],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(129, PIXSCALE_INS, distance_star),
-            convert.au_to_pix(130, PIXSCALE_INS, distance_star),
+            convert.au_to_pix(129, PIXSCALE_INS, DISTANCE_STAR),
+            convert.au_to_pix(130, PIXSCALE_INS, DISTANCE_STAR),
             xcen=xcen,
             ycen=ycen)
 
@@ -853,7 +842,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
         disk_ml_FM = disk_ml_FM * mask_disk_int * mask_disk_ext
 
     dim_crop_image = int(
-        4 * convert.au_to_pix(102, PIXSCALE_INS, distance_star) // 2)
+        4 * convert.au_to_pix(102, PIXSCALE_INS, DISTANCE_STAR) // 2)
 
     disk_ml_crop = crop_center(disk_ml, dim_crop_image)
     disk_ml_convolved_crop = crop_center(disk_ml_convolved, dim_crop_image)
@@ -883,11 +872,20 @@ def best_model_plot(params_mcmc_yaml, hdr):
     cax = plt.imshow(residuals_crop,
                      origin='lower',
                      vmin=0,
-                     vmax=int(np.round(vmax / 3.)),
+                     vmax=int(np.round(vmax)//2),
                      cmap=plt.cm.get_cmap('viridis'))
     ax1.set_title("Residuals", fontsize=caracsize, pad=caracsize / 3.)
-    cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
-    cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
+
+    # make the colobar ticks integer only for gpi
+    if params_mcmc_yaml['BAND_DIR'] != 'SPHERE_Hdata':
+        tick_int = list(np.arange(int(np.round(vmax)//2) + 1))
+        tick_int_st = [str(i) for i in tick_int]
+        cbar = fig.colorbar(cax, ticks=tick_int, fraction=0.046, pad=0.04)
+        cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
+        cbar.ax.set_yticklabels(tick_int_st)
+    else:
+        cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
+        cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
     plt.axis('off')
 
     #The SNR of the residuals
@@ -900,7 +898,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     ax1.set_title("SNR Residuals", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, ticks=[0, 1, 2], fraction=0.046, pad=0.04)
     cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
-    cbar.ax.set_yticklabels(['0', '1', '2'])  # vertically oriented colorbar
+    cbar.ax.set_yticklabels(['0', '1', '2'])
     plt.axis('off')
 
     # The model
@@ -1101,7 +1099,8 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
+        # str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
+        str_yalm = 'GPI_K2band_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
@@ -1126,10 +1125,10 @@ if __name__ == '__main__':
         raise ValueError("the mcmc h5 file does not exist")
 
     # Plot the chain values
-    make_chain_plot(params_mcmc_yaml)
+    # make_chain_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
-    make_corner_plot(params_mcmc_yaml)
+    # make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)
