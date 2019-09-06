@@ -156,8 +156,8 @@ def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1.):
         params_mcmc_yaml = yaml.load(yaml_file, Loader=yaml.FullLoader)
 
     dico_return = dict()
-    burnin = params_mcmc_yaml['BURNIN']
-    thin = params_mcmc_yaml['THIN']
+
+    nwalkers = params_mcmc_yaml['NWALKERS']
     n_dim_mcmc = params_mcmc_yaml['N_DIM_MCMC']
 
     datadir = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
@@ -170,7 +170,12 @@ def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1.):
     chain_name = os.path.join(mcmcresultdir, name_h5 + ".h5")
 
     reader = backends.HDFBackend(chain_name)
-    chain_flat = reader.get_chain(discard=burnin, flat=True, thin=thin)
+
+
+    #we only exctract the last itearations, assuming it converged
+    chain_flat = reader.get_chain(discard=0, flat=True)
+    burnin = np.clip(reader.iteration - 50*Number_rand_mcmc//nwalkers,0,None)
+    chain_flat = reader.get_chain(discard=burnin, flat=True)
 
     if n_dim_mcmc == 11:
         g1_chain = chain_flat[:, 3]
@@ -256,11 +261,22 @@ basedir = '/Users/jmazoyer/Dropbox/ExchangeFolder/data_python/Aurora/'
 
 min_scat = 13.3
 max_scat = 166.7
+nb_random_models = 1000
+
 
 folder_save_pdf = os.path.join(basedir, 'Spf_plots_produced')
 
 scattered_angles = np.arange(np.round(max_scat - min_scat)) + np.round(
     np.min(min_scat))
+
+# ###########################################################################
+# ### SPF injected real value
+# ###########################################################################
+g1_injected = 0.825
+g2_injected = -0.201
+alph1_injected = 0.298
+injected_hg = hg_2g(scattered_angles,g1_injected,g2_injected,alph1_injected, 1.0)
+
 
 # ###########################################################################
 # ### SPHERE H2 exctracted by Milli et al. 2017
@@ -345,15 +361,17 @@ angles_GPIPolK1_extractPauline = np.delete(angles_GPIPolK1_extractPauline,
 spf_GPIPolK1_extractPauline = np.delete(spf_GPIPolK1_extractPauline, index)
 error_GPIPolK1_extractPauline = np.delete(error_GPIPolK1_extractPauline, index)
 
-spf_sphere_h = measure_spf_errors('SPHERE_Hband_MCMC', 500)
-spf_sphere_h_3g = measure_spf_errors('SPHERE_Hband_3g_MCMC', 500)
+spf_sphere_h = measure_spf_errors('SPHERE_Hband_MCMC', nb_random_models)
+spf_sphere_h_3g = measure_spf_errors('SPHERE_Hband_3g_MCMC', nb_random_models)
 spf_gpi_not1at90 = measure_spf_errors('GPI_Hband_MCMC',
-                                      500,
+                                      nb_random_models,
                                       Norm_90_inplot=0.93)
-spf_gpi_h_1at90 = measure_spf_errors('GPI_Hband_MCMC', 500)
-spf_gpi_j = measure_spf_errors('GPI_Jband_MCMC', 500)
-spf_gpi_k1 = measure_spf_errors('GPI_K1band_MCMC', 500)
-spf_gpi_k2 = measure_spf_errors('GPI_K2band_MCMC', 500)
+spf_gpi_h_1at90 = measure_spf_errors('GPI_Hband_MCMC', nb_random_models)
+spf_gpi_j = measure_spf_errors('GPI_Jband_MCMC', nb_random_models)
+spf_gpi_k1 = measure_spf_errors('GPI_K1band_MCMC', nb_random_models)
+spf_gpi_k2 = measure_spf_errors('GPI_K2band_MCMC', nb_random_models)
+
+spf_gpi_h_fake = measure_spf_errors('GPI_Hband_fake_MCMC', nb_random_models)
 
 color0 = 'black'
 color1 = '#3B73FF'
@@ -508,6 +526,8 @@ plot.tight_layout()
 plot.savefig(os.path.join(folder_save_pdf, name_pdf))
 
 plot.close()
+
+
 ####################################################################################
 ## 3g plot
 ####################################################################################
@@ -523,13 +543,13 @@ plot.fill_between(scattered_angles,
 plot.fill_between(scattered_angles,
                   spf_sphere_h_3g['errorbar_sup'],
                   spf_sphere_h_3g['errorbar_inf'],
-                  facecolor=color1,
+                  facecolor=color2,
                   alpha=0.1)
 
 plot.plot(scattered_angles,
           spf_sphere_h_3g['best_spf'],
           linewidth=2,
-          color=color1,
+          color=color2,
           label="3 HG SPF extraction MCMC (this work)")
 
 plot.plot(scattered_angles,
@@ -558,6 +578,52 @@ plot.errorbar(angles_sphere_extractJulien,
 
 handles, labels = plot.gca().get_legend_handles_labels()
 order = [3, 2, 1, 0]
+plot.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
+
+plot.yscale('log')
+
+plot.ylim(bottom=0.3, top=30)
+plot.xlim(left=0, right=180)
+plot.xlabel('Scattering angles')
+plot.ylabel('Normalized total intensity')
+
+plot.tight_layout()
+
+plot.savefig(os.path.join(folder_save_pdf, name_pdf))
+
+plot.close()
+
+
+####################################################################################
+## injected spf plot
+####################################################################################
+name_pdf = 'Comparison_spf_injected_recovered.pdf'
+plot.figure()
+
+plot.fill_between(scattered_angles,
+                  spf_gpi_h_fake['errorbar_sup'],
+                  spf_gpi_h_fake['errorbar_inf'],
+                  facecolor=color3,
+                  alpha=0.1)
+
+
+plot.plot(scattered_angles,
+          spf_gpi_h_fake['best_spf'],
+          linewidth=2,
+          color=color3,
+          label="SPF Recoreved After MCMC")
+
+
+plot.plot(scattered_angles,
+          injected_hg,
+          linewidth=1.5 ,
+          linestyle = '-.',
+          color=color2,
+          label="SPF Injected into Empty Dataset")
+
+
+handles, labels = plot.gca().get_legend_handles_labels()
+order = [1, 0]
 plot.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
 
 plot.yscale('log')
