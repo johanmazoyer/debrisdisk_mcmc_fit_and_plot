@@ -61,17 +61,18 @@ NAMES:
 - dx
 - dy
 - Norm
-- RA
-- Decl
-- RAp
-- Declp
-- Rkowa
-- ekowa
-- ikowa
-- Omega
 - Argpe
 - R1mas
-- R2mas
+- ecc
+# - Omega
+# - ekowa
+# - ikowa
+# - RA
+# - Decl
+# - RAp
+# - Declp
+# - Rkowa
+
 
 LABELS:
   Alph1: $\alpha$1[%]
@@ -89,27 +90,29 @@ LABELS:
   inc: $i[^{\circ}]$
 
 COMMENTS:
-  Argpe: deg, argument of pericentre (Kowalsky)
-  Alph1: '%, first relative HG weight'
-  Alph2: '%, second relative HG weight'
-  Beta: radial power law
-  Decl: mas, ->N declination
-  Declp: pix, -> N declination
-  Norm: ADU, normalisation
-  Omega: deg, longitude of the ascending node (Kowalsky)
-  PA: degree, principal angle
-  R1: AU, inner radius
-  R2: AU, outer radius
-  RA: mas, ->E right ascension
-  RAp: pix, ->E right ascension
-  Rkowa: mas, deproj. (true) semi major axis (Kowalsky)
-  dx: au, + -> NW offset disk plane Minor Axis
-  dy: au, + -> SW offset disk plane Major Axis
-  ekowa: deproj. (true) eccentricity (Kowalsky)
-  ikowa: degree, deproj. (true) inclination (Kowalsky)
-  g1: '%, 1st HG param'
-  g2: '%, 2nd HG param'
-  g3: '%, 3rd HG param'
-  inc: degree, inclination
-  R1mas: 'mas, inner radius'
-  R2mas: 'mas, outer radius'
+  Argpe: ' deg, argument of pericentre'
+  Alph1: ' %, first relative HG weight'
+  Alph2: ' %, second relative HG weight'
+  Beta: ' radial power law'
+  Norm: ' ADU, normalisation'
+  PA: ' degree, principal angle'
+  R1: ' AU, inner radius'
+  R2: ' AU, outer radius'
+  dx: ' au, + -> NW offset disk plane Minor Axis'
+  dy: ' au, + -> SW offset disk plane Major Axis'
+  g1: ' %, 1st HG param'
+  g2: ' %, 2nd HG param'
+  g3: ' %, 3rd HG param'
+  inc: ' degree, inclination'
+  R1mas: ' mas, inner radius'
+  ecc: ' eccentricity (deprojected, or disk plane)'
+
+  # R2mas: 'mas, outer radius'
+  # ekowa: deproj. (true) eccentricity (Kowalsky)
+  # ikowa: degree, deproj. (true) inclination (Kowalsky)
+  #RA: mas, ->E right ascension
+  # RAp: pix, ->E right ascension
+  # Rkowa: mas, deproj. (true) semi major axis (Kowalsky)
+  # Decl: mas, ->N declination
+  # Declp: pix, -> N declination
+  # Omega: deg, longitude of the ascending node

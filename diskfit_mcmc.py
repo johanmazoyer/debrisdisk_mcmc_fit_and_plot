@@ -54,7 +54,7 @@ def call_gen_disk_2g(theta):
     Returns:
         a 2d model
     """
-
+    # TODO check where is the position of the star in the model
     r1 = mt.exp(theta[0])
     r2 = mt.exp(theta[1])
     beta = theta[2]

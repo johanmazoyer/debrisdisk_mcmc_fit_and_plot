@@ -545,37 +545,43 @@ def create_header(params_mcmc_yaml):
     for i, key in enumerate(names[n_dim_mcmc:]):
         samples_dict[key] = chain_flat[:, i] * 0.
 
-    # measure of 6 other parameters:  right ascension, declination, and Kowalsky
-    # (true_a, true_ecc, longnode, argperi)
-    for j in range(chain_flat.shape[0]):
-        r1_here = samples_dict['R1'][j]
-        inc_here = samples_dict['inc'][j]
-        pa_here = samples_dict['PA'][j]
-        dx_here = samples_dict['dx'][j]
-        dy_here = samples_dict['dy'][j]
-        dAlpha, dDelta = offset_2_RA_dec(dx_here, dy_here, inc_here, pa_here,
-                                         distance_star)
+    # measure of 2 other parameters:  eccentricity and argument
+    # of the perihelie
+    for modeli in range(chain_flat.shape[0]):
+        r1_here = samples_dict['R1'][modeli]
+        dx_here = samples_dict['dx'][modeli]
+        dy_here = samples_dict['dy'][modeli]
+        a = r1_here
+        c = np.sqrt(dx_here**2 + dy_here**2)
+        eccentricity = c/a
+        samples_dict['ecc'][modeli] = eccentricity
+        samples_dict['Argpe'][modeli] = np.degrees(np.arctan2(dx_here, dy_here))
 
-        samples_dict['RA'][j] = dAlpha
-        samples_dict['Decl'][j] = dDelta
+        samples_dict['R1mas'][modeli] =convert.au_to_mas(r1_here, distance_star)
+
+        # dAlpha, dDelta = offset_2_RA_dec(dx_here, dy_here, inc_here, pa_here,
+        #                                  distance_star)
+
+        # samples_dict['RA'][modeli] = dAlpha
+        # samples_dict['Decl'][modeli] = dDelta
 
 
-        semimajoraxis = convert.au_to_mas(r1_here, distance_star)
-        ecc = np.sin(np.radians(inc_here))
-        semiminoraxis = semimajoraxis*np.sqrt(1- ecc**2)
+        # semimajoraxis = convert.au_to_mas(r1_here, distance_star)
+        # ecc = np.sin(np.radians(inc_here))
+        # semiminoraxis = semimajoraxis*np.sqrt(1- ecc**2)
 
-        samples_dict['Smaj'][j] = semimajoraxis
-        samples_dict['ecc'][j] = ecc
-        samples_dict['Smin'][j] = semiminoraxis
+        # samples_dict['Smaj'][modeli] = semimajoraxis
+        # samples_dict['ecc'][modeli] = ecc
+        # samples_dict['Smin'][modeli] = semiminoraxis
 
-        true_a, true_ecc, argperi, inc, longnode = kowalsky(
-            semimajoraxis, ecc, pa_here, dAlpha, dDelta)
+        # true_a, true_ecc, argperi, inc, longnode = kowalsky(
+        #     semimajoraxis, ecc, pa_here, dAlpha, dDelta)
 
-        samples_dict['Rkowa'][j] = true_a
-        samples_dict['ekowa'][j] = true_ecc
-        samples_dict['ikowa'][j] = inc
-        samples_dict['Omega'][j] = longnode
-        samples_dict['Argpe'][j] = argperi
+        # samples_dict['Rkowa'][modeli] = true_a
+        # samples_dict['ekowa'][modeli] = true_ecc
+        # samples_dict['ikowa'][modeli] = inc
+        # samples_dict['Omega'][modeli] = longnode
+        # samples_dict['Argpe'][modeAli] = argperi
 
 
     wheremin = np.where(log_prob_samples_flat == np.max(log_prob_samples_flat))
@@ -598,17 +604,16 @@ def create_header(params_mcmc_yaml):
         MLval_mcmc_val_mcmc_err_dict[key][2] = percent[0] - percent[1]
         MLval_mcmc_val_mcmc_err_dict[key][3] = percent[2] - percent[1]
 
-    MLval_mcmc_val_mcmc_err_dict['RAp'] = convert.mas_to_pix(
-        MLval_mcmc_val_mcmc_err_dict['RA'], PIXSCALE_INS)
-    MLval_mcmc_val_mcmc_err_dict['Declp'] = convert.mas_to_pix(
-        MLval_mcmc_val_mcmc_err_dict['Decl'], PIXSCALE_INS)
+    # MLval_mcmc_val_mcmc_err_dict['RAp'] = convert.mas_to_pix(
+    #     MLval_mcmc_val_mcmc_err_dict['RA'], PIXSCALE_INS)
+    # MLval_mcmc_val_mcmc_err_dict['Declp'] = convert.mas_to_pix(
+    #     MLval_mcmc_val_mcmc_err_dict['Decl'], PIXSCALE_INS)
 
-    MLval_mcmc_val_mcmc_err_dict['R2mas'] = convert.au_to_mas(
-        MLval_mcmc_val_mcmc_err_dict['R2'], distance_star)
+    # MLval_mcmc_val_mcmc_err_dict['R2mas'] = convert.au_to_mas(
+    #     MLval_mcmc_val_mcmc_err_dict['R2'], distance_star)
 
     print(" ")
-    projected_only_keys = ['Smaj','Smin', 'RA', 'Decl','pa']
-    for key in projected_only_keys:
+    for key in MLval_mcmc_val_mcmc_err_dict.keys():
         print(key +
               '_ML: {0:.3f}, MCMC {1:.3f}, -/+1sig: {2:.3f}/+{3:.3f}'.format(
                   MLval_mcmc_val_mcmc_err_dict[key][0],
@@ -1108,7 +1113,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         # str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
-        str_yalm = 'GPI_K2band_MCMC.yaml'
+        str_yalm = 'GPI_Hband_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
@@ -1134,16 +1139,16 @@ if __name__ == '__main__':
         raise ValueError("the mcmc h5 file does not exist")
 
     # Plot the chain values
-    # make_chain_plot(params_mcmc_yaml)
+    make_chain_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
-    # make_corner_plot(params_mcmc_yaml)
+    make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)
 
     # save the fits, plot the model and residuals
-    # best_model_plot(params_mcmc_yaml, hdr)
+    best_model_plot(params_mcmc_yaml, hdr)
 
     # print the values to put in excel sheet easily
-    print_geometry_parameter(params_mcmc_yaml, hdr)
+    # print_geometry_parameter(params_mcmc_yaml, hdr)
