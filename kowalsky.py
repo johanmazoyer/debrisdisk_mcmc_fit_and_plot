@@ -1,15 +1,20 @@
+"""
+Translated in python by Johan Mazoyer from IDL routine
+kowalsky.pro written by Christopher Stark
+
+Deprojects an ellipse using the Kowalsky method as detailed by Smart 1930.
+Smart 1930 derives the following assuming the star/focus is at the origin.
+The ellipse is assumed to have been centered at (0,0), rotated by an
+angle, then shifted to a new center, i.e. rotation before
+translation, NOT THE OTHER WAY AROUND.
+
+"""
+
 import numpy as np
 import math as mt
 
 
 def kowalsky(a, ecc, pa, E_offset, N_offset):
-
-    # Translated by Johan Mazoyer from IDL routine kowalsky.pro written by Christopher Stark 
-    # Deprojects an ellipse using the Kowalsky method as detailed by Smart 1930.
-    # Smart 1930 derives the following assuming the star/focus is at the origin.
-    # The ellipse is assumed to have been centered at (0,0), rotated by an
-    # angle, then shifted to a new center, i.e. rotation before
-    # translation, NOT THE OTHER WAY AROUND.
 
     # INPUT: (Observed/projected ellipse parameters)
     # a = semi-major axis
@@ -55,7 +60,7 @@ def kowalsky(a, ecc, pa, E_offset, N_offset):
     A0 = ( cpa2 * oneoa2 + spa2 * oneob2 )
     B0 = ( spa2 * oneoa2 + cpa2 * oneob2 )
     H0 = cpa * spa * (oneoa2 - oneob2)
-    F0 = - (B0 * dy + H0 * dx) 
+    F0 = - (B0 * dy + H0 * dx)
     G0 = - (A0 * dx + H0 * dy)
     f = A0 * dx * dx + 2 * H0 * dx * dy + B0 * dy * dy - 1
     A0 /= f
@@ -73,8 +78,7 @@ def kowalsky(a, ecc, pa, E_offset, N_offset):
     stln = np.sin(twolongnode)
     fgmh = F0*G0-H0
     if (stln/abs(stln)) * (fgmh/abs(fgmh)) > 0: #if they are not opposite signs, add pi
-        print("ERROR in kowalsky.py:  2*longnode must have opposite sign of F0*G0-H0.")
-        raise
+        raise ValueError("ERROR in kowalsky.py:  2*longnode must have opposite sign of F0*G0-H0.")
     longnode = twolongnode * 0.5
 
     #Now for the inclination

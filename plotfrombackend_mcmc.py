@@ -559,8 +559,14 @@ def create_header(params_mcmc_yaml):
         samples_dict['RA'][j] = dAlpha
         samples_dict['Decl'][j] = dDelta
 
+
         semimajoraxis = convert.au_to_mas(r1_here, distance_star)
         ecc = np.sin(np.radians(inc_here))
+        semiminoraxis = semimajoraxis*np.sqrt(1- ecc**2)
+
+        samples_dict['Smaj'][j] = semimajoraxis
+        samples_dict['ecc'][j] = ecc
+        samples_dict['Smin'][j] = semiminoraxis
 
         true_a, true_ecc, argperi, inc, longnode = kowalsky(
             semimajoraxis, ecc, pa_here, dAlpha, dDelta)
@@ -570,6 +576,7 @@ def create_header(params_mcmc_yaml):
         samples_dict['ikowa'][j] = inc
         samples_dict['Omega'][j] = longnode
         samples_dict['Argpe'][j] = argperi
+
 
     wheremin = np.where(log_prob_samples_flat == np.max(log_prob_samples_flat))
     wheremin0 = np.array(wheremin).flatten()[0]
@@ -596,20 +603,19 @@ def create_header(params_mcmc_yaml):
     MLval_mcmc_val_mcmc_err_dict['Declp'] = convert.mas_to_pix(
         MLval_mcmc_val_mcmc_err_dict['Decl'], PIXSCALE_INS)
 
-    MLval_mcmc_val_mcmc_err_dict['R1au'] = convert.au_to_mas(
-        MLval_mcmc_val_mcmc_err_dict['R1'], distance_star)
-    MLval_mcmc_val_mcmc_err_dict['R2au'] = convert.au_to_mas(
+    MLval_mcmc_val_mcmc_err_dict['R2mas'] = convert.au_to_mas(
         MLval_mcmc_val_mcmc_err_dict['R2'], distance_star)
 
     print(" ")
-
-    for key in samples_dict.keys():
+    projected_only_keys = ['Smaj','Smin', 'RA', 'Decl','pa']
+    for key in projected_only_keys:
         print(key +
               '_ML: {0:.3f}, MCMC {1:.3f}, -/+1sig: {2:.3f}/+{3:.3f}'.format(
                   MLval_mcmc_val_mcmc_err_dict[key][0],
                   MLval_mcmc_val_mcmc_err_dict[key][1],
                   MLval_mcmc_val_mcmc_err_dict[key][2],
                   MLval_mcmc_val_mcmc_err_dict[key][3]) + comments_dict[key])
+    print(" ")
 
     hdr = fits.Header()
     hdr['COMMENT'] = 'Best model of the MCMC reduction'
@@ -1137,7 +1143,7 @@ if __name__ == '__main__':
     hdr = create_header(params_mcmc_yaml)
 
     # save the fits, plot the model and residuals
-    best_model_plot(params_mcmc_yaml, hdr)
+    # best_model_plot(params_mcmc_yaml, hdr)
 
     # print the values to put in excel sheet easily
     print_geometry_parameter(params_mcmc_yaml, hdr)

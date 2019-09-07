@@ -64,14 +64,16 @@ NAMES:
 - Norm
 - RA
 - Decl
-- RAp
-- Declp
+- Smaj
+- Smin
+- ecc
 - Rkowa
 - ekowa
 - ikowa
 - Omega
 - Argpe
-- R1mas
+- RAp
+- Declp
 - R2mas
 
 LABELS:
@@ -112,5 +114,7 @@ COMMENTS:
   g2: '%, 2nd HG param'
   g3: '%, 3rd HG param'
   inc: degree, inclination
-  R1mas: 'mas, inner radius'
+  Smaj: 'mas, semi major axis, also R1mas, inner radius'
+  Smin: 'mas, semi minor axis'
   R2mas: 'mas, outer radius'
+  ecc: 'projected eccentricity (sky plane)'
