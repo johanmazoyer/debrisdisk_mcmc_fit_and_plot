@@ -573,7 +573,7 @@ plot.plot(scattered_angles,
           spf_sphere_h['best_spf'],
           linewidth=2,
           color=color0,
-          label="2 HG SPF (best model MCMC)")
+          label="2 HG SPF (MCMC best model)")
 
 
 plot.plot(scattered_angles,
@@ -581,20 +581,20 @@ plot.plot(scattered_angles,
           linewidth=2,
           color=color2,
           linestyle = '-.',
-          label="3 HG SPF (best model MCMC)")
+          label="3 HG SPF (MCMC best model)")
 
 
 plot.plot(scattered_angles,
           1.38 * hg3g_fitted_Milliextraction,
           linewidth=2,
           color=color3,
-          label="3 HG SPF fit to previous extraction SPF and MCMC initial point")
+          label="3 HG SPF fitted to Milli et al. 2017 SPF (MCMC initial point)")
 
 plot.errorbar(angles_sphere_extractJulien,
               1.38 * spf_shpere_extractJulien,
               yerr=errors_sphere_extractJulien,
               fmt='o',
-              label='Previous extraction SPF by Milli et al. 2017)',
+              label='Previous extraction SPF by Milli et al. 2017',
               ms=3,
               capthick=1,
               capsize=2,
