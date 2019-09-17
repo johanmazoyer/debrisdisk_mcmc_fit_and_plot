@@ -11,6 +11,7 @@ from datetime import datetime
 
 import math as mt
 import numpy as np
+from scipy.ndimage import rotate
 
 import astropy.io.fits as fits
 from astropy.convolution import convolve
@@ -138,7 +139,7 @@ def call_gen_disk_3g(theta):
 
 
 ########################################################
-def crop_center(img, crop):
+def crop_center_odd(img, crop):
     y, x = img.shape
     startx = (x - 1) // 2 - crop // 2
     starty = (y - 1) // 2 - crop // 2
@@ -612,14 +613,23 @@ def create_header(params_mcmc_yaml):
     # MLval_mcmc_val_mcmc_err_dict['R2mas'] = convert.au_to_mas(
     #     MLval_mcmc_val_mcmc_err_dict['R2'], distance_star)
 
+    # print(" ")
+    # for key in MLval_mcmc_val_mcmc_err_dict.keys():
+    #     print(key +
+    #           '_ML: {0:.3f}, MCMC {1:.3f}, -/+1sig: {2:.3f}/+{3:.3f}'.format(
+    #               MLval_mcmc_val_mcmc_err_dict[key][0],
+    #               MLval_mcmc_val_mcmc_err_dict[key][1],
+    #               MLval_mcmc_val_mcmc_err_dict[key][2],
+    #               MLval_mcmc_val_mcmc_err_dict[key][3]) + comments_dict[key])
+    # print(" ")
+
     print(" ")
-    for key in MLval_mcmc_val_mcmc_err_dict.keys():
-        print(key +
-              '_ML: {0:.3f}, MCMC {1:.3f}, -/+1sig: {2:.3f}/+{3:.3f}'.format(
-                  MLval_mcmc_val_mcmc_err_dict[key][0],
+    just_these_params = ['g1', 'g2','Alph1']
+    for key in just_these_params:
+        print(key + ' MCMC {0:.3f}, -/+1sig: {1:.3f}/+{2:.3f}'.format(
                   MLval_mcmc_val_mcmc_err_dict[key][1],
                   MLval_mcmc_val_mcmc_err_dict[key][2],
-                  MLval_mcmc_val_mcmc_err_dict[key][3]) + comments_dict[key])
+                  MLval_mcmc_val_mcmc_err_dict[key][3]))
     print(" ")
 
     hdr = fits.Header()
@@ -787,6 +797,19 @@ def best_model_plot(params_mcmc_yaml, hdr):
                  header=hdr,
                  overwrite=True)
 
+    # find the position of the pericenter in the model
+    argpe = hdr['ARGPE_MC']
+    pa =  hdr['PA_MC']
+
+    model_rot = np.clip(rotate(disk_ml, argpe + pa, mode='wrap', reshape = False), 0., None)
+
+    argpe_direction = model_rot[int(xcen):,int(ycen)]
+    radius_argpe = np.where(argpe_direction == np.nanmax(argpe_direction))[0]
+
+    x_peri_true = radius_argpe*np.cos(np.radians(argpe + pa + 90)) # distance to star, in pixel
+    y_peri_true = radius_argpe*np.sin(np.radians(argpe + pa + 90)) # distance to star, in pixel
+
+
     #convolve by the PSF
     disk_ml_convolved = convolve(disk_ml, psf, boundary='wrap')
 
@@ -855,15 +878,14 @@ def best_model_plot(params_mcmc_yaml, hdr):
         disk_ml_FM = disk_ml_FM * mask_disk_int * mask_disk_ext
 
     dim_crop_image = int(
-        4 * convert.au_to_pix(102, PIXSCALE_INS, DISTANCE_STAR) // 2)
+        4 * convert.au_to_pix(102, PIXSCALE_INS, DISTANCE_STAR) // 2)  + 1
 
-    disk_ml_crop = crop_center(disk_ml, dim_crop_image)
-    disk_ml_convolved_crop = crop_center(disk_ml_convolved, dim_crop_image)
-    disk_ml_FM_crop = crop_center(disk_ml_FM, dim_crop_image)
-
-    reduced_data_crop = crop_center(reduced_data, dim_crop_image)
-    residuals_crop = crop_center(residuals, dim_crop_image)
-    snr_residuals_crop = crop_center(snr_residuals, dim_crop_image)
+    disk_ml_crop = crop_center_odd(disk_ml, dim_crop_image)
+    disk_ml_convolved_crop = crop_center_odd(disk_ml_convolved, dim_crop_image)
+    disk_ml_FM_crop = crop_center_odd(disk_ml_FM, dim_crop_image)
+    reduced_data_crop = crop_center_odd(reduced_data, dim_crop_image)
+    residuals_crop = crop_center_odd(residuals, dim_crop_image)
+    snr_residuals_crop = crop_center_odd(snr_residuals, dim_crop_image)
 
     caracsize = 40 * quality_plot / 2.
 
@@ -924,6 +946,12 @@ def best_model_plot(params_mcmc_yaml, hdr):
     ax1.set_title("Best Model", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
     cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
+
+
+    pos_argperi = plt.Circle((x_peri_true+dim_crop_image//2,y_peri_true+dim_crop_image//2), 3, color='g',alpha = 0.8)
+    pos_star = plt.Circle((dim_crop_image//2,dim_crop_image//2), 2, color='r',alpha = 0.8)
+    ax1.add_artist(pos_argperi)
+    ax1.add_artist(pos_star)
     plt.axis('off')
 
     rect = Rectangle((9.5, 9.5),
@@ -976,6 +1004,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
 ########################################################
 def print_geometry_parameter(params_mcmc_yaml, hdr):
+
     """ Print some of the important values from the header to put in
         excel
 
@@ -1139,16 +1168,16 @@ if __name__ == '__main__':
         raise ValueError("the mcmc h5 file does not exist")
 
     # Plot the chain values
-    make_chain_plot(params_mcmc_yaml)
+    # make_chain_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
-    make_corner_plot(params_mcmc_yaml)
+    # make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)
 
     # save the fits, plot the model and residuals
-    best_model_plot(params_mcmc_yaml, hdr)
+    # best_model_plot(params_mcmc_yaml, hdr)
 
     # print the values to put in excel sheet easily
     # print_geometry_parameter(params_mcmc_yaml, hdr)
