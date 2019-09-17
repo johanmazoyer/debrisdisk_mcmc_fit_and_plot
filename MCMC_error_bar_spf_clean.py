@@ -184,25 +184,48 @@ def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1.):
         norm_chain = np.exp(chain_flat[:, 10])
 
     if n_dim_mcmc == 13:
-        g1_chain = chain_flat[:, 3]
-        g2_chain = chain_flat[:, 4]
-        g3_chain = chain_flat[:, 5]
-        alph1_chain = chain_flat[:, 6]
-        alph2_chain = chain_flat[:, 7]
-        norm_chain = np.exp(chain_flat[:, 12])
+        burnin = 1000
+        incl_chain = np.degrees(np.arccos(chain_flat[:, 8]))
+        where_incl_is_ok = np.where(incl_chain > 76)
+
+        g1_chain =  chain_flat[where_incl_is_ok, 3].flatten()
+        g2_chain = chain_flat[where_incl_is_ok, 4].flatten()
+        g3_chain = chain_flat[where_incl_is_ok, 5].flatten()
+        alph1_chain = chain_flat[where_incl_is_ok, 6].flatten()
+        alph2_chain = chain_flat[where_incl_is_ok, 7].flatten()
+        norm_chain = np.exp(chain_flat[where_incl_is_ok, 12]).flatten()
 
     bestmodel_g1 = np.percentile(g1_chain, 50)
     bestmodel_g2 = np.percentile(g2_chain, 50)
     bestmodel_alpha1 = np.percentile(alph1_chain, 50)
     bestmodel_Norm = np.percentile(norm_chain, 50)
 
+    bestmodel_g1 = np.percentile(g1_chain, 50)
+    bestmodel_g2 = np.percentile(g2_chain, 50)
+    bestmodel_alpha1 = np.percentile(alph1_chain, 50)
+    bestmodel_Norm = np.percentile(norm_chain, 50)
+
+
     if n_dim_mcmc == 11:
         best_hg_mcmc = hg_2g(scattered_angles, bestmodel_g1, bestmodel_g2,
                              bestmodel_alpha1, Norm_90_inplot)
 
     if n_dim_mcmc == 13:
-        bestmodel_g3 = np.percentile(g3_chain, [50])
-        bestmodel_alpha2 = np.percentile(alph2_chain, [50])
+
+        log_prob_samples_flat = reader.get_log_prob(discard=burnin,
+                                                    flat=True)
+        log_prob_samples_flat = log_prob_samples_flat[where_incl_is_ok]
+        wheremin = np.where(
+                log_prob_samples_flat == np.max(log_prob_samples_flat))
+        wheremin0 = np.array(wheremin).flatten()[0]
+
+        bestmodel_g1 = g1_chain[wheremin0]
+        bestmodel_g2 = g2_chain[wheremin0]
+        bestmodel_alpha1 = alph1_chain[wheremin0]
+        bestmodel_Norm = norm_chain[wheremin0]
+
+        bestmodel_g3 = g3_chain[wheremin0]
+        bestmodel_alpha2 = alph2_chain[wheremin0]
         best_hg_mcmc = hg_3g(scattered_angles, bestmodel_g1, bestmodel_g2,
                              bestmodel_g3, bestmodel_alpha1, bestmodel_alpha2,
                              Norm_90_inplot)
