@@ -1,8 +1,8 @@
 ########################################################
 ########################################################
 #### exctracted from anadisk_e.py
-#### author Max Millar Blanchaer
-#### modified by Johan
+#### MAIN AUTHOR Max Millar Blanchaer
+#### sliglty modified by Johan
 ########################################################
 ########################################################
 
