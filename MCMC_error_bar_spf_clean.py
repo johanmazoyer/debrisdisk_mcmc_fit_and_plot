@@ -174,7 +174,7 @@ def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1.):
 
     #we only exctract the last itearations, assuming it converged
     chain_flat = reader.get_chain(discard=0, flat=True)
-    burnin = np.clip(reader.iteration - 50*Number_rand_mcmc//nwalkers,0,None)
+    burnin = np.clip(reader.iteration - 10*Number_rand_mcmc//nwalkers,0,None)
     chain_flat = reader.get_chain(discard=burnin, flat=True)
 
     if n_dim_mcmc == 11:
@@ -184,7 +184,7 @@ def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1.):
         norm_chain = np.exp(chain_flat[:, 10])
 
     if n_dim_mcmc == 13:
-        burnin = 1000
+        # burnin = 1000
         incl_chain = np.degrees(np.arccos(chain_flat[:, 8]))
         where_incl_is_ok = np.where(incl_chain > 76)
 
@@ -570,28 +570,31 @@ plot.fill_between(scattered_angles,
                   alpha=0.1)
 
 plot.plot(scattered_angles,
-          spf_sphere_h_3g['best_spf'],
-          linewidth=2,
-          color=color2,
-          label="3 HG SPF extraction MCMC (this work)")
-
-plot.plot(scattered_angles,
           spf_sphere_h['best_spf'],
           linewidth=2,
           color=color0,
-          label="2 HG SPF extraction MCMC (this work)")
+          label="2 HG SPF (best model MCMC)")
+
+
+plot.plot(scattered_angles,
+          spf_sphere_h_3g['best_spf'],
+          linewidth=2,
+          color=color2,
+          linestyle = '-.',
+          label="3 HG SPF (best model MCMC)")
+
 
 plot.plot(scattered_angles,
           1.38 * hg3g_fitted_Milliextraction,
           linewidth=2,
           color=color3,
-          label="3 HG SPF fit to the SPF extracted in Milli et al. 2017")
+          label="3 HG SPF fit to previous extraction SPF and MCMC initial point")
 
 plot.errorbar(angles_sphere_extractJulien,
               1.38 * spf_shpere_extractJulien,
               yerr=errors_sphere_extractJulien,
               fmt='o',
-              label='SPHERE H2 (extraction Milli et al. 2017)',
+              label='Previous extraction SPF by Milli et al. 2017)',
               ms=3,
               capthick=1,
               capsize=2,
@@ -600,7 +603,7 @@ plot.errorbar(angles_sphere_extractJulien,
               color='grey')
 
 handles, labels = plot.gca().get_legend_handles_labels()
-order = [3, 2, 1, 0]
+order = [3, 2, 0,1]
 plot.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
 
 plot.yscale('log')

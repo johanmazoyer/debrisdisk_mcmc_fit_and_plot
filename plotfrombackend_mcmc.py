@@ -1142,7 +1142,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         # str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
-        str_yalm = 'GPI_Hband_MCMC.yaml'
+        str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
@@ -1168,16 +1168,16 @@ if __name__ == '__main__':
         raise ValueError("the mcmc h5 file does not exist")
 
     # Plot the chain values
-    # make_chain_plot(params_mcmc_yaml)
+    make_chain_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
-    # make_corner_plot(params_mcmc_yaml)
+    make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)
 
     # save the fits, plot the model and residuals
-    # best_model_plot(params_mcmc_yaml, hdr)
+    best_model_plot(params_mcmc_yaml, hdr)
 
     # print the values to put in excel sheet easily
     # print_geometry_parameter(params_mcmc_yaml, hdr)
