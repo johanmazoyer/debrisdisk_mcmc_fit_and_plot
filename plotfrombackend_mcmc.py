@@ -554,18 +554,19 @@ def create_header(params_mcmc_yaml):
         dy_here = samples_dict['dy'][modeli]
         a = r1_here
         c = np.sqrt(dx_here**2 + dy_here**2)
-        eccentricity = c/a
+        eccentricity = c / a
         samples_dict['ecc'][modeli] = eccentricity
-        samples_dict['Argpe'][modeli] = np.degrees(np.arctan2(dx_here, dy_here))
+        samples_dict['Argpe'][modeli] = np.degrees(np.arctan2(
+            dx_here, dy_here))
 
-        samples_dict['R1mas'][modeli] =convert.au_to_mas(r1_here, distance_star)
+        samples_dict['R1mas'][modeli] = convert.au_to_mas(
+            r1_here, distance_star)
 
         # dAlpha, dDelta = offset_2_RA_dec(dx_here, dy_here, inc_here, pa_here,
         #                                  distance_star)
 
         # samples_dict['RA'][modeli] = dAlpha
         # samples_dict['Decl'][modeli] = dDelta
-
 
         # semimajoraxis = convert.au_to_mas(r1_here, distance_star)
         # ecc = np.sin(np.radians(inc_here))
@@ -583,7 +584,6 @@ def create_header(params_mcmc_yaml):
         # samples_dict['ikowa'][modeli] = inc
         # samples_dict['Omega'][modeli] = longnode
         # samples_dict['Argpe'][modeAli] = argperi
-
 
     wheremin = np.where(log_prob_samples_flat == np.max(log_prob_samples_flat))
     wheremin0 = np.array(wheremin).flatten()[0]
@@ -624,12 +624,12 @@ def create_header(params_mcmc_yaml):
     # print(" ")
 
     print(" ")
-    just_these_params = ['g1', 'g2','Alph1']
+    just_these_params = ['g1', 'g2', 'Alph1']
     for key in just_these_params:
         print(key + ' MCMC {0:.3f}, -/+1sig: {1:.3f}/+{2:.3f}'.format(
-                  MLval_mcmc_val_mcmc_err_dict[key][1],
-                  MLval_mcmc_val_mcmc_err_dict[key][2],
-                  MLval_mcmc_val_mcmc_err_dict[key][3]))
+            MLval_mcmc_val_mcmc_err_dict[key][1],
+            MLval_mcmc_val_mcmc_err_dict[key][2],
+            MLval_mcmc_val_mcmc_err_dict[key][3]))
     print(" ")
 
     hdr = fits.Header()
@@ -799,16 +799,18 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     # find the position of the pericenter in the model
     argpe = hdr['ARGPE_MC']
-    pa =  hdr['PA_MC']
+    pa = hdr['PA_MC']
 
-    model_rot = np.clip(rotate(disk_ml, argpe + pa, mode='wrap', reshape = False), 0., None)
+    model_rot = np.clip(
+        rotate(disk_ml, argpe + pa, mode='wrap', reshape=False), 0., None)
 
-    argpe_direction = model_rot[int(xcen):,int(ycen)]
+    argpe_direction = model_rot[int(xcen):, int(ycen)]
     radius_argpe = np.where(argpe_direction == np.nanmax(argpe_direction))[0]
 
-    x_peri_true = radius_argpe*np.cos(np.radians(argpe + pa + 90)) # distance to star, in pixel
-    y_peri_true = radius_argpe*np.sin(np.radians(argpe + pa + 90)) # distance to star, in pixel
-
+    x_peri_true = radius_argpe * np.cos(
+        np.radians(argpe + pa + 90))  # distance to star, in pixel
+    y_peri_true = radius_argpe * np.sin(
+        np.radians(argpe + pa + 90))  # distance to star, in pixel
 
     #convolve by the PSF
     disk_ml_convolved = convolve(disk_ml, psf, boundary='wrap')
@@ -878,7 +880,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
         disk_ml_FM = disk_ml_FM * mask_disk_int * mask_disk_ext
 
     dim_crop_image = int(
-        4 * convert.au_to_pix(102, PIXSCALE_INS, DISTANCE_STAR) // 2)  + 1
+        4 * convert.au_to_pix(102, PIXSCALE_INS, DISTANCE_STAR) // 2) + 1
 
     disk_ml_crop = crop_center_odd(disk_ml, dim_crop_image)
     disk_ml_convolved_crop = crop_center_odd(disk_ml_convolved, dim_crop_image)
@@ -947,9 +949,15 @@ def best_model_plot(params_mcmc_yaml, hdr):
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
     cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
 
-
-    pos_argperi = plt.Circle((x_peri_true+dim_crop_image//2,y_peri_true+dim_crop_image//2), 3, color='g',alpha = 0.8)
-    pos_star = plt.Circle((dim_crop_image//2,dim_crop_image//2), 2, color='r',alpha = 0.8)
+    pos_argperi = plt.Circle(
+        (x_peri_true + dim_crop_image // 2, y_peri_true + dim_crop_image // 2),
+        3,
+        color='g',
+        alpha=0.8)
+    pos_star = plt.Circle((dim_crop_image // 2, dim_crop_image // 2),
+                          2,
+                          color='r',
+                          alpha=0.8)
     ax1.add_artist(pos_argperi)
     ax1.add_artist(pos_star)
     plt.axis('off')
@@ -1004,7 +1012,6 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
 ########################################################
 def print_geometry_parameter(params_mcmc_yaml, hdr):
-
     """ Print some of the important values from the header to put in
         excel
 
