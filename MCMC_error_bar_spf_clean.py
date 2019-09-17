@@ -603,7 +603,7 @@ plot.errorbar(angles_sphere_extractJulien,
               color='grey')
 
 handles, labels = plot.gca().get_legend_handles_labels()
-order = [3, 2, 0,1]
+order = [3, 2, 1, 0]
 plot.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
 
 plot.yscale('log')
