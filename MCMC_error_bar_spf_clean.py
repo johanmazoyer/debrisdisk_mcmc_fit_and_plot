@@ -133,7 +133,7 @@ def log_hg_3g(scatt_angles, g1, g2, g3, alpha1, alpha2, Norm):
     return np.log(hg_3g(scatt_angles, g1, g2, g3, alpha1, alpha2, Norm))
 
 
-def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1.):
+def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1., save = False):
     """
     take a set of scatt angles and a set of HG parameter and return
     the log of a 2g HG SPF (usefull to fit from a set of points)
@@ -177,14 +177,32 @@ def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1.):
     burnin = np.clip(reader.iteration - 10*Number_rand_mcmc//nwalkers,0,None)
     chain_flat = reader.get_chain(discard=burnin, flat=True)
 
+
     if n_dim_mcmc == 11:
         g1_chain = chain_flat[:, 3]
         g2_chain = chain_flat[:, 4]
         alph1_chain = chain_flat[:, 5]
         norm_chain = np.exp(chain_flat[:, 10])
 
+        bestmodel_g1 = np.percentile(g1_chain, 50)
+        bestmodel_g2 = np.percentile(g2_chain, 50)
+        bestmodel_alpha1 = np.percentile(alph1_chain, 50)
+        bestmodel_Norm = np.percentile(norm_chain, 50)
+        Normalization = Norm_90_inplot
+
+
+        if save == True:
+            Normalization = bestmodel_Norm
+
+
+        best_hg_mcmc = hg_2g(scattered_angles, bestmodel_g1, bestmodel_g2,
+                             bestmodel_alpha1, Normalization)
+
     if n_dim_mcmc == 13:
-        # burnin = 1000
+
+        # temporary, the 3g is not finish so we remove some of the
+        # chains that are obvisouly bad. When 3g is finally converged,
+        # we removed that
         incl_chain = np.degrees(np.arccos(chain_flat[:, 8]))
         where_incl_is_ok = np.where(incl_chain > 76)
 
@@ -195,23 +213,6 @@ def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1.):
         alph2_chain = chain_flat[where_incl_is_ok, 7].flatten()
         norm_chain = np.exp(chain_flat[where_incl_is_ok, 12]).flatten()
 
-    bestmodel_g1 = np.percentile(g1_chain, 50)
-    bestmodel_g2 = np.percentile(g2_chain, 50)
-    bestmodel_alpha1 = np.percentile(alph1_chain, 50)
-    bestmodel_Norm = np.percentile(norm_chain, 50)
-
-    bestmodel_g1 = np.percentile(g1_chain, 50)
-    bestmodel_g2 = np.percentile(g2_chain, 50)
-    bestmodel_alpha1 = np.percentile(alph1_chain, 50)
-    bestmodel_Norm = np.percentile(norm_chain, 50)
-
-
-    if n_dim_mcmc == 11:
-        best_hg_mcmc = hg_2g(scattered_angles, bestmodel_g1, bestmodel_g2,
-                             bestmodel_alpha1, Norm_90_inplot)
-
-    if n_dim_mcmc == 13:
-
         log_prob_samples_flat = reader.get_log_prob(discard=burnin,
                                                     flat=True)
         log_prob_samples_flat = log_prob_samples_flat[where_incl_is_ok]
@@ -221,14 +222,23 @@ def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1.):
 
         bestmodel_g1 = g1_chain[wheremin0]
         bestmodel_g2 = g2_chain[wheremin0]
+        bestmodel_g3 = g3_chain[wheremin0]
         bestmodel_alpha1 = alph1_chain[wheremin0]
+        bestmodel_alpha2 = alph2_chain[wheremin0]
         bestmodel_Norm = norm_chain[wheremin0]
 
-        bestmodel_g3 = g3_chain[wheremin0]
-        bestmodel_alpha2 = alph2_chain[wheremin0]
+
+        # we normalize the best model at 90 either by the value found
+        # by the MCMC if we want to save or by the value in the
+        # Norm_90_inplot if we want to plot
+
+        Normalization = Norm_90_inplot
+        if save == True:
+            Normalization = bestmodel_Norm
+
         best_hg_mcmc = hg_3g(scattered_angles, bestmodel_g1, bestmodel_g2,
                              bestmodel_g3, bestmodel_alpha1, bestmodel_alpha2,
-                             Norm_90_inplot)
+                             Normalization)
 
     dico_return['best_spf'] = best_hg_mcmc
 
@@ -256,16 +266,26 @@ def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1.):
         g2_here = g2_rand[num_model]
         alph1_here = alph1_rand[num_model]
         norm_here = norm_rand[num_model]
+
+        # we normalize the random SPF at 90 either by the value of
+        # the SPF by the MCMC if we want to save or around the
+        # Norm_90_inplot if we want to plot
+
+        Normalization = norm_here * Norm_90_inplot / bestmodel_Norm
+        if save == True:
+            Normalization = norm_here
+
+
         if n_dim_mcmc == 11:
             hg_mcmc_rand[:, num_model] = hg_2g(
-                scattered_angles, g1_here, g2_here, alph1_here,
-                norm_here / bestmodel_Norm * Norm_90_inplot)
+                scattered_angles, g1_here, g2_here, alph1_here, Normalization)
+
         if n_dim_mcmc == 13:
             g3_here = g3_rand[num_model]
             alph2_here = alph2_rand[num_model]
             hg_mcmc_rand[:, num_model] = hg_3g(
                 scattered_angles, g1_here, g2_here, g3_here, alph1_here,
-                alph2_here, norm_here / bestmodel_Norm * Norm_90_inplot)
+                alph2_here, Normalization)
 
     for anglei in range(len(scattered_angles)):
         errorbar_sup[anglei] = np.max(hg_mcmc_rand[anglei, :])
@@ -277,6 +297,11 @@ def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1.):
     dico_return['errorbar_inf'] = errorbar_inf
     dico_return['errorbar'] = errorbar
 
+    if save == True:
+        savefortext = np.transpose([scattered_angles, best_hg_mcmc, errorbar_sup, errorbar_inf])
+        path_and_name_txt = os.path.join(folder_save_pdf, file_prefix+'_spf.txt')
+
+        np.savetxt( path_and_name_txt, savefortext, delimiter=',', fmt = '%10.2f')   # save the array in a txt
     return dico_return
 
 
@@ -395,6 +420,8 @@ spf_gpi_k1 = measure_spf_errors('GPI_K1band_MCMC', nb_random_models)
 spf_gpi_k2 = measure_spf_errors('GPI_K2band_MCMC', nb_random_models)
 
 spf_gpi_h_fake = measure_spf_errors('GPI_Hband_fake_MCMC', nb_random_models)
+
+spf_gpi_h_save = measure_spf_errors('GPI_Hband_MCMC', nb_random_models, save = True)
 
 color0 = 'black'
 color1 = '#3B73FF'
