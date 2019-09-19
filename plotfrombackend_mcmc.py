@@ -715,9 +715,15 @@ def best_model_plot(params_mcmc_yaml, hdr):
             1 / 100. * hdr['Alph1_ML'], 1 / 100. * hdr['Alph2_ML'],
             np.cos(np.radians(hdr['inc_ML'])), hdr['PA_ML'], hdr['dx_ML'],
             hdr['dy_ML'],
-            np.log(1391)
-            # np.log(hdr['Norm_ML'])
+            np.log(hdr['Norm_ML'])
         ]
+
+        #initial poinr (3g spf fitted to Julien's)
+        # theta_ml[3] = 0.99997991
+        # theta_ml[4] = 0.05085574
+        # theta_ml[5] = 0.04775487
+        # theta_ml[6] = 0.99949596
+        # theta_ml[7] = -0.03397267
 
     psf = fits.getdata(os.path.join(DATADIR, file_prefix + '_SatSpotPSF.fits'))
 
@@ -851,6 +857,9 @@ def best_model_plot(params_mcmc_yaml, hdr):
     #Set the colormap
     vmin = 0.3 * np.min(disk_ml_FM)
     vmax = 0.9 * np.max(disk_ml_FM)
+    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata':
+        vmin = -22.466
+        vmax = 102.864
 
     #The convolved model
     if file_prefix == 'Hband_hd48524_fake':
@@ -909,7 +918,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     cax = plt.imshow(residuals_crop,
                      origin='lower',
                      vmin=0,
-                     vmax=int(np.round(vmax) // 2),
+                     vmax=int(np.round(vmax) // 3),
                      cmap=plt.cm.get_cmap('viridis'))
     ax1.set_title("Residuals", fontsize=caracsize, pad=caracsize / 3.)
 
@@ -940,10 +949,13 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     # The model
     ax1 = fig.add_subplot(231)
+    vmax_model = int(np.round(np.max(disk_ml_crop) / 1.5))
+    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata':
+        vmax_model = 433
     cax = plt.imshow(disk_ml_crop,
                      origin='lower',
                      vmin=-2,
-                     vmax=int(np.round(np.max(disk_ml_crop) / 1.5)),
+                     vmax=vmax_model,
                      cmap=plt.cm.get_cmap('plasma'))
     ax1.set_title("Best Model", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
@@ -1175,10 +1187,10 @@ if __name__ == '__main__':
         raise ValueError("the mcmc h5 file does not exist")
 
     # Plot the chain values
-    make_chain_plot(params_mcmc_yaml)
+    # make_chain_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
-    make_corner_plot(params_mcmc_yaml)
+    # make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)
