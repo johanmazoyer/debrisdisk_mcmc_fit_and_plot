@@ -930,7 +930,7 @@ if __name__ == '__main__':
     # warnings.simplefilter('ignore', category=AstropyWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_K2band_MCMC.yaml'
+        str_yalm = 'GPI_K1band_hd15115_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
