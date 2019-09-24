@@ -311,6 +311,7 @@ def make_chain_plot(params_mcmc_yaml):
     axarr[n_dim_mcmc - 1].set_xlabel('Iterations', fontsize=10 * quality_plot)
 
     plt.savefig(os.path.join(mcmcresultdir, name_h5 + '_chains.jpg'))
+    plt.close()
 
 
 ########################################################
@@ -472,6 +473,7 @@ def make_corner_plot(params_mcmc_yaml):
                        fontsize=44)
 
     plt.savefig(os.path.join(mcmcresultdir, name_h5 + '_pdfs.pdf'))
+    plt.close()
 
 
 ########################################################
@@ -908,7 +910,11 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      vmin=int(np.round(vmin)),
                      vmax=int(np.round(vmax)),
                      cmap=plt.cm.get_cmap('viridis'))
-    ax1.set_title("Original Data", fontsize=caracsize, pad=caracsize / 3.)
+
+    if file_prefix == 'Hband_hd48524_fake':
+        ax1.set_title("Injected Disk (ADI-KLIP)", fontsize=caracsize, pad=caracsize / 3.)
+    else:
+        ax1.set_title("HR 4796A (ADI-KLIP)", fontsize=caracsize, pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
     cbar.ax.tick_params(labelsize=caracsize * 3 / 4.)
     plt.axis('off')
@@ -1020,7 +1026,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     fig.tight_layout()
 
     plt.savefig(os.path.join(mcmcresultdir, name_h5 + '_BestModel_Plot.jpg'))
-
+    plt.close()
 
 ########################################################
 def print_geometry_parameter(params_mcmc_yaml, hdr):
@@ -1160,7 +1166,6 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     if len(sys.argv) == 1:
-        # str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
         str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
@@ -1187,7 +1192,7 @@ if __name__ == '__main__':
         raise ValueError("the mcmc h5 file does not exist")
 
     # Plot the chain values
-    # make_chain_plot(params_mcmc_yaml)
+    make_chain_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
     # make_corner_plot(params_mcmc_yaml)

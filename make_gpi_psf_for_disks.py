@@ -250,6 +250,6 @@ def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=20):
     smooth_mask[np.where(smooth_mask < 0.01)] = 0.
 
     return_psf = return_psf*smooth_mask
-    return_psf = return_psf / np.max(return_psf)
+    return_psf = return_psf / np.nanmax(return_psf)
     return_psf[np.where(return_psf < 0.)] = 0.
     return return_psf

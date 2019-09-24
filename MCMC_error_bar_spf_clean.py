@@ -457,13 +457,13 @@ plot.plot(scattered_angles,
           spf_gpi_not1at90['best_spf'],
           linewidth=2,
           color=color1,
-          label="GPI H")
+          label="GPI H (extraction MCMC)")
 
 plot.errorbar(angles_sphere_extractJulien,
               1.38 * spf_shpere_extractJulien,
               yerr=errors_sphere_extractJulien,
               fmt='o',
-              label='SPHERE H2 (extraction Milli et al. 2017)',
+              label='SPHERE H2 (previous extraction by M17)',
               ms=3,
               capthick=1,
               capsize=2,
@@ -615,13 +615,13 @@ plot.plot(scattered_angles,
           1.38 * hg3g_fitted_Milliextraction,
           linewidth=2,
           color=color3,
-          label="3 HG SPF fitted to Milli et al. 2017 SPF (MCMC initial point)")
+          label="3 HG SPF fitted to M17 SPF (MCMC initial point)")
 
 plot.errorbar(angles_sphere_extractJulien,
               1.38 * spf_shpere_extractJulien,
               yerr=errors_sphere_extractJulien,
               fmt='o',
-              label='Previous extraction SPF by Milli et al. 2017',
+              label='Previous extraction by M17',
               ms=3,
               capthick=1,
               capsize=2,

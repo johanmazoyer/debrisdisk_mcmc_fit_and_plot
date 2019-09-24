@@ -264,7 +264,7 @@ def logp(theta):
     if (dy > 10) or (dy < -10):  #The y offset
         return -np.inf
 
-    if (lognorm < np.log(0.5) or lognorm > np.log(50000)):
+    if (lognorm < np.log(1000) or lognorm > np.log(50000)):
         return -np.inf
     # otherwise ...
 
