@@ -43,7 +43,7 @@ g3_init: 0.04775487
 alpha2_init: -0.03397267
 
 # MCMC READING PARAMETERS
-BURNIN: 0   #We remove the first BURNIN iteration
+BURNIN: 850   #We remove the first BURNIN iteration
 THIN: 1       #thin (bin) the chains
 QUALITY_PLOT: 4
 sigma: 1

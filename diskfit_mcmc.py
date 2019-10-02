@@ -252,10 +252,10 @@ def logp(theta):
         if (alpha2 < -1 or alpha2 > 1):
             return -np.inf
 
-    if (np.arccos(cinc) < np.radians(75) or np.arccos(cinc) > np.radians(78)):
+    if (np.arccos(cinc) < np.radians(70) or np.arccos(cinc) > np.radians(80)):
         return -np.inf
 
-    if (pa < 25 or pa > 29):
+    if (pa < 20 or pa > 30):
         return -np.inf
 
     if (dx > 10) or (dx < -10):  #The x offset
@@ -264,7 +264,7 @@ def logp(theta):
     if (dy > 10) or (dy < -10):  #The y offset
         return -np.inf
 
-    if (lognorm < np.log(1000) or lognorm > np.log(50000)):
+    if (lognorm < np.log(0.5) or lognorm > np.log(50000)):
         return -np.inf
     # otherwise ...
 
