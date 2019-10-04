@@ -1204,4 +1204,4 @@ if __name__ == '__main__':
     best_model_plot(params_mcmc_yaml, hdr)
 
     # print the values to put in excel sheet easily
-    print_geometry_parameter(params_mcmc_yaml, hdr)
+    # print_geometry_parameter(params_mcmc_yaml, hdr)
