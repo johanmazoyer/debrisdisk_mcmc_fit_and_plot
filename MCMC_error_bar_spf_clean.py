@@ -411,11 +411,6 @@ error_GPIPolK1_extractPauline = np.delete(error_GPIPolK1_extractPauline, index)
 
 spf_sphere_h = measure_spf_errors('SPHERE_Hband_MCMC', nb_random_models)
 spf_sphere_h_3g = measure_spf_errors('SPHERE_Hband_3g_MCMC', nb_random_models)
-
-spf_sphere_h_3g = measure_spf_errors('SPHERE_Hband_3greducedprior_MCMC', nb_random_models)
-
-
-
 spf_gpi_not1at90 = measure_spf_errors('GPI_Hband_MCMC',
                                       nb_random_models,
                                       Norm_90_inplot=0.93)
@@ -489,9 +484,9 @@ plot.errorbar(angles_sphere_extractJulien,
 #               color=color3)
 
 plot.legend()
-# plot.yscale('log')
+plot.yscale('log')
 
-plot.ylim(bottom=0.3, top=10)
+plot.ylim(bottom=0.3, top=30)
 plot.xlim(left=0, right=180)
 plot.xlabel('Scattering angles')
 plot.ylabel('Normalized total intensity')
