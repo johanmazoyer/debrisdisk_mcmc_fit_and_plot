@@ -8,7 +8,7 @@ import os
 
 import numpy as np
 import scipy.ndimage.filters as scipy_filters
-# toto try
+
 import pyklip.klip as klip
 
 import astro_unit_conversion as convert
