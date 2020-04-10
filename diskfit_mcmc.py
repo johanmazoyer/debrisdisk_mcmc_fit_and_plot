@@ -42,6 +42,9 @@ import astro_unit_conversion as convert
 os.environ["OMP_NUM_THREADS"] = "1"
 
 
+basedir = os.environ["EXCHANGE_PATH"]
+progress = True  # if on my local machine, showing the MCMC progress bar
+
 
 #######################################################
 def call_gen_disk_2g(theta):
@@ -931,17 +934,9 @@ if __name__ == '__main__':
     # warnings.simplefilter('ignore', category=AstropyWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_K1band_hd15115_MCMC.yaml'
+        str_yalm = 'GPI_Hsband_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
-
-    # test on which machine I am
-    if socket.gethostname() == 'MT-101942':
-        basedir = '/Users/jmazoyer/Dropbox/ExchangeFolder/data_python/Aurora/'
-        progress = True  # if on my local machine, showing the MCMC progress bar
-    else:
-        basedir = '/home/jmazoyer/data_python/Aurora/'
-        progress = False
 
     # open the parameter file
     yaml_path_file = os.path.join(os.getcwd(), 'initialization_files',
