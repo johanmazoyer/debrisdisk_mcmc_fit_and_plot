@@ -2,9 +2,9 @@
 ####### This is the MCMC fitting code for fitting a disk to HR 4796 data #######
 import os
 
-mpi = False
+mpi = True
 basedir = os.environ["EXCHANGE_PATH"]
-progress = True  # if on my local machine, showing the MCMC progress bar. 
+progress = False  # if on my local machine, showing the MCMC progress bar. 
                   # Avoid if you look at your results
 
 import sys
