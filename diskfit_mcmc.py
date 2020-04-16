@@ -32,6 +32,7 @@ import numpy as np
 
 import astropy.io.fits as fits
 from astropy.convolution import convolve
+from astropy.wcs import FITSFixedWarning
 
 import yaml
 
@@ -939,6 +940,7 @@ def from_param_to_theta_init(params_mcmc_yaml):
 if __name__ == '__main__':
 
     warnings.filterwarnings("ignore", category=RuntimeWarning)
+    warnings.simplefilter('ignore', FITSFixedWarning)
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
 
