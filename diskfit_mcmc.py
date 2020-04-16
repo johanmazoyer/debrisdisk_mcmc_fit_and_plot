@@ -2,9 +2,9 @@
 ####### This is the MCMC fitting code for fitting a disk to HR 4796 data #######
 import os
 
-mpi = True
+mpi = False
 basedir = os.environ["EXCHANGE_PATH"]
-progress = False  # if on my local machine, showing the MCMC progress bar. 
+progress = True  # if on my local machine, showing the MCMC progress bar. 
                   # Avoid if you look at your results
 
 import sys
@@ -16,10 +16,12 @@ import warnings
 
 from multiprocessing import cpu_count
 
+
 if mpi:
-    from schwimmbad import MPIPool as MPI_or_MultiPool
+    from schwimmbad import MPIPool as MultiPool
 else:
-    from schwimmbad import MultiPool as MPI_or_MultiPool
+    # from schwimmbad import MultiPool as MultiPool
+    from multiprocessing import Pool as MultiPool
 
 import contextlib
 
@@ -1020,11 +1022,11 @@ if __name__ == '__main__':
     startTime = datetime.now()
    
     if mpi:
-        mpistr = "\n With MPIpool"
+        mpistr = "\n With MPI"
     else:
-        mpistr = "\n With Multipool"
+        mpistr = "\n Without MPI"
     
-    with MPI_or_MultiPool() as pool:
+    with MultiPool() as pool:
         
         if mpi:
             if not pool.is_master():
