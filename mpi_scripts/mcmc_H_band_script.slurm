@@ -9,7 +9,7 @@
 ## Définir le répertoire scratch et recopier les fichiers nécessaires à l'exécution
 SCRATCH=/scratch/$USER/run_${SLURM_JOBID}
 SCRATCH2=/scratch/$USER/
-cd SCRATCH2
+cd $SCRATCH2
 srun --ntasks=$SLURM_JOB_NUM_NODES mkdir -p run_${SLURM_JOBID}
 cd /scratch/$USER/run.${SLURM_JOBID}
 # srun --ntasks=$SLURM_JOB_NUM_NODES cp /obs/$USER/GitProjects/my_projects/hr4796_mcmc_run_and_read/*.py .
