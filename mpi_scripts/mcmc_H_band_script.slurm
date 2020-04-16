@@ -8,11 +8,13 @@
 
 ## Définir le répertoire scratch et recopier les fichiers nécessaires à l'exécution
 SCRATCH=/scratch/$USER/run_${SLURM_JOBID}
-cd ../../scratch/$USER/
-srun --ntasks=$SLURM_JOB_NUM_NODES mkdir -p run_${SLURM_JOBID}
-cd run_${SLURM_JOBID}
-srun --ntasks=$SLURM_JOB_NUM_NODES mkdir -p toto
-cd /scratch/$USER/run.${SLURM_JOBID}
+mkdir --ntasks=$SLURM_JOB_NUM_NODES mkdir -p $SCRATCH
+
+# cd ../../scratch/$USER/
+# srun --ntasks=$SLURM_JOB_NUM_NODES mkdir -p run_${SLURM_JOBID}
+# cd run_${SLURM_JOBID}
+# srun --ntasks=$SLURM_JOB_NUM_NODES mkdir -p toto
+# cd /scratch/$USER/run.${SLURM_JOBID}
 # srun --ntasks=$SLURM_JOB_NUM_NODES cp /obs/$USER/GitProjects/my_projects/hr4796_mcmc_run_and_read/*.py .
 # srun --ntasks=$SLURM_JOB_NUM_NODES cp -r /obs/$USER/GitProjects/my_projects/hr4796_mcmc_run_and_read/initialization_files .
 # srun --ntasks=$SLURM_JOB_NUM_NODES cp -r /data/$USER/tycho/160318_H_Spec .
