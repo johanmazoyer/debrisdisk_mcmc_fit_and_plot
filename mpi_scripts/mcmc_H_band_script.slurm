@@ -7,7 +7,7 @@
 #SBATCH --mem=1gb
 
 cd GitProjects/my_projects/hr4796_mcmc_run_and_read/
-mpiexec diskfit_mcmc.py GPI_Hband_MCMC.yaml > GPI_Hband_MCMC.out
+mpiexec diskfit_mcmc.py GPI_Hband_MCMC.yaml > /obs/jmazoyer/GPI_Hband_MCMC.out
 
 
 exit 0
