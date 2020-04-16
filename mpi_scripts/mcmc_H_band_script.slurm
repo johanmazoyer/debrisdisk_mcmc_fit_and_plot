@@ -11,6 +11,8 @@ SCRATCH=/scratch/$USER/run_${SLURM_JOBID}
 SCRATCH2=../../scratch/$USER/
 srun --ntasks=$SLURM_JOB_NUM_NODES cd $SCRATCH2
 srun --ntasks=$SLURM_JOB_NUM_NODES mkdir -p run_${SLURM_JOBID}
+cd run_${SLURM_JOBID}
+srun --ntasks=$SLURM_JOB_NUM_NODES mkdir -p toto
 cd /scratch/$USER/run.${SLURM_JOBID}
 # srun --ntasks=$SLURM_JOB_NUM_NODES cp /obs/$USER/GitProjects/my_projects/hr4796_mcmc_run_and_read/*.py .
 # srun --ntasks=$SLURM_JOB_NUM_NODES cp -r /obs/$USER/GitProjects/my_projects/hr4796_mcmc_run_and_read/initialization_files .
