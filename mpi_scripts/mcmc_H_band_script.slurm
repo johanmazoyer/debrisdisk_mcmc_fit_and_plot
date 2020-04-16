@@ -7,7 +7,7 @@
 #SBATCH --mem=1gb
 
 ## Définir le répertoire scratch et recopier les fichiers nécessaires à l'exécution
-SCRATCH=/scratch/$USER/toto
+SCRATCH=/scratch/jmazoyer/toto
 srun --ntasks=$SLURM_JOB_NUM_NODES mkdir -p $SCRATCH
 
 # cd ../../scratch/$USER/
