@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=Maz_mcmc_H
 #SBATCH --nodes=2 --ntasks-per-node=16
-#SBATCH --time=5
-#SBATCH --partition= maup
+#SBATCH --time=1
+#SBATCH --partition=short
 #SBATCH --mail-user=johan.mazoyer@obspm.fr
 #SBATCH --mem=1gb
 
