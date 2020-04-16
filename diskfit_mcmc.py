@@ -770,11 +770,11 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
 
     # test the diskFM object
     diskobj.update_disk(model_here_convolved)
-    modelfm_here = diskobj.fm_parallelized()[
-        0]  ### we take only the first KL modemode
-    fits.writeto(os.path.join(klipdir, file_prefix + '_FirstModel_FM.fits'),
-                 modelfm_here,
-                 overwrite='True')
+    ### we take only the first KL modemode
+    # modelfm_here = diskobj.fm_parallelized()[0]  
+    # fits.writeto(os.path.join(klipdir, file_prefix + '_FirstModel_FM.fits'),
+    #              modelfm_here,
+    #              overwrite='True')
 
     ## We have initialized the variables we need and we now cleaned the ones that do not
     ## need to be passed to the cores during the MCMC
