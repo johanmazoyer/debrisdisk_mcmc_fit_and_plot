@@ -2,6 +2,11 @@
 ####### This is the MCMC fitting code for fitting a disk to HR 4796 data #######
 import os
 
+mpi = True
+basedir = os.environ["EXCHANGE_PATH"]
+progress = False  # if on my local machine, showing the MCMC progress bar. 
+                  # Avoid if you look at your results
+
 import sys
 import glob
 import socket
@@ -10,7 +15,11 @@ import distutils.dir_util
 import warnings
 
 from multiprocessing import cpu_count
-from multiprocessing import Pool
+
+if mpi:
+    from schwimmbad import MPIPool as MPI_or_MultiPool
+else:
+    from schwimmbad import MultiPool as MPI_or_MultiPool
 
 import contextlib
 
@@ -42,8 +51,6 @@ import astro_unit_conversion as convert
 os.environ["OMP_NUM_THREADS"] = "1"
 
 
-basedir = os.environ["EXCHANGE_PATH"]
-progress = True  # if on my local machine, showing the MCMC progress bar
 
 
 #######################################################
@@ -454,8 +461,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
             for i in range(datacube_sphere_init.shape[0]):
                 datacube_sphere_newdim[i, :, :] = datacube_sphere_init[
-                    i, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 +
-                    1, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1]
+                    i, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1,
+                    olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1]
 
             # we flip the dataset (and therefore inverse the parangs) to obtain
             # the good PA after pyklip reduction
@@ -934,7 +941,7 @@ if __name__ == '__main__':
     # warnings.simplefilter('ignore', category=AstropyWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hsband_MCMC.yaml'
+        str_yalm = 'GPI_Hband_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
@@ -1005,21 +1012,35 @@ if __name__ == '__main__':
     del params_mcmc_yaml
 
     #Let's start the MCMC
-    startTime = datetime.now()
-    with contextlib.closing(Pool()) as pool:
+    # Set up the Sampler. I purposefully passed the variables (KL modes,
+    # reduced data, masks) in global variables to save time as advised in
+    # https://emcee.readthedocs.io/en/latest/tutorials/parallel/
+    # mode mpi or not
 
-        # Set up the Sampler. I purposefully passed the variables (KL modes,
-        # reduced data, masks) in global variables to save time as advised in
-        # https://emcee.readthedocs.io/en/latest/tutorials/parallel/
+    startTime = datetime.now()
+   
+    if mpi:
+        mpistr = "\n With MPIpool"
+    else:
+        mpistr = "\n With Multipool"
+    
+    with MPI_or_MultiPool() as pool:
+        
+        if mpi:
+            if not pool.is_master():
+                pool.wait()
+                sys.exit(0)
+
         sampler = EnsembleSampler(NWALKERS,
-                                  N_DIM_MCMC,
-                                  lnpb,
-                                  pool=pool,
-                                  backend=BACKEND)
+                                N_DIM_MCMC,
+                                lnpb,
+                                pool=pool,
+                                backend=BACKEND)
 
         sampler.run_mcmc(init_walkers, N_ITER_MCMC, progress=progress)
-
-    print(
-        "\n time for {0} iterations with {1} walkers and {2} cpus: {3}".format(
-            N_ITER_MCMC, NWALKERS, cpu_count(),
-            datetime.now() - startTime))
+    print(mpistr + 
+        ", time {0} iterations with {1} walkers and {2} cpus: {3}"
+        .format(N_ITER_MCMC, NWALKERS, cpu_count(),
+                datetime.now() - startTime))
+    
+        
