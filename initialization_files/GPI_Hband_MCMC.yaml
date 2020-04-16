@@ -1,5 +1,5 @@
 # PYKLIP PARAMETERS
-FIRST_TIME: 0
+FIRST_TIME: 1
 #if FIRST_TIME=1 the masks, reduced data, noise map, and KL vectors are recalculated.
 KLMODE_NUMBER: 3
 RM_FILE_DISK_CROSS_SATSPOTS: 0
