@@ -8,7 +8,7 @@
 
 ## Définir le répertoire scratch et recopier les fichiers nécessaires à l'exécution
 SCRATCH=/scratch/$USER/run_${SLURM_JOBID}
-mkdir --ntasks=$SLURM_JOB_NUM_NODES mkdir -p $SCRATCH
+srun --ntasks=$SLURM_JOB_NUM_NODES mkdir -p $SCRATCH
 
 # cd ../../scratch/$USER/
 # srun --ntasks=$SLURM_JOB_NUM_NODES mkdir -p run_${SLURM_JOBID}
