@@ -43,6 +43,9 @@ plt.switch_backend('agg')
 DISTANCE_STAR = PIXSCALE_INS = DIMENSION = None
 wheremask2generatedisk = 12310120398
 
+basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is your data 
+# (using OS environnement variable allow to use same code on different comp[uter without changeing it].
+
 
 ########################################################
 def call_gen_disk_2g(theta):
@@ -1166,7 +1169,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'SPHERE_Hband_3g_MCMC.yaml'
+        str_yalm = 'GPI_Hband_MCMC.yaml'
     else:
         str_yalm = sys.argv[1]
 
@@ -1174,11 +1177,6 @@ if __name__ == '__main__':
               'r') as yaml_file:
         params_mcmc_yaml = yaml.load(yaml_file)
 
-    # test on which machine I am
-    if socket.gethostname() == 'MT-101942':
-        basedir = '/Users/jmazoyer/Dropbox/ExchangeFolder/data_python/Aurora/'
-    else:
-        basedir = '/home/jmazoyer/data_python/Aurora/'
 
     print(params_mcmc_yaml['BAND_NAME'])
     DATADIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
@@ -1195,7 +1193,7 @@ if __name__ == '__main__':
     make_chain_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
-    # make_corner_plot(params_mcmc_yaml)
+    make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)
