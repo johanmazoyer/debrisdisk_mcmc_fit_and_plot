@@ -19,7 +19,7 @@
 # srun --ntasks=$SLURM_JOB_NUM_NODES cp -r /data/$USER/tycho/160318_H_Spec .
 
 cd /obs/jmazoyer/GitProjects/my_projects/hr4796_mcmc_run_and_read/
-mpiexec python diskfit_mcmc.py GPI_Hband_MCMC.yaml > GPI_Hband_MCMC.out
+mpiexec python diskfit_mcmc.py GPI_Hband_MCMC.yaml > /obs/jmazoyer/GPI_Hband_MCMC.out
 
 # srun --ntasks=$SLURM_JOB_NUM_NODES mv ./160318_H_Spec /data/$USER/tycho/160318_H_Spec
 # cd ${SLURM_SUBMIT_DIR}
