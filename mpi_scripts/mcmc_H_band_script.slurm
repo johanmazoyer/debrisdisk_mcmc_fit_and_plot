@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=Maz_mcmc_H
 #SBATCH --nodes=2 --ntasks-per-node=16
-#SBATCH --time=48:00:00
+#SBATCH --time=47:00:00
 #SBATCH --partition=medium
 #SBATCH --mail-user=johan.mazoyer@obspm.fr
 #SBATCH --mem=1gb
