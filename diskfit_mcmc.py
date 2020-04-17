@@ -2,10 +2,10 @@
 ####### This is the MCMC fitting code for fitting a disk to HR 4796 data #######
 import os
 
-mpi = True
+mpi = False
 basedir = os.environ["EXCHANGE_PATH"]
-progress = False  # if on my local machine, showing the MCMC progress bar. 
-                  # Avoid if you look at your results
+progress = False  # if on my local machine, showing the MCMC progress bar.
+# Avoid if you look at your results
 
 import sys
 import glob
@@ -15,7 +15,6 @@ import distutils.dir_util
 import warnings
 
 from multiprocessing import cpu_count
-
 
 if mpi:
     from schwimmbad import MPIPool as MultiPool
@@ -52,7 +51,6 @@ from anadisk_johan import gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import astro_unit_conversion as convert
 
 os.environ["OMP_NUM_THREADS"] = "1"
-
 
 
 
@@ -470,7 +468,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             # we flip the dataset (and therefore inverse the parangs) to obtain
             # the good PA after pyklip reduction
             parangs = -parangs
-            for i in range(datacube_sphere_newdim.shape[0]):
+            nb_images = datacube_sphere_newdim.shape[0]
+            for i in range(nb_images):
                 datacube_sphere_newdim[i] = np.flip(datacube_sphere_newdim[i],
                                                     axis=0)
 
@@ -771,10 +770,13 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
     # test the diskFM object
     diskobj.update_disk(model_here_convolved)
     ### we take only the first KL modemode
-    # modelfm_here = diskobj.fm_parallelized()[0]  
-    # fits.writeto(os.path.join(klipdir, file_prefix + '_FirstModel_FM.fits'),
-    #              modelfm_here,
-    #              overwrite='True')
+
+    if not mpi:
+        modelfm_here = diskobj.fm_parallelized()[0]
+        fits.writeto(os.path.join(klipdir,
+                                  file_prefix + '_FirstModel_FM.fits'),
+                     modelfm_here,
+                     overwrite='True')
 
     ## We have initialized the variables we need and we now cleaned the ones that do not
     ## need to be passed to the cores during the MCMC
@@ -808,7 +810,7 @@ def initialize_walkers_backend(params_mcmc_yaml):
 
     theta_init = from_param_to_theta_init(params_mcmc_yaml)
 
-    # Set up the backend
+    # Set up the backend h5
     # Don't forget to clear it in case the file already exists
     filename_backend = os.path.join(mcmcresultdir,
                                     file_prefix + "_backend_file_mcmc.h5")
@@ -964,13 +966,25 @@ if __name__ == '__main__':
     mcmcresultdir = os.path.join(DATADIR, 'results_MCMC')
     distutils.dir_util.mkpath(mcmcresultdir)
 
-    # initialize the things necessary to do a
-    dataset = initialize_mask_psf_noise(params_mcmc_yaml)
+    if (params_mcmc_yaml['FIRST_TIME'] == 1) && mpi:
+        print("""because the way the code is set up right now, 
+             we cannot initialiaze in mpi mode, please use 'FIRST_TIME=1' 
+             to measure and save all the necessary files (PSF, masks, etc)
+             only in sequential and then run MPI with FIRST_TIME=0""")
+        break
+
+    # load the Parameters necessary to launch the MCMC
+    NWALKERS = params_mcmc_yaml['NWALKERS']  #Number of walkers
+    N_ITER_MCMC = params_mcmc_yaml['N_ITER_MCMC']  #Number of interation
+    N_DIM_MCMC = params_mcmc_yaml['N_DIM_MCMC']  #Number of MCMC dimension
 
     # load DISTANCE_STAR & PIXSCALE_INS & DIMENSION and make them global
     DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
     PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
     DIMENSION = dataset.input.shape[1]
+
+    # initialize the things necessary to measure the model (PSF, masks, etc)
+    dataset = initialize_mask_psf_noise(params_mcmc_yaml)
 
     # load PSF and make it global
     PSF = fits.getdata(os.path.join(DATADIR, FILE_PREFIX + '_SatSpotPSF.fits'))
@@ -1002,49 +1016,38 @@ if __name__ == '__main__':
     lnpb_model = lnpb(from_param_to_theta_init(params_mcmc_yaml))
     print("Test likelyhood on initial model :", lnpb_model)
 
-    # initialize the walkers if necessary. initialize/load the backend
-    # make them global
-    init_walkers, BACKEND = initialize_walkers_backend(params_mcmc_yaml)
 
-    # load the Parameters necessary to launch the MCMC
-    NWALKERS = params_mcmc_yaml['NWALKERS']  #Number of walkers
-    N_ITER_MCMC = params_mcmc_yaml['N_ITER_MCMC']  #Number of interation
-    N_DIM_MCMC = params_mcmc_yaml['N_DIM_MCMC']  #Number of MCMC dimension
-
-    # last chance to remove some global variable to be as light as possible
-    # in the MCMC
-    del params_mcmc_yaml
-
-    #Let's start the MCMC
-    # Set up the Sampler. I purposefully passed the variables (KL modes,
-    # reduced data, masks) in global variables to save time as advised in
-    # https://emcee.readthedocs.io/en/latest/tutorials/parallel/
-    # mode mpi or not
-
-    startTime = datetime.now()
-   
+    startTime = datetime.now()s
     if mpi:
         mpistr = "\n With MPI"
     else:
         mpistr = "\n Without MPI"
-    
+
     with MultiPool() as pool:
-        
+
         if mpi:
             if not pool.is_master():
                 pool.wait()
                 sys.exit(0)
+        
+        # initialize the walkers if necessary. initialize/load the backend
+        # make them global
+        init_walkers, BACKEND = initialize_walkers_backend(params_mcmc_yaml)
+
+        #Let's start the MCMC
+        # Set up the Sampler. I purposefully passed the variables (KL modes,
+        # reduced data, masks) in global variables to save time as advised in
+        # https://emcee.readthedocs.io/en/latest/tutorials/parallel/
+        # mode mpi or not
 
         sampler = EnsembleSampler(NWALKERS,
-                                N_DIM_MCMC,
-                                lnpb,
-                                pool=pool,
-                                backend=BACKEND)
+                                  N_DIM_MCMC,
+                                  lnpb,
+                                  pool=pool,
+                                  backend=BACKEND)
 
         sampler.run_mcmc(init_walkers, N_ITER_MCMC, progress=progress)
-    print(mpistr + 
-        ", time {0} iterations with {1} walkers and {2} cpus: {3}"
-        .format(N_ITER_MCMC, NWALKERS, cpu_count(),
-                datetime.now() - startTime))
-    
-        
+    print(mpistr +
+          ", time {0} iterations with {1} walkers and {2} cpus: {3}".format(
+              N_ITER_MCMC, NWALKERS, cpu_count(),
+              datetime.now() - startTime))
