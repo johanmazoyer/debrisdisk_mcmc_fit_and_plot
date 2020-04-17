@@ -771,12 +771,13 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
     diskobj.update_disk(model_here_convolved)
     ### we take only the first KL modemode
 
-    if not mpi:
+    if first_time == 1:
         modelfm_here = diskobj.fm_parallelized()[0]
         fits.writeto(os.path.join(klipdir,
                                   file_prefix + '_FirstModel_FM.fits'),
                      modelfm_here,
                      overwrite='True')
+        del modelfm_here
 
     ## We have initialized the variables we need and we now cleaned the ones that do not
     ## need to be passed to the cores during the MCMC
@@ -967,10 +968,11 @@ if __name__ == '__main__':
     distutils.dir_util.mkpath(mcmcresultdir)
 
     if (params_mcmc_yaml['FIRST_TIME'] == 1) and mpi:
-        raise("""because the way the code is set up right now, 
-             we cannot initialiaze in mpi mode, please use 'FIRST_TIME=1' 
-             to measure and save all the necessary files (PSF, masks, etc)
-             only in sequential and then run MPI with FIRST_TIME=0""")
+        raise("""because the way the code is set up right now, save .fits seems
+             complicated to do in mpi mode so we cannot initialiaze in mpi mode, 
+             please use 'FIRST_TIME=1' to measure and save all the necessary 
+             files (PSF, masks, etc) only in sequential and then run MPI with 
+             'FIRST_TIME=0' """)
 
     # load the Parameters necessary to launch the MCMC
     NWALKERS = params_mcmc_yaml['NWALKERS']  #Number of walkers
