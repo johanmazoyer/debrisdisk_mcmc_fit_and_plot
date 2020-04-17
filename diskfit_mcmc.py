@@ -810,10 +810,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
                                   file_prefix + '_FirstModel_FM.fits'),
                      modelfm_here,
                      overwrite='True')
-        del modelfm_here
 
-    ## We have initialized the variables we need and we now cleaned the ones that do not
-    ## need to be passed to the cores during the MCMC
     return diskobj
 
 
