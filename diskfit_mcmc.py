@@ -966,12 +966,11 @@ if __name__ == '__main__':
     mcmcresultdir = os.path.join(DATADIR, 'results_MCMC')
     distutils.dir_util.mkpath(mcmcresultdir)
 
-    if (params_mcmc_yaml['FIRST_TIME'] == 1) && mpi:
-        print("""because the way the code is set up right now, 
+    if (params_mcmc_yaml['FIRST_TIME'] == 1) and mpi:
+        raise("""because the way the code is set up right now, 
              we cannot initialiaze in mpi mode, please use 'FIRST_TIME=1' 
              to measure and save all the necessary files (PSF, masks, etc)
              only in sequential and then run MPI with FIRST_TIME=0""")
-        break
 
     # load the Parameters necessary to launch the MCMC
     NWALKERS = params_mcmc_yaml['NWALKERS']  #Number of walkers
@@ -981,10 +980,12 @@ if __name__ == '__main__':
     # load DISTANCE_STAR & PIXSCALE_INS & DIMENSION and make them global
     DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
     PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
-    DIMENSION = dataset.input.shape[1]
 
     # initialize the things necessary to measure the model (PSF, masks, etc)
     dataset = initialize_mask_psf_noise(params_mcmc_yaml)
+
+    # measure the size of images DIMENSION and make it global
+    DIMENSION = dataset.input.shape[1]
 
     # load PSF and make it global
     PSF = fits.getdata(os.path.join(DATADIR, FILE_PREFIX + '_SatSpotPSF.fits'))
@@ -1017,7 +1018,7 @@ if __name__ == '__main__':
     print("Test likelyhood on initial model :", lnpb_model)
 
 
-    startTime = datetime.now()s
+    startTime = datetime.now()
     if mpi:
         mpistr = "\n With MPI"
     else:
