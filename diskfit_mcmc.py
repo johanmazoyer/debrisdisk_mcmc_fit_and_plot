@@ -1017,7 +1017,8 @@ if __name__ == '__main__':
 
     # Make a final test by printing the likelyhood of the iniatial model
     lnpb_model = lnpb(from_param_to_theta_init(params_mcmc_yaml))
-    print("Test likelyhood on initial model :", lnpb_model)
+    print("Test likelyhood on initial model : {0}. In NAN, initial guess if probably out of the priors".format(
+        lnpb_model))
 
 
     startTime = datetime.now()
