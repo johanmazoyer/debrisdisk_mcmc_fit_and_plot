@@ -1,6 +1,7 @@
 # pylint: disable=C0103
-"""check the sat spots.
-a set of function made to measure the psf specifically for GPI IFS disk data
+"""
+a set of functions made to measure the psf specifically for GPI IFS disk data
+check the sat spots and measure PSFs
 author: Johan Mazoyer
 """
 
@@ -144,8 +145,8 @@ def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet=True):
 
     boxrad_here = 20
 
-    # create a traingle nan mask for the bright regions in 2015 probably due
-    # to the malfunctionning diode
+    # create a triangle nan mask for the bright regions in 2015 in some data probably due
+    # to the malfunctionning diode (I don't think this has described in an article before)
     if (file_prefix == 'K2band_hr4796') or (file_prefix == 'K1band_hr4796'):
         x_image = np.arange(dimx, dtype=np.float)[None, :] - xcen
         y_image = np.arange(dimy, dtype=np.float)[:, None] - ycen

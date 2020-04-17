@@ -1,11 +1,17 @@
 # pylint: disable=C0103
-####### This is the MCMC fitting code for fitting a disk to HR 4796 data #######
+
+"""
+MCMC code for fitting a disk 
+author: Johan Mazoyer
+"""
+
 import os
 
-mpi = True
-basedir = os.environ["EXCHANGE_PATH"]
-progress = False  # if on my local machine, showing the MCMC progress bar.
-# Avoid if you look at your results
+mpi = True  # mpi or not for parallelization. 
+basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is your data 
+# (using OS environnement variable allow to use same code on different comp[uter without changeing it].
+progress = False  # if on my local machine and print on console, showing the MCMC progress bar.
+# Avoid if print resutls of the code on file, it will not look pretty
 
 import sys
 import glob
@@ -50,13 +56,15 @@ import make_gpi_psf_for_disks as gpidiskpsf
 from anadisk_johan import gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import astro_unit_conversion as convert
 
+# recommended by emcee https://emcee.readthedocs.io/en/stable/tutorials/parallel/ and
+# by PyKLIPto avoid that NumPy automatically parallelizes some operations, which kill the speed
 os.environ["OMP_NUM_THREADS"] = "1"
-
 
 
 #######################################################
 def call_gen_disk_2g(theta):
     """ call the disk model from a set of parameters. 2g SPF
+        
         use DIMENSION, PIXSCALE_INS and DISTANCE_STAR and
         wheremask2generatedisk as global variables
 
@@ -186,6 +194,8 @@ def logl(theta):
 ########################################################
 def logp(theta):
     """ measure the log of the priors of the parameter set.
+     This function still have a lot of parameters hard coded here
+     Also you can change the prior shape directly here.
 
     Args:
         theta: list of parameters of the MCMC
@@ -232,6 +242,8 @@ def logp(theta):
     # or we can just cut it normally
     # if ( r2 < 82  or r2 > 110 ):
     #     return -np.inf
+    # else:
+    #     prior_rout = 0.
 
     if (beta < 1 or beta > 30):
         return -np.inf
@@ -315,7 +327,7 @@ def make_disk_mask(dim,
                    estimmaxr,
                    xcen=140.,
                    ycen=140.):
-    """ make a zeros mask for a disk
+    """ make a zeros mask for a disk. usind a set of parameters
 
 
     Args:
@@ -381,7 +393,7 @@ def make_noise_map_no_mask(reduced_data, xcen=140., ycen=140., delta_raddii=3):
 ########################################################
 def initialize_mask_psf_noise(params_mcmc_yaml):
     """ initialize the MCMC by preparing the useful things to measure the
-    likelyhood (measure the data, the psf the noise, the masks).
+    likelyhood (measure the data, the psf, the uncertainty map, the masks).
 
     Args:
         params_mcmc_yaml: dic, all the parameters of the MCMC and klip
@@ -417,11 +429,16 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
     ### This is the only part of the code different for GPI IFS anf SPHERE
     # For SPHERE We load the PSF and the parangs, crop the data
+
     # For GPI, we load the raw data, emasure hte PSF from sat spots and
     # collaspe the data
 
     if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata':
-        #only for SPHERE
+        # only for SPHERE. This part is very dependent on the format of the data since there are 
+        # several pipelines to reduce the data, which have there own way of preparing the
+        # frames from the raw data. A. Vigan has made a pyklip mode to treat the data
+        # created from his pipeline, but I've never used it.
+
         if first_time == 1:
             psf_init = fits.getdata(os.path.join(DATADIR,
                                                  "psf_sphere_h2.fits"))
@@ -435,6 +452,9 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
             small_psf = small_psf / np.max(small_psf)
             small_psf[np.where(small_psf < 0.005)] = 0.
+            # crop, normalize and clean the SPHERE PSF. We call is SatSpotPSF
+            # so that it's transparent in the code, but it's obviously not a sat spot PSF,
+            # because there are no sat spots in GPI data.
 
             fits.writeto(os.path.join(DATADIR,
                                       file_prefix + '_SatSpotPSF.fits'),
@@ -444,7 +464,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             # load the raw data
             datacube_sphere_init = fits.getdata(
                 os.path.join(DATADIR, "cube_H2.fits")
-            )  ### we divide the data to keep the ~same prior as is GPI
+            )
             parangs = fits.getdata(os.path.join(DATADIR, "parang.fits"))
             parangs = parangs - 135.99 + 90  ## true north
 
@@ -455,7 +475,12 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             olddim = datacube_sphere_init.shape[1]
 
             # we resize the SPHERE data to the same size as GPI (281)
-            # to avoid a problem of centering
+            # to avoid a problem of centering.
+            # Main thing to be carefull: the data and the PSFs for all instrument used
+            # must be centered on the same way (on a pixel or between pixel) and must have the
+            # same parity. We chose here, as usual in pyklip. odd number of pixel dim = 281 and
+            # centering of the PSF and data on the pixel dim//2 = 140
+            # Also be careful in the cropping, part of the code assumes square data (dimx = dimy)
             newdim = 281
             datacube_sphere_newdim = np.zeros(
                 (datacube_sphere_init.shape[0], newdim, newdim))
@@ -465,8 +490,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                     i, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1,
                     olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1]
 
-            # we flip the dataset (and therefore inverse the parangs) to obtain
-            # the good PA after pyklip reduction
+            # we flip the dataset (and inverse the parangs) to obtain
+            # the good PA after pyklip reduction. Once again, dependent on how raw data were produced
             parangs = -parangs
             nb_images = datacube_sphere_newdim.shape[0]
             for i in range(nb_images):
@@ -498,7 +523,9 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                                          wvs=None)
 
     else:
-        #only for GPI
+        #only for GPI. Data reduction is simpler for GPI but PSF measurement form satspot
+        # is more complicated.
+
         if first_time == 1:
 
             filelist4psf = sorted(
@@ -572,6 +599,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         hdr_psf = fits.getheader(
             os.path.join(DATADIR, file_prefix + '_SatSpotPSF.fits'))
 
+        # in IFS mode, we always exclude the slices with too much noise. We 
+        # chose the criteria as "SNR(mean of sat spot)< 3""
         excluded_slices = []
         if hdr_psf['N_BADSLI'] > 0:
             for badslice_i in range(hdr_psf['N_BADSLI']):
@@ -582,7 +611,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
 
         #collapse the data spectrally
-        dataset.spectral_collapse(align_frames=True, numthreads=1)
+        dataset.spectral_collapse(align_frames=True, aligned_center=[xcen,ycen])
 
     #define the outer working angle
     dataset.OWA = owa
@@ -593,7 +622,10 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     #create the masks
     if first_time == 1:
         #create the mask where the non convoluted disk is going to be generated.
-        # To gain time, it is tightely adjusted to the expected models BEFORE convolution
+        # To gain time, it is tightely adjusted to the expected models BEFORE convolution.
+        # inded, the models are generated pixel by pixels. 0.1 s gained on every model is a 
+        # day of calculation gain on one million model, so adjust your mask tightly to your model.
+        # Carefull mask paramters are hardcoded here
         mask_disk_zeros = make_disk_mask(
             dimension,
             params_mcmc_yaml['pa_init'],
@@ -638,7 +670,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         os.path.join(klipdir, file_prefix + '_mask2minimize.fits'))
 
     if first_time == 1:
-        #measure the noise Wahhaj trick
+        #measure the noise using the counter rotation trick
+        # described in Sec4 of Gerard&Marois SPIE 2016 and probabaly elsewhere
         dataset.PAs = -dataset.PAs
         parallelized.klip_dataset(dataset,
                                   numbasis=numbasis,
@@ -647,7 +680,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                                   subsections=1,
                                   mode='ADI',
                                   outputdir=klipdir,
-                                  fileprefix=file_prefix + '_WahhajTrick',
+                                  fileprefix=file_prefix + '_GerardTrick',
                                   aligned_center=[xcen, ycen],
                                   highpass=False,
                                   minrot=move_here,

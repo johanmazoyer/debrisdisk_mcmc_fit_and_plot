@@ -1,8 +1,8 @@
 ########################################################
 ########################################################
-#### exctracted from anadisk_e.py
 #### MAIN AUTHOR Max Millar Blanchaer
-#### sliglty modified by Johan
+#### sliglty modified by Johan Mazoyer
+#### exctracted from anadisk_e.py sent by Max in 2017
 ########################################################
 ########################################################
 
@@ -76,7 +76,8 @@ def gen_disk_dxdy_2g(dim,
                      pixscale=0.01414):
     """ author : Max Millar Blanchaer
         create a 2g SPF disk model. The disk is normalized at 1 at 90degree
-        (before star offset). also normalized by aspect_ratio
+        (before star offset). also normalized by aspect_ratio. These
+        normalization avoid weird correlation in the parameters
 
 
     Args:
