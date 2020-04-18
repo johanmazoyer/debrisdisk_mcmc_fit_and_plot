@@ -697,11 +697,13 @@ def initialize_rdi(dataset, params_mcmc_yaml):
         a  psflib object
     """
 
-    print("\n initialize RDI")
+    print("\n Initialize RDI")
     first_time = params_mcmc_yaml['FIRST_TIME']
     aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     rdidir = os.path.join(DATADIR, params_mcmc_yaml['RDI_DIR'])
+    rdi_matrix_dir = os.path.join(rdidir, 'rdi_matrix')
+    distutils.dir_util.mkpath(rdi_matrix_dir)
 
     if first_time == 1:
 
@@ -721,7 +723,8 @@ def initialize_rdi(dataset, params_mcmc_yaml):
                                                str(badslice_i).zfill(2)])
 
         # be carefull the librairy files must includes the data files !
-        lib_files = sorted(glob.glob(rdidir + '*.fits'))
+        lib_files = sorted(glob.glob(os.path.join(rdidir, "*.fits")))
+
         datasetlib = GPI.GPIData(lib_files,
                                  quiet=True,
                                  skipslices=excluded_slices)
@@ -740,7 +743,8 @@ def initialize_rdi(dataset, params_mcmc_yaml):
             hdr_psf_lib['PSF' + str(i).zfill(4)] = filename
 
         #save the psf librairy aligned and collapsed
-        fits.writeto(os.path.join(rdidir, 'PSFlib_aligned_collasped.fits'),
+        fits.writeto(os.path.join(rdi_matrix_dir,
+                                  'PSFlib_aligned_collasped.fits'),
                      datasetlib.input,
                      header=hdr_psf_lib,
                      overwrite=True)
@@ -755,25 +759,26 @@ def initialize_rdi(dataset, params_mcmc_yaml):
         # save the correlation matrix to disk so that we also don't need to recomptue this ever again
         # In the future we can just pass in the correlation matrix into the PSFLibrary object rather
         # than having it compute it
-        psflib.save_correlation(os.path.join(rdidir, "corr_matrix.fits"),
+        psflib.save_correlation(os.path.join(rdi_matrix_dir,
+                                             "corr_matrix.fits"),
                                 overwrite=True)
 
     # load the PSF librairy aligned and collapse
     PSFlib_input = fits.getdata(
-        os.path.join(rdidir, 'PSFlib_aligned_collasped.fits'))
+        os.path.join(rdi_matrix_dir, 'PSFlib_aligned_collasped.fits'))
 
+    # Load filenames from the header
     hdr_psf_lib = fits.getheader(
-        os.path.join(rdidir, 'PSFlib_aligned_collasped.fits'))
+        os.path.join(rdi_matrix_dir, 'PSFlib_aligned_collasped.fits'))
 
-    # in IFS mode, we always exclude the slices with too much noise. We
-    # chose the criteria as "SNR(mean of sat spot)< 3""
     PSFlib_filenames = []
     if hdr_psf_lib['N_PSFLIB'] > 0:
         for i in range(hdr_psf_lib['N_PSFLIB']):
-            PSFlib_filenames.append(hdr_psf['PSF' + str(i).zfill(4)])
+            PSFlib_filenames.append(hdr_psf_lib['PSF' + str(i).zfill(4)])
 
     # load the correlation matrix
-    corr_matrix = fits.getdata(os.path.join(rdidir, "corr_matrix.fits"))
+    corr_matrix = fits.getdata(os.path.join(rdi_matrix_dir,
+                                            "corr_matrix.fits"))
 
     # make the PSF library again, this time we have the correlation matrix
     psflib = rdi.PSFLibrary(PSFlib_input,
@@ -1070,8 +1075,6 @@ if __name__ == '__main__':
 
     DATADIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
     FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
-    if params_mcmc_yaml['MODE'] == 'RDI':
-        FILE_PREFIX = FILE_PREFIX + '_RDI'
 
     klipdir = os.path.join(DATADIR, 'klip_fm_files')
     distutils.dir_util.mkpath(klipdir)
@@ -1144,8 +1147,7 @@ if __name__ == '__main__':
     else:
         mpistr = "\n In sequential mode"
 
-    print(mpistr + ", initialize walkers and start the MCMC ")
-    asd
+    print(mpistr + ", initialize walkers and start the MCMC...")
     with MultiPool() as pool:
 
         if mpi:
@@ -1174,3 +1176,6 @@ if __name__ == '__main__':
           ", time {0} iterations with {1} walkers and {2} cpus: {3}".format(
               N_ITER_MCMC, NWALKERS, cpu_count(),
               datetime.now() - startTime))
+
+NEED TO CHECK that data files have bee excluded from library in RDI.
+CHANGE 0 or 1 boolean to cleaner TRue False 
