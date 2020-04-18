@@ -317,45 +317,6 @@ def lnpb(theta):
 
 
 ########################################################
-def make_disk_mask(dim,
-                   estimPA,
-                   estiminclin,
-                   estimminr,
-                   estimmaxr,
-                   aligned_center=[140., 140.]):
-    """ make a zeros mask for a disk. usind a set of parameters
-
-
-    Args:
-        dim: pixel, dimension of the square mask
-        estimPA: degree, estimation of the PA
-        estiminclin: degree, estimation of the inclination
-        estimminr: pixel, inner radius of the mask
-        estimmaxr: pixel, outer radius of the mask
-        aligned_center: [pixel,pixel], position of the star in the mask
-
-    Returns:
-        a [dim,dim] array where the mask is at 0 and the rest at 1
-    """
-
-    PA_rad = (90 + estimPA) * np.pi / 180.
-    x = np.arange(dim, dtype=np.float)[None, :] - aligned_center[0]
-    y = np.arange(dim, dtype=np.float)[:, None] - aligned_center[1]
-
-    x1 = x * np.cos(PA_rad) + y * np.sin(PA_rad)
-    y1 = -x * np.sin(PA_rad) + y * np.cos(PA_rad)
-    x = x1
-    y = y1 / np.cos(estiminclin * np.pi / 180.)
-    rho2dellip = np.sqrt(x**2 + y**2)
-
-    mask_object_astro_zeros = np.ones((dim, dim))
-    mask_object_astro_zeros[np.where((rho2dellip > estimminr)
-                                     & (rho2dellip < estimmaxr))] = 0.
-
-    return mask_object_astro_zeros
-
-
-########################################################
 def make_noise_map_no_mask(reduced_data,
                            aligned_center=[140., 140.],
                            delta_raddii=3):
@@ -379,7 +340,8 @@ def make_noise_map_no_mask(reduced_data,
     rho2d = np.sqrt(x**2 + y**2)
 
     noise_map = np.zeros((dim, dim))
-    for i_ring in range(0, int(np.floor(aligned_center[0] / delta_raddii)) - 2):
+    for i_ring in range(0,
+                        int(np.floor(aligned_center[0] / delta_raddii)) - 2):
         wh_rings = np.where((rho2d >= i_ring * delta_raddii)
                             & (rho2d < (i_ring + 1) * delta_raddii))
         noise_map[wh_rings] = np.nanstd(reduced_data[wh_rings])
@@ -622,11 +584,11 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         # inded, the models are generated pixel by pixels. 0.1 s gained on every model is a
         # day of calculation gain on one million model, so adjust your mask tightly to your model.
         # Carefull mask paramters are hardcoded here
-        mask_disk_zeros = make_disk_mask(
+        mask_disk_zeros = gpidiskpsf.make_disk_mask(
             dimension,
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(45, pixscale_ins, distance_star),
+            convert.au_to_pix(55, pixscale_ins, distance_star),
             convert.au_to_pix(105, pixscale_ins, distance_star),
             aligned_center=aligned_center)
         mask2generatedisk = 1 - mask_disk_zeros
@@ -638,7 +600,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         # we create a second mask for the minimization a little bit larger
         # (because model expect to grow with the PSF convolution and the FM)
         # and we can also exclude the center region where there are too much speckles
-        mask_disk_zeros = make_disk_mask(
+        mask_disk_zeros = gpidiskpsf.make_disk_mask(
             dimension,
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
@@ -687,7 +649,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                                   highpass=False,
                                   minrot=move_here,
                                   calibrate_flux=False,
-                                  psf_library = psflib)
+                                  psf_library=psflib)
 
         reduced_data_nodisk = fits.getdata(
             os.path.join(klipdir, file_prefix +
@@ -815,7 +777,7 @@ def initialize_rdi(dataset, params_mcmc_yaml):
 
 
 ########################################################
-def initialize_diskfm(dataset,params_mcmc_yaml,  psflib = None):
+def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None):
     """ initialize the MCMC by preparing the diskFM object
 
     Args:
@@ -891,7 +853,7 @@ def initialize_diskfm(dataset,params_mcmc_yaml,  psflib = None):
                         minrot=move_here,
                         calibrate_flux=False,
                         numthreads=1,
-                        psf_library= psflib)
+                        psf_library=psflib)
 
     # load the the KL basis and define the diskFM object
     diskobj = DiskFM(dataset.input.shape,
@@ -1162,7 +1124,7 @@ if __name__ == '__main__':
         mpistr = "\n With MPI"
     else:
         mpistr = "\n Without MPI"
-
+    asd
     with MultiPool() as pool:
 
         if mpi:

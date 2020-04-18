@@ -16,9 +16,48 @@ import astro_unit_conversion as convert
 import astropy.io.fits as fits
 
 
+########################################################
+def make_disk_mask(dim,
+                   estimPA,
+                   estiminclin,
+                   estimminr,
+                   estimmaxr,
+                   aligned_center=[140., 140.]):
+    """ make a zeros mask for a disk. usind a set of parameters
+
+
+    Args:
+        dim: pixel, dimension of the square mask
+        estimPA: degree, estimation of the PA
+        estiminclin: degree, estimation of the inclination
+        estimminr: pixel, inner radius of the mask
+        estimmaxr: pixel, outer radius of the mask
+        aligned_center: [pixel,pixel], position of the star in the mask
+
+    Returns:
+        a [dim,dim] array where the mask is at 0 and the rest at 1
+    """
+
+    PA_rad = np.radians(90 + estimPA)
+    x = np.arange(dim, dtype=np.float)[None, :] - aligned_center[0]
+    y = np.arange(dim, dtype=np.float)[:, None] - aligned_center[1]
+
+    x1 = x * np.cos(PA_rad) + y * np.sin(PA_rad)
+    y1 = -x * np.sin(PA_rad) + y * np.cos(PA_rad)
+    x = x1
+    y = y1 / np.cos(np.radians(estiminclin))
+    rho2dellip = np.sqrt(x**2 + y**2)
+
+    mask_object_astro_zeros = np.ones((dim, dim))
+    mask_object_astro_zeros[np.where((rho2dellip > estimminr)
+                                     & (rho2dellip < estimmaxr))] = 0.
+
+    return mask_object_astro_zeros
+
+
 def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
     """ check in which image the disk intereset the satspots for
-    GPI IFA data
+    GPI IFS data
     Args:
         dataset: a pyklip instance of Instrument.Data
         params_mcmc_yaml: dic, all the parameters of the MCMC and klip
@@ -38,29 +77,22 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
 
     nfiles = int(np.nanmax(dataset.filenums)) + 1  # Get the number of files
 
-    ### Where is the disk
-    # create nan and zeros masks for the disk
-    mask_object_astro_ones = np.zeros((dimx, dimy))
-
     estimPA = params_mcmc_yaml['pa_init']
     estiminclin = params_mcmc_yaml['inc_init']
     estimminr = convert.au_to_pix(params_mcmc_yaml['r1_init'], pixscale_ins,
                                   distance_star)
     estimmaxr = convert.au_to_pix(params_mcmc_yaml['r2_init'], pixscale_ins,
                                   distance_star)
-    
-    PA_rad = np.radians(90 + estimPA)
 
-    x = np.arange(dimx, dtype=np.float)[None, :] - aligned_center[0]
-    y = np.arange(dimy, dtype=np.float)[:, None] - aligned_center[1]
+    ### Where is the disk
+    # create nan and zeros masks for the disk
 
-    x1 = x * np.cos(PA_rad) + y * np.sin(PA_rad)
-    y1 = -x * np.sin(PA_rad) + y * np.cos(PA_rad)
-    x = x1
-    y = y1 / np.cos(np.radians(estiminclin))
-    rho2dellip = np.sqrt(x**2 + y**2)
-    mask_object_astro_ones[np.where((rho2dellip > estimminr)
-                                    & (rho2dellip < estimmaxr))] = 1.
+    mask_object_astro_ones = 1 - make_disk_mask(dimx,
+                                                estimPA,
+                                                estiminclin,
+                                                estimminr,
+                                                estimmaxr,
+                                                aligned_center=aligned_center)
 
     filename_disk_intercept_satspot = []
 
@@ -80,7 +112,8 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
         model_mask_rot = np.round(
             np.abs(
                 klip.rotate(mask_object_astro_ones,
-                            PA_here, aligned_center,
+                            PA_here,
+                            aligned_center,
                             new_center=[Starpos[0], Starpos[1]])))
 
         # now grab the values from them by parsing the header
@@ -101,12 +134,16 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
             wh_sat_spot = np.where((rho2d_sat < 3 / 1.6 * wls))
 
             is_on_the_disk = np.sum(model_mask_rot[wh_sat_spot]) > 0
-            if is_on_the_disk and wls > 1.6:
-                model_mask_rot[wh_sat_spot] = 1
-                fits.writeto("/Users/jmazoyer/Desktop/toto.fits",model_mask_rot*dataset.input[i], overwrite = True)
-                fits.writeto("/Users/jmazoyer/Desktop/tutu.fits",dataset.input[i], overwrite = True)
-
-                asd
+            if is_on_the_disk:
+            # if is_on_the_disk and wls > 1.6:
+                # model_mask_rot[wh_sat_spot] = 1
+                # fits.writeto("/Users/jmazoyer/Desktop/toto.fits",
+                #              model_mask_rot * dataset.input[i],
+                #              overwrite=True)
+                # fits.writeto("/Users/jmazoyer/Desktop/tutu.fits",
+                #              dataset.input[i],
+                #              overwrite=True)
+                # asd
                 # print(filename_here,np.sum(model_mask_rot[wh_sat_spot]))
                 if not quiet:
                     head, _ = os.path.split(filename_here)
@@ -234,14 +271,12 @@ def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=20):
 
     dataset.generate_psfs(boxrad=boxrad)
 
-    return_psf = np.nanmean(dataset.psfs,axis = 0)
+    return_psf = np.nanmean(dataset.psfs, axis=0)
 
     r_smooth = 13 / 1.6 * dataset.wvs[0]
     # # create rho2D for the psf square
-    x_square = np.arange(2 * boxrad + 1,
-                         dtype=np.float)[None, :] - boxrad
-    y_square = np.arange(2 * boxrad + 1,
-                         dtype=np.float)[:, None] - boxrad
+    x_square = np.arange(2 * boxrad + 1, dtype=np.float)[None, :] - boxrad
+    y_square = np.arange(2 * boxrad + 1, dtype=np.float)[:, None] - boxrad
     rho2d_square = np.sqrt(x_square**2 + y_square**2)
 
     smooth_mask = np.ones((2 * boxrad + 1, 2 * boxrad + 1))
@@ -250,7 +285,7 @@ def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=20):
     smooth_mask[np.where(rho2d_square < r_smooth)] = 1.
     smooth_mask[np.where(smooth_mask < 0.01)] = 0.
 
-    return_psf = return_psf*smooth_mask
+    return_psf = return_psf * smooth_mask
     return_psf = return_psf / np.nanmax(return_psf)
     return_psf[np.where(return_psf < 0.)] = 0.
     return return_psf
