@@ -157,11 +157,11 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
     if filename_disk_intercept_satspot:
         print(file_prefix + ': We remove ' +
               str(len(filename_disk_intercept_satspot)) +
-              ' files for psf measurement out of ' + str(nfiles) +
+              ' files (out of ' + str(nfiles) + ') for the psf measurement'+
               ' because sat spots intersected the disk')
     else:
         print(
-            'The disk never intersects the satspots, all kept for the psf measurement'
+            'The disk never intersects the satspots, all satspots kept for the psf measurement'
         )
     return filename_disk_intercept_satspot
 

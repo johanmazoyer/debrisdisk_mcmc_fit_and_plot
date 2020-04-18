@@ -14,7 +14,7 @@ RM_FILE_DISK_CROSS_SATSPOTS: 0
 # The images where the disk is on the satspots are autonatically remove to measure the PSF
 
 # LOCATION AND NAME PARAMETERS. Parameters used to save the outputs or plots
-BAND_DIR: 160318_H_Spec  # name of folder where are the data (from basedir)
+BAND_DIR: 160318_H_SpecTest  # name of folder where are the data (from basedir)
 RDI_DIR: RDI_lib        # name of folder where are are the RDI lib (from BAND_DIR). 
                         # Carefull, this dir must also contains the data
 FILE_PREFIX: Hband_hr4796_test   #prefix for all saved files
@@ -35,7 +35,7 @@ NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
 
 N_DIM_MCMC: 11  #Number of parmeter in the MCMC
 # INITIAL MODEL PARAMETERS
-r1_init: 74.3
+r1_init: 40
 r2_init: 95
 beta_init: 12
 g1_init: 0.90

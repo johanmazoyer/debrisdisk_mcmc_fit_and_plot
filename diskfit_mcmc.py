@@ -349,7 +349,7 @@ def make_noise_map_no_mask(reduced_data,
 
 
 ########################################################
-def initialize_mask_psf_noise(params_mcmc_yaml):
+def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     """ initialize the MCMC by preparing the useful things to measure the
     likelyhood (measure the data, the psf, the uncertainty map, the masks).
 
@@ -484,7 +484,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         # is more complicated.
 
         if first_time == 1:
-
+            print("\n Create a PSF from the sat spots")
             filelist4psf = sorted(
                 glob.glob(os.path.join(DATADIR, "*_distorcorr.fits")))
 
@@ -494,8 +494,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             # disk intersect the satspots
             excluded_files = gpidiskpsf.check_satspots_disk_intersection(
                 dataset4psf, params_mcmc_yaml, quiet=True)
-            
-            
+
             # exclude those angles for the PSF measurement
             for excluded_filesi in excluded_files:
                 if excluded_filesi in filelist4psf:
@@ -579,6 +578,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     dimension = dataset.input.shape[2]
 
     #create the masks
+    print("\n Create the binary masks to define model zone and chisquare zone")
     if first_time == 1:
         #create the mask where the non convoluted disk is going to be generated.
         # To gain time, it is tightely adjusted to the expected models BEFORE convolution.
@@ -634,9 +634,15 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         psflib = None
 
     if first_time == 1:
-        #measure the noise using the counter rotation trick
+        #measure the uncertainty map using the counter rotation trick
         # described in Sec4 of Gerard&Marois SPIE 2016 and probabaly elsewhere
+        print("\n Create the uncertainty map")
         dataset.PAs = -dataset.PAs
+
+        # Disable print for pyklip
+        if quietklip:
+            sys.stdout = open(os.devnull, 'w')
+
         parallelized.klip_dataset(dataset,
                                   numbasis=numbasis,
                                   maxnumbasis=120,
@@ -651,6 +657,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                                   minrot=move_here,
                                   calibrate_flux=False,
                                   psf_library=psflib)
+        sys.stdout = sys.__stdout__
 
         reduced_data_nodisk = fits.getdata(
             os.path.join(klipdir, file_prefix +
@@ -658,7 +665,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         noise = make_noise_map_no_mask(reduced_data_nodisk,
                                        aligned_center=aligned_center,
                                        delta_raddii=3)
-        noise[np.where(noise == 0)] = np.nan
+        noise[np.where(
+            noise == 0)] = np.nan  #we are going to divide by this noise
 
         #### We know our noise is too small so we multiply by a given factor
         noise = noise_multiplication_factor * noise
@@ -689,6 +697,7 @@ def initialize_rdi(dataset, params_mcmc_yaml):
         a  psflib object
     """
 
+    print("\n initialize RDI")
     first_time = params_mcmc_yaml['FIRST_TIME']
     aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
@@ -778,7 +787,7 @@ def initialize_rdi(dataset, params_mcmc_yaml):
 
 
 ########################################################
-def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None):
+def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
     """ initialize the MCMC by preparing the diskFM object
 
     Args:
@@ -789,7 +798,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None):
     Returns:
         a  diskFM object
     """
-
+    print("\n Initialize diskFM")
     first_time = params_mcmc_yaml['FIRST_TIME']
     aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
@@ -828,6 +837,10 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None):
         os.path.join(klipdir, file_prefix + '_FirstModel_Conv.fits'))
 
     if first_time == 1:
+        # Disable print for pyklip
+        if quietklip:
+            sys.stdout = open(os.devnull, 'w')
+
         # initialize the DiskFM object
         diskobj = DiskFM(dataset.input.shape,
                          numbasis,
@@ -855,6 +868,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None):
                         calibrate_flux=False,
                         numthreads=1,
                         psf_library=psflib)
+        sys.stdout = sys.__stdout__
 
     # load the the KL basis and define the diskFM object
     diskobj = DiskFM(dataset.input.shape,
@@ -1066,12 +1080,11 @@ if __name__ == '__main__':
     distutils.dir_util.mkpath(mcmcresultdir)
 
     if (params_mcmc_yaml['FIRST_TIME'] == 1) and mpi:
-        raise (
-            """because the way the code is set up right now, save .fits seems
-             complicated to do in mpi mode so we cannot initialiaze in mpi mode, 
-             please use 'FIRST_TIME=1' to measure and save all the necessary 
-             files (PSF, masks, etc) only in sequential and then run MPI with 
-             'FIRST_TIME=0' """)
+        raise ValueError("""Because the way the code is set up right now, 
+                saving .fits seems complicated to do in MPI mode so we cannot 
+                initialiaze in mpi mode, please initialiaze using 'FIRST_TIME=1' 
+                only in sequential (to measure and save all the necessary .fits files 
+                (PSF, masks, etc) and then run MPI with 'FIRST_TIME=0' """)
 
     # load the Parameters necessary to launch the MCMC
     NWALKERS = params_mcmc_yaml['NWALKERS']  #Number of walkers
@@ -1083,7 +1096,8 @@ if __name__ == '__main__':
     PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
 
     # initialize the things necessary to measure the model (PSF, masks, etc)
-    dataset, psflib = initialize_mask_psf_noise(params_mcmc_yaml)
+    dataset, psflib = initialize_mask_psf_noise(params_mcmc_yaml,
+                                                quietklip=True)
 
     # measure the size of images DIMENSION and make it global
     DIMENSION = dataset.input.shape[1]
@@ -1099,7 +1113,10 @@ if __name__ == '__main__':
     NOISE = fits.getdata(os.path.join(klipdir, FILE_PREFIX + '_noisemap.fits'))
 
     # initialize_diskfm and make diskobj global
-    DISKOBJ = initialize_diskfm(dataset, params_mcmc_yaml, psflib=psflib)
+    DISKOBJ = initialize_diskfm(dataset,
+                                params_mcmc_yaml,
+                                psflib=psflib,
+                                quietklip=True)
 
     # load reduced_dataand make it a global variable
     REDUCED_DATA = fits.getdata(
@@ -1116,15 +1133,18 @@ if __name__ == '__main__':
 
     # Make a final test by printing the likelyhood of the iniatial model
     lnpb_model = lnpb(from_param_to_theta_init(params_mcmc_yaml))
-    print(
-        "Test likelyhood on initial model : {0}. In -INF, initial guess if probably out of the priors"
-        .format(lnpb_model))
+    if not np.isfinite(lnpb_model):
+        raise ValueError(""" Test Likelyhood on initial parameter set is {0}. 
+            Do not launch MCMC, your initial guess is probably out of the prior 
+            range for one of the parameter""".format(lnpb_model))
 
     startTime = datetime.now()
     if mpi:
-        mpistr = "\n With MPI"
+        mpistr = "\n In MPI mode"
     else:
-        mpistr = "\n Without MPI"
+        mpistr = "\n In sequential mode"
+
+    print(mpistr + ", initialize walkers and start the MCMC ")
     asd
     with MultiPool() as pool:
 
