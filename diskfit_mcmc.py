@@ -1,5 +1,4 @@
 # pylint: disable=C0103
-
 """
 MCMC code for fitting a disk 
 author: Johan Mazoyer
@@ -7,15 +6,14 @@ author: Johan Mazoyer
 
 import os
 
-mpi = True  # mpi or not for parallelization. 
-basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is your data 
+mpi = True  # mpi or not for parallelization.
+basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is your data
 # (using OS environnement variable allow to use same code on different comp[uter without changeing it].
 progress = False  # if on my local machine and print on console, showing the MCMC progress bar.
 # Avoid if print resutls of the code on file, it will not look pretty
 
 import sys
 import glob
-import socket
 
 import distutils.dir_util
 import warnings
@@ -28,8 +26,6 @@ else:
     # from schwimmbad import MultiPool as MultiPool
     from multiprocessing import Pool as MultiPool
 
-import contextlib
-
 from datetime import datetime
 
 import math as mt
@@ -41,6 +37,9 @@ from astropy.wcs import FITSFixedWarning
 
 import yaml
 
+from emcee import EnsembleSampler
+from emcee import backends
+
 import pyklip.instruments.GPI as GPI
 import pyklip.instruments.Instrument as Instrument
 
@@ -48,8 +47,6 @@ import pyklip.parallelized as parallelized
 from pyklip.fmlib.diskfm import DiskFM
 import pyklip.fm as fm
 
-from emcee import EnsembleSampler
-from emcee import backends
 
 import make_gpi_psf_for_disks as gpidiskpsf
 
@@ -417,6 +414,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     owa = params_mcmc_yaml['OWA']
     move_here = params_mcmc_yaml['MOVE_HERE']
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
+    mode = params_mcmc_yaml['MODE']
 
     noise_multiplication_factor = params_mcmc_yaml[
         'NOISE_MULTIPLICATION_FACTOR']
@@ -434,7 +432,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     # collaspe the data
 
     if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata':
-        # only for SPHERE. This part is very dependent on the format of the data since there are 
+        # only for SPHERE. This part is very dependent on the format of the data since there are
         # several pipelines to reduce the data, which have there own way of preparing the
         # frames from the raw data. A. Vigan has made a pyklip mode to treat the data
         # created from his pipeline, but I've never used it.
@@ -463,8 +461,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
             # load the raw data
             datacube_sphere_init = fits.getdata(
-                os.path.join(DATADIR, "cube_H2.fits")
-            )
+                os.path.join(DATADIR, "cube_H2.fits"))
             parangs = fits.getdata(os.path.join(DATADIR, "parang.fits"))
             parangs = parangs - 135.99 + 90  ## true north
 
@@ -493,7 +490,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             # we flip the dataset (and inverse the parangs) to obtain
             # the good PA after pyklip reduction. Once again, dependent on how raw data were produced
             parangs = -parangs
-            nb_images = datacube_sphere_newdim.shape[0]
+            nb_images = datacube_sphere_newdim.shape[0]  # pylint: disable=E1136
             for i in range(nb_images):
                 datacube_sphere_newdim[i] = np.flip(datacube_sphere_newdim[i],
                                                     axis=0)
@@ -599,7 +596,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         hdr_psf = fits.getheader(
             os.path.join(DATADIR, file_prefix + '_SatSpotPSF.fits'))
 
-        # in IFS mode, we always exclude the slices with too much noise. We 
+        # in IFS mode, we always exclude the slices with too much noise. We
         # chose the criteria as "SNR(mean of sat spot)< 3""
         excluded_slices = []
         if hdr_psf['N_BADSLI'] > 0:
@@ -611,7 +608,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
         dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
 
         #collapse the data spectrally
-        dataset.spectral_collapse(align_frames=True, aligned_center=[xcen,ycen])
+        dataset.spectral_collapse(align_frames=True,
+                                  aligned_center=[xcen, ycen])
 
     #define the outer working angle
     dataset.OWA = owa
@@ -623,7 +621,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     if first_time == 1:
         #create the mask where the non convoluted disk is going to be generated.
         # To gain time, it is tightely adjusted to the expected models BEFORE convolution.
-        # inded, the models are generated pixel by pixels. 0.1 s gained on every model is a 
+        # inded, the models are generated pixel by pixels. 0.1 s gained on every model is a
         # day of calculation gain on one million model, so adjust your mask tightly to your model.
         # Carefull mask paramters are hardcoded here
         mask_disk_zeros = make_disk_mask(
@@ -678,24 +676,25 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                                   maxnumbasis=120,
                                   annuli=1,
                                   subsections=1,
-                                  mode='ADI',
+                                  mode=mode,
                                   outputdir=klipdir,
-                                  fileprefix=file_prefix + '_GerardTrick',
+                                  fileprefix=file_prefix +
+                                  '_couter_rotate_trick',
                                   aligned_center=[xcen, ycen],
                                   highpass=False,
                                   minrot=move_here,
                                   calibrate_flux=False)
 
-        reduced_data_wahhajtrick = fits.getdata(
-            os.path.join(klipdir,
-                         file_prefix + '_WahhajTrick-KLmodes-all.fits'))[0]
-        noise = make_noise_map_no_mask(reduced_data_wahhajtrick,
+        reduced_data_nodisk = fits.getdata(
+            os.path.join(klipdir, file_prefix +
+                         '_couter_rotate_trick-KLmodes-all.fits'))[0]
+        noise = make_noise_map_no_mask(reduced_data_nodisk,
                                        xcen=xcen,
                                        ycen=ycen,
                                        delta_raddii=3)
         noise[np.where(noise == 0)] = np.nan
 
-        #### We know our noise is too small
+        #### We know our noise is too small so we multiply by a given factor
         noise = noise_multiplication_factor * noise
 
         fits.writeto(os.path.join(klipdir, file_prefix + '_noisemap.fits'),
@@ -704,9 +703,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
         dataset.PAs = -dataset.PAs
         os.remove(
-            os.path.join(klipdir,
-                         file_prefix + '_WahhajTrick-KLmodes-all.fits'))
-        del reduced_data_wahhajtrick
+            os.path.join(klipdir, file_prefix +
+                         '_couter_rotate_trick-KLmodes-all.fits'))
 
     return dataset
 
@@ -731,7 +729,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
     move_here = params_mcmc_yaml['MOVE_HERE']
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     n_dim_mcmc = params_mcmc_yaml['N_DIM_MCMC']
-
+    mode = params_mcmc_yaml['MODE']
     klipdir = os.path.join(DATADIR, 'klip_fm_files')
 
     if first_time == 1:
@@ -780,7 +778,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
                         maxnumbasis=120,
                         annuli=1,
                         subsections=1,
-                        mode='ADI',
+                        mode=mode,
                         outputdir=klipdir,
                         fileprefix=file_prefix,
                         aligned_center=[xcen, ycen],
@@ -998,7 +996,8 @@ if __name__ == '__main__':
     distutils.dir_util.mkpath(mcmcresultdir)
 
     if (params_mcmc_yaml['FIRST_TIME'] == 1) and mpi:
-        raise("""because the way the code is set up right now, save .fits seems
+        raise (
+            """because the way the code is set up right now, save .fits seems
              complicated to do in mpi mode so we cannot initialiaze in mpi mode, 
              please use 'FIRST_TIME=1' to measure and save all the necessary 
              files (PSF, masks, etc) only in sequential and then run MPI with 
@@ -1047,9 +1046,9 @@ if __name__ == '__main__':
 
     # Make a final test by printing the likelyhood of the iniatial model
     lnpb_model = lnpb(from_param_to_theta_init(params_mcmc_yaml))
-    print("Test likelyhood on initial model : {0}. In -INF, initial guess if probably out of the priors".format(
-        lnpb_model))
-
+    print(
+        "Test likelyhood on initial model : {0}. In -INF, initial guess if probably out of the priors"
+        .format(lnpb_model))
 
     startTime = datetime.now()
     if mpi:
@@ -1063,7 +1062,7 @@ if __name__ == '__main__':
             if not pool.is_master():
                 pool.wait()
                 sys.exit(0)
-        
+
         # initialize the walkers if necessary. initialize/load the backend
         # make them global
         init_walkers, BACKEND = initialize_walkers_backend(params_mcmc_yaml)

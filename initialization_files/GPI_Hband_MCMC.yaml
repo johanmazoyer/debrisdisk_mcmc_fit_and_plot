@@ -1,6 +1,7 @@
 # PYKLIP PARAMETERS
 FIRST_TIME: 0
 #if FIRST_TIME=1 the masks, reduced data, noise map, and KL vectors are recalculated.
+MODE: ADI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
 KLMODE_NUMBER: 3 # number of KL modes used in the reduction < nb images in the basis
 OWA: 100 # OWA of the reduction, in pixel. Reduce the zone to accelerate the code.
 MOVE_HERE: 6  #minrot in PyKLIP
