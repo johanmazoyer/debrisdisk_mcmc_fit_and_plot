@@ -1,8 +1,8 @@
 # PYKLIP PARAMETERS
 FIRST_TIME: True
-#if FIRST_TIME=True the masks, reduced data, noise map, PSF lib and KL vectors are (re)calculated.
+#if FIRST_TIME=True the masks, reduced data, noise map, PSF lib, KL vectors are (re)calculated.
 MODE: RDI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
-KLMODE_NUMBER: 3 # number of KL modes used in the reduction < nb images in the basis
+KLMODE_NUMBER: 10 # number of KL modes used in the reduction < nb images in the basis
 OWA: 100 # OWA of the reduction, in pixel. Reduce the zone to accelerate the code.
 MOVE_HERE: 6  #minrot in PyKLIP
 ALIGNED_CENTER: [140.,140.] #image center in your model, also use to center the image before KLIP
@@ -17,8 +17,8 @@ RM_FILE_DISK_CROSS_SATSPOTS: False
 BAND_DIR: 160318_H_SpecTest  # name of folder where are the data (from basedir)
 RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
                         # Carefull, this dir must also contains the data
-FILE_PREFIX: Hband_hr4796_test_adi  #prefix for all saved files (carefull not to erase your results)
-BAND_NAME: GPI H band ADI      #for plot titles uniquely
+FILE_PREFIX: Hband_hr4796_rdi  #prefix for all saved files (carefull not to erase your results)
+BAND_NAME: GPI H band RDI      #for plot titles uniquely
 
 # STAR OBSERVATION PARAMETERS
 DISTANCE_STAR: 72.0   #distance of the disk in pc
@@ -28,7 +28,7 @@ PIXSCALE_INS: 0.01414  #picscale of your data
 NEW_BACKEND: True
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
 NWALKERS: 256 #Number of walkers
-N_ITER_MCMC: 3 #Number of interation
+N_ITER_MCMC: 10000 #Number of interation
 NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
 # There is no burn-in phase here, the burnin only intervened when reading the data
 

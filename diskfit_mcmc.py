@@ -6,11 +6,14 @@ author: Johan Mazoyer
 
 import os
 
-mpi = False  # mpi or not for parallelization.
-basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is your data
-# (using OS environnement variable allow to use same code on different computer without changing this).
-progress = True  # if on my local machine and print on console, showing the MCMC progress bar.
-# Avoid if print resutls of the code in a file, it will not look pretty
+mpi = True  # mpi or not for parallelization.
+basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is 
+# your data (using OS environnement variable allow to use same code on 
+# different computer without changing this).
+
+progress = False  # if on my local machine and print on console, showing the
+# MCMC progress bar. Avoid if print resutls of the code in a file, it will 
+# not look pretty
 
 import sys
 import glob
@@ -53,8 +56,9 @@ import make_gpi_psf_for_disks as gpidiskpsf
 from anadisk_johan import gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import astro_unit_conversion as convert
 
-# recommended by emcee https://emcee.readthedocs.io/en/stable/tutorials/parallel/ and
-# by PyKLIPto avoid that NumPy automatically parallelizes some operations, which kill the speed
+# recommended by emcee https://emcee.readthedocs.io/en/stable/tutorials/parallel/ 
+# and by PyKLIPto avoid that NumPy automatically parallelizes some operations, 
+# which kill the speed
 os.environ["OMP_NUM_THREADS"] = "1"
 
 
@@ -361,7 +365,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
         a dataset a pyklip instance of Instrument.Data
     """
 
-    # if first_time = 1 old the mask, reduced data, noise map, and KL vectors
+    # if first_time=True, all the masks, reduced data, noise map, and KL vectors
     # are recalculated. be careful, for some reason the KL vectors are slightly
     # different on different machines. if you see weird stuff in the FM models
     # (for example in plotting the results), just remake them
@@ -397,7 +401,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
         # frames from the raw data. A. Vigan has made a pyklip mode to treat the data
         # created from his pipeline, but I've never used it.
 
-        if first_time == 1:
+        if first_time:
             psf_init = fits.getdata(os.path.join(DATADIR,
                                                  "psf_sphere_h2.fits"))
             size_init = psf_init.shape[1]
@@ -480,13 +484,12 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
                                          wvs=None)
 
     else:
-        #only for GPI. Data reduction is simpler for GPI but PSF measurement form satspot
-        # is more complicated.
+        #only for GPI. Data reduction is simpler for GPI but PSF 
+        # measurement form satspot is more complicated.
 
-        if first_time == 1:
+        if first_time:
             print("\n Create a PSF from the sat spots")
-            filelist4psf = sorted(
-                glob.glob(os.path.join(DATADIR, "*_distorcorr.fits")))
+            filelist4psf = sorted(glob.glob(os.path.join(DATADIR, "*.fits")))
 
             dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
 
@@ -536,15 +539,14 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
                          header=hdr_psf,
                          overwrite=True)
 
-        filelist = sorted(glob.glob(os.path.join(DATADIR,
-                                                 "*_distorcorr.fits")))
+        filelist = sorted(glob.glob(os.path.join(DATADIR, "*.fits")))
 
         # in the general case we can choose to
         # keep the files where the disk intersect the disk.
-        # We can removed those if rm_file_disk_cross_satspots == 1
+        # We can removed those if rm_file_disk_cross_satspots=True
         rm_file_disk_cross_satspots = params_mcmc_yaml[
             'RM_FILE_DISK_CROSS_SATSPOTS']
-        if rm_file_disk_cross_satspots == 1:
+        if rm_file_disk_cross_satspots:
             dataset_for_exclusion = GPI.GPIData(filelist, quiet=True)
             excluded_files = gpidiskpsf.check_satspots_disk_intersection(
                 dataset_for_exclusion, params_mcmc_yaml, quiet=True)
@@ -579,12 +581,14 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
     #create the masks
     print("\n Create the binary masks to define model zone and chisquare zone")
-    if first_time == 1:
+    if first_time:
         #create the mask where the non convoluted disk is going to be generated.
-        # To gain time, it is tightely adjusted to the expected models BEFORE convolution.
-        # inded, the models are generated pixel by pixels. 0.1 s gained on every model is a
-        # day of calculation gain on one million model, so adjust your mask tightly to your model.
-        # Carefull mask paramters are hardcoded here
+        # To gain time, it is tightely adjusted to the expected models BEFORE 
+        # convolution. Inded, the models are generated pixel by pixels. 0.1 s 
+        # gained on every model is a day of calculation gain on one million model, 
+        # so adjust your mask tightly to your model. Carefull mask paramters are 
+        # hardcoded here
+
         mask_disk_zeros = gpidiskpsf.make_disk_mask(
             dimension,
             params_mcmc_yaml['pa_init'],
@@ -633,7 +637,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     else:
         psflib = None
 
-    if first_time == 1:
+    if first_time:
         #measure the uncertainty map using the counter rotation trick
         # described in Sec4 of Gerard&Marois SPIE 2016 and probabaly elsewhere
         print("\n Create the uncertainty map")
@@ -685,8 +689,9 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
 ########################################################
 def initialize_rdi(dataset, params_mcmc_yaml):
-    """ initialize the rdi librairy. This should probabaly not be done in this code
-        since it can be extremely time consuming. Feel free to run this routine elsewhere
+    """ initialize the rdi librairy. This should maybe not be done in this 
+        code since it can be extremely time consuming. Feel free to run this 
+        routine elsewhere. Currently very GPI oriented.
 
     Args:
         dataset: a pyklip instance of Instrument.Data containing the data
@@ -705,11 +710,11 @@ def initialize_rdi(dataset, params_mcmc_yaml):
     rdi_matrix_dir = os.path.join(rdidir, 'rdi_matrix')
     distutils.dir_util.mkpath(rdi_matrix_dir)
 
-    if first_time == 1:
+    if first_time:
 
         # load the bad slices in the psf header (IFS slices where satspots SNR < 3).
-        # This is only for GPI. Normally this should not happen because RDI is in H band
-        # and H band data have not bad slice.
+        # This is only for GPI. Normally this should not happen because RDI is in 
+        # H band and H band data have very little thermal noise.
 
         hdr_psf = fits.getheader(
             os.path.join(klipdir, file_prefix + '_SatSpotPSF.fits'))
@@ -750,15 +755,17 @@ def initialize_rdi(dataset, params_mcmc_yaml):
                      overwrite=True)
 
         # make the PSF library
-        # we need to compute the correlation matrix of all images vs each other since we haven't computed it before
+        # we need to compute the correlation matrix of all images vs each 
+        # other since we haven't computed it before
         psflib = rdi.PSFLibrary(datasetlib.input,
                                 aligned_center,
                                 datasetlib.filenames,
                                 compute_correlation=True)
 
-        # save the correlation matrix to disk so that we also don't need to recomptue this ever again
-        # In the future we can just pass in the correlation matrix into the PSFLibrary object rather
-        # than having it compute it
+        # save the correlation matrix to disk so that we also don't need to 
+        # recomptue this ever again. In the future we can just pass in the 
+        # correlation matrix into the PSFLibrary object rather than having it 
+        # compute it
         psflib.save_correlation(os.path.join(rdi_matrix_dir,
                                              "corr_matrix.fits"),
                                 overwrite=True)
@@ -813,7 +820,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
     mode = params_mcmc_yaml['MODE']
     klipdir = os.path.join(DATADIR, 'klip_fm_files')
 
-    if first_time == 1:
+    if first_time:
         # create a first model to check the begining parameter and initialize the FM.
         # We will clear all useless variables befire starting the MCMC
         # Be careful that this model is close to what you think is the minimum
@@ -841,7 +848,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
     model_here_convolved = fits.getdata(
         os.path.join(klipdir, file_prefix + '_FirstModel_Conv.fits'))
 
-    if first_time == 1:
+    if first_time:
         # Disable print for pyklip
         if quietklip:
             sys.stdout = open(os.devnull, 'w')
@@ -889,7 +896,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
     diskobj.update_disk(model_here_convolved)
     ### we take only the first KL modemode
 
-    if first_time == 1:
+    if first_time:
         modelfm_here = diskobj.fm_parallelized()[0]
         fits.writeto(os.path.join(klipdir,
                                   file_prefix + '_FirstModel_FM.fits'),
@@ -909,12 +916,13 @@ def initialize_walkers_backend(params_mcmc_yaml):
                             read from yaml file
 
     Returns:
-        if new_backend ==1 then [intial position of the walkers, a clean BACKEND]
-        if new_backend ==0 then [None, the loaded BACKEND]
+        if new_backend=True then [intial position of the walkers, a clean BACKEND]
+        if new_backend=False then [None, the loaded BACKEND]
     """
 
-    # if new_backend = 0, reset the backend, if not restart the chains.
-    # Be careful if you change the parameters or walkers #, you have to put new_backend = 1
+    # if new_backend=False, reset the backend, if not restart the chains.
+    # Be careful if you change the parameters or walkers #, you have to put 
+    # new_backend=True
     new_backend = params_mcmc_yaml['NEW_BACKEND']
 
     nwalkers = params_mcmc_yaml['NWALKERS']
@@ -937,7 +945,7 @@ def initialize_walkers_backend(params_mcmc_yaml):
     # to start in a small ball around the a priori preferred position.
     # Dont worry, the walkers quickly branch out and explore the
     # rest of the space.
-    if new_backend == 1:
+    if new_backend:
         init_ball0 = np.random.uniform(theta_init[0] * 0.999,
                                        theta_init[0] * 1.001,
                                        size=(nwalkers))  # r1 log[AU]
@@ -1063,7 +1071,7 @@ if __name__ == '__main__':
     # warnings.simplefilter('ignore', category=AstropyWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC.yaml'
+        str_yalm = 'GPI_Hband_MCMC_RDI.yaml'
     else:
         str_yalm = sys.argv[1]
 
@@ -1082,12 +1090,12 @@ if __name__ == '__main__':
     mcmcresultdir = os.path.join(DATADIR, 'results_MCMC')
     distutils.dir_util.mkpath(mcmcresultdir)
 
-    if (params_mcmc_yaml['FIRST_TIME'] == 1) and mpi:
+    if params_mcmc_yaml['FIRST_TIME'] and mpi:
         raise ValueError("""Because the way the code is set up right now, 
                 saving .fits seems complicated to do in MPI mode so we cannot 
-                initialiaze in mpi mode, please initialiaze using 'FIRST_TIME=1' 
+                initialiaze in mpi mode, please initialiaze using 'FIRST_TIME=True' 
                 only in sequential (to measure and save all the necessary .fits files 
-                (PSF, masks, etc) and then run MPI with 'FIRST_TIME=0' """)
+                (PSF, masks, etc) and then run MPI with 'FIRST_TIME=False' """)
 
     # load the Parameters necessary to launch the MCMC
     NWALKERS = params_mcmc_yaml['NWALKERS']  #Number of walkers
@@ -1148,6 +1156,7 @@ if __name__ == '__main__':
         mpistr = "\n In sequential mode"
 
     print(mpistr + ", initialize walkers and start the MCMC...")
+    
     with MultiPool() as pool:
 
         if mpi:
@@ -1177,5 +1186,3 @@ if __name__ == '__main__':
               N_ITER_MCMC, NWALKERS, cpu_count(),
               datetime.now() - startTime))
 
-NEED TO CHECK that data files have bee excluded from library in RDI.
-CHANGE 0 or 1 boolean to cleaner TRue False 
