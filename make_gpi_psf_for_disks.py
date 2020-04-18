@@ -84,16 +84,18 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
     estimmaxr = convert.au_to_pix(params_mcmc_yaml['r2_init'], pixscale_ins,
                                   distance_star)
 
-    ### Where is the disk
-    # create nan and zeros masks for the disk
-
+    ### Where is the disk ?
+    # create ones masks for the disk
     mask_object_astro_ones = 1 - make_disk_mask(dimx,
                                                 estimPA,
                                                 estiminclin,
-                                                estimminr,
-                                                estimmaxr,
+                                                estimminr - 3,
+                                                estimmaxr + 3,
                                                 aligned_center=aligned_center)
 
+    # fits.writeto("/Users/jmazoyer/Desktop/initial_model.fits",
+    #                          mask_object_astro_ones,
+    #                          overwrite=True)
     filename_disk_intercept_satspot = []
 
     for i in range(dataset.input.shape[0]):
@@ -114,9 +116,10 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
                 klip.rotate(mask_object_astro_ones,
                             PA_here,
                             aligned_center,
-                            new_center=[Starpos[0], Starpos[1]])))
+                            new_center=Starpos,
+                            flipx=True)))
 
-        # now grab the values from them by parsing the header
+        # now grab the position of the sat spots by parsing the header
         hdr = dataset.exthdrs[hdrindex]
 
         spot0 = hdr['SATS{wave}_0'.format(wave=slice_here)].split()
@@ -135,21 +138,22 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
 
             is_on_the_disk = np.sum(model_mask_rot[wh_sat_spot]) > 0
             if is_on_the_disk:
-            # if is_on_the_disk and wls > 1.6:
-                # model_mask_rot[wh_sat_spot] = 1
-                # fits.writeto("/Users/jmazoyer/Desktop/toto.fits",
-                #              model_mask_rot * dataset.input[i],
-                #              overwrite=True)
-                # fits.writeto("/Users/jmazoyer/Desktop/tutu.fits",
-                #              dataset.input[i],
-                #              overwrite=True)
-                # asd
+                # if is_on_the_disk and wls > 1.6:
+                #     model_mask_rot[wh_sat_spot] = 1
+                #     fits.writeto("/Users/jmazoyer/Desktop/toto.fits",
+                #                  model_mask_rot * dataset.input[i],
+                #                  overwrite=True)
+                #     fits.writeto("/Users/jmazoyer/Desktop/tutu.fits",
+                #                  dataset.input[i],
+                #                  overwrite=True)
+                #     asd
                 # print(filename_here,np.sum(model_mask_rot[wh_sat_spot]))
                 if not quiet:
-                    head, _ = os.path.split(filename_here)
+                    _, head = os.path.split(filename_here)
                     print(head, 'removed because of the sat spot #' + str(j))
                 filename_disk_intercept_satspot.append(filename_here)
                 break
+
     if filename_disk_intercept_satspot:
         print(file_prefix + ': We remove ' +
               str(len(filename_disk_intercept_satspot)) +

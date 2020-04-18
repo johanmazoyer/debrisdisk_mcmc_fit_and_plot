@@ -493,8 +493,9 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             # identify angles where the
             # disk intersect the satspots
             excluded_files = gpidiskpsf.check_satspots_disk_intersection(
-                dataset4psf, params_mcmc_yaml, quiet=False)
-
+                dataset4psf, params_mcmc_yaml, quiet=True)
+            
+            
             # exclude those angles for the PSF measurement
             for excluded_filesi in excluded_files:
                 if excluded_filesi in filelist4psf:
