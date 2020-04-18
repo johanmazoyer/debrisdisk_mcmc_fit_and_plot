@@ -46,7 +46,7 @@ import pyklip.instruments.Instrument as Instrument
 import pyklip.parallelized as parallelized
 from pyklip.fmlib.diskfm import DiskFM
 import pyklip.fm as fm
-
+import pyklip.rdi as rdi
 
 import make_gpi_psf_for_disks as gpidiskpsf
 
@@ -322,8 +322,7 @@ def make_disk_mask(dim,
                    estiminclin,
                    estimminr,
                    estimmaxr,
-                   xcen=140.,
-                   ycen=140.):
+                   aligned_center=[140., 140.]):
     """ make a zeros mask for a disk. usind a set of parameters
 
 
@@ -333,16 +332,15 @@ def make_disk_mask(dim,
         estiminclin: degree, estimation of the inclination
         estimminr: pixel, inner radius of the mask
         estimmaxr: pixel, outer radius of the mask
-        xcen: pixel, center of the mask
-        ycen: pixel, center of the mask
+        aligned_center: [pixel,pixel], position of the star in the mask
 
     Returns:
         a [dim,dim] array where the mask is at 0 and the rest at 1
     """
 
     PA_rad = (90 + estimPA) * np.pi / 180.
-    x = np.arange(dim, dtype=np.float)[None, :] - xcen
-    y = np.arange(dim, dtype=np.float)[:, None] - ycen
+    x = np.arange(dim, dtype=np.float)[None, :] - aligned_center[0]
+    y = np.arange(dim, dtype=np.float)[:, None] - aligned_center[1]
 
     x1 = x * np.cos(PA_rad) + y * np.sin(PA_rad)
     y1 = -x * np.sin(PA_rad) + y * np.cos(PA_rad)
@@ -358,14 +356,15 @@ def make_disk_mask(dim,
 
 
 ########################################################
-def make_noise_map_no_mask(reduced_data, xcen=140., ycen=140., delta_raddii=3):
+def make_noise_map_no_mask(reduced_data,
+                           aligned_center=[140., 140.],
+                           delta_raddii=3):
     """ create a noise map from a image using concentring rings
         and measuring the standard deviation on them
 
     Args:
         reduced_data: [dim dim] array containing the reduced data
-        xcen: pixel, center of the mask
-        ycen: pixel, center of the mask
+        aligned_center: [pixel,pixel], position of the star in the mask
         delta_raddii: pixel, widht of the small concentric rings
 
     Returns:
@@ -375,8 +374,8 @@ def make_noise_map_no_mask(reduced_data, xcen=140., ycen=140., delta_raddii=3):
 
     dim = reduced_data.shape[1]
     # create rho2D for the rings
-    x = np.arange(dim, dtype=np.float)[None, :] - xcen
-    y = np.arange(dim, dtype=np.float)[:, None] - ycen
+    x = np.arange(dim, dtype=np.float)[None, :] - aligned_center[0]
+    y = np.arange(dim, dtype=np.float)[:, None] - aligned_center[1]
     rho2d = np.sqrt(x**2 + y**2)
 
     noise_map = np.zeros((dim, dim))
@@ -422,8 +421,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     klipdir = os.path.join(DATADIR, 'klip_fm_files') + os.path.sep
 
     #The PSF centers
-    xcen = params_mcmc_yaml['xcen']
-    ycen = params_mcmc_yaml['ycen']
+    aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
 
     ### This is the only part of the code different for GPI IFS anf SPHERE
     # For SPHERE We load the PSF and the parangs, crop the data
@@ -454,7 +452,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             # so that it's transparent in the code, but it's obviously not a sat spot PSF,
             # because there are no sat spots in GPI data.
 
-            fits.writeto(os.path.join(DATADIR,
+            fits.writeto(os.path.join(klipdir,
                                       file_prefix + '_SatSpotPSF.fits'),
                          small_psf,
                          overwrite='True')
@@ -513,7 +511,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             os.path.join(DATADIR, file_prefix + '_true_parangs.fits'))
 
         size_datacube = datacube_sphere.shape
-        centers_sphere = np.zeros((size_datacube[0], 2)) + [xcen, ycen]
+        centers_sphere = np.zeros((size_datacube[0], 2)) + aligned_center
         dataset = Instrument.GenericData(datacube_sphere,
                                          centers_sphere,
                                          parangs=parangs_sphere,
@@ -570,7 +568,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                         str(badslice_i).zfill(2)] = excluded_slices_num
 
             #save the psf
-            fits.writeto(os.path.join(DATADIR,
+            fits.writeto(os.path.join(klipdir,
                                       file_prefix + '_SatSpotPSF.fits'),
                          instrument_psf,
                          header=hdr_psf,
@@ -594,7 +592,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
         # load the bad slices in the psf header
         hdr_psf = fits.getheader(
-            os.path.join(DATADIR, file_prefix + '_SatSpotPSF.fits'))
+            os.path.join(klipdir, file_prefix + '_SatSpotPSF.fits'))
 
         # in IFS mode, we always exclude the slices with too much noise. We
         # chose the criteria as "SNR(mean of sat spot)< 3""
@@ -609,7 +607,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
         #collapse the data spectrally
         dataset.spectral_collapse(align_frames=True,
-                                  aligned_center=[xcen, ycen])
+                                  aligned_center=aligned_center)
 
     #define the outer working angle
     dataset.OWA = owa
@@ -630,8 +628,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             params_mcmc_yaml['inc_init'],
             convert.au_to_pix(45, pixscale_ins, distance_star),
             convert.au_to_pix(105, pixscale_ins, distance_star),
-            xcen=xcen,
-            ycen=ycen)
+            aligned_center=aligned_center)
         mask2generatedisk = 1 - mask_disk_zeros
         fits.writeto(os.path.join(klipdir,
                                   file_prefix + '_mask2generatedisk.fits'),
@@ -647,12 +644,13 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             params_mcmc_yaml['inc_init'],
             convert.au_to_pix(40, pixscale_ins, distance_star),
             convert.au_to_pix(130, pixscale_ins, distance_star),
-            xcen=xcen,
-            ycen=ycen)
+            aligned_center=aligned_center)
 
         mask_speckle_region = np.ones((dimension, dimension))
-        # x = np.arange(dimension, dtype=np.float)[None,:] - xcen
-        # y = np.arange(dimension, dtype=np.float)[:,None] - ycen
+        # a few lines to create a circular central mask to hide regions with a lot of speckles
+        # Currently not using it but it's there
+        # x = np.arange(dimension, dtype=np.float)[None,:] - aligned_center[0]
+        # y = np.arange(dimension, dtype=np.float)[:,None] - aligned_center[1]
         # rho2d = np.sqrt(x**2 + y**2)
         # mask_speckle_region[np.where(rho2d < 21)] = 0.
         mask2minimize = mask_speckle_region * (1 - mask_disk_zeros)
@@ -680,7 +678,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                                   outputdir=klipdir,
                                   fileprefix=file_prefix +
                                   '_couter_rotate_trick',
-                                  aligned_center=[xcen, ycen],
+                                  aligned_center=aligned_center,
                                   highpass=False,
                                   minrot=move_here,
                                   calibrate_flux=False)
@@ -689,8 +687,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             os.path.join(klipdir, file_prefix +
                          '_couter_rotate_trick-KLmodes-all.fits'))[0]
         noise = make_noise_map_no_mask(reduced_data_nodisk,
-                                       xcen=xcen,
-                                       ycen=ycen,
+                                       aligned_center=aligned_center,
                                        delta_raddii=3)
         noise[np.where(noise == 0)] = np.nan
 
@@ -710,6 +707,110 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
 
 
 ########################################################
+def initialize_rdi(dataset, params_mcmc_yaml):
+    """ initialize the rdi librairy. This should probabaly not be done in this code
+        since it can be extremely time consuming. 
+
+    Args:
+        dataset: a pyklip instance of Instrument.Data
+        params_mcmc_yaml: dic, all the parameters of the MCMC and klip
+                            read from yaml file
+
+    Returns:
+        a  psflib object
+    """
+
+    first_time = params_mcmc_yaml['FIRST_TIME']
+    aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
+    file_prefix = params_mcmc_yaml['FILE_PREFIX']
+    rdidir = os.path.join(DATADIR, params_mcmc_yaml['RDI_DIR'])
+
+    if first_time == 1:
+
+        # load the bad slices in the psf header (IFS slices where satspots SNR < 3).
+        # This is only for GPI. Normally this should not happen because RDI is in H band
+        # and H band data have not bad slice.
+
+        hdr_psf = fits.getheader(
+            os.path.join(klipdir, file_prefix + '_SatSpotPSF.fits'))
+
+        # in IFS mode, we always exclude the slices with too much noise. We
+        # chose the criteria as "SNR(mean of sat spot)< 3""
+        excluded_slices = []
+        if hdr_psf['N_BADSLI'] > 0:
+            for badslice_i in range(hdr_psf['N_BADSLI']):
+                excluded_slices.append(hdr_psf['BADSLI' +
+                                               str(badslice_i).zfill(2)])
+
+        # be carefull the librairy files must includes the data files !
+        lib_files = sorted(glob.glob(rdidir + '*.fits'))
+        datasetlib = GPI.GPIData(lib_files,
+                                 quiet=True,
+                                 skipslices=excluded_slices)
+        
+        #collapse the data spectrally
+        datasetlib.spectral_collapse(align_frames=True,
+                                     aligned_center=aligned_center)
+
+        #we save the psf librairy aligned and collapsed, this is long to do
+
+        # save the filenames in the header
+        hdr_psf_lib = fits.Header()
+        
+        hdr_psf_lib['N_PSFLIB'] = len(datasetlib.filenames)
+        for i, filename in enumerate(datasetlib.filenames):
+            hdr_psf_lib['PSF' +
+                    str(i).zfill(4)] = filename
+
+        #save the psf librairy aligned and collapsed
+        fits.writeto(os.path.join(rdidir,'PSFlib_aligned_collasped.fits'),
+                        datasetlib.input,
+                        header=hdr_psf_lib,
+                        overwrite=True)
+
+
+        # make the PSF library
+        # we need to compute the correlation matrix of all images vs each other since we haven't computed it before
+        psflib = rdi.PSFLibrary(datasetlib.input,
+                                aligned_center,
+                                datasetlib.filenames,
+                                compute_correlation=True)
+
+        # save the correlation matrix to disk so that we also don't need to recomptue this ever again
+        # In the future we can just pass in the correlation matrix into the PSFLibrary object rather
+        # than having it compute it
+        psflib.save_correlation(os.path.join(rdidir, "corr_matrix.fits"),
+                                overwrite=True)
+
+
+    # load the PSF librairy aligned and collapse
+    PSFlib_input = fits.getdata( os.path.join(rdidir, 'PSFlib_aligned_collasped.fits'))
+
+    hdr_psf_lib = fits.getheader( os.path.join(rdidir, 'PSFlib_aligned_collasped.fits'))
+
+    # in IFS mode, we always exclude the slices with too much noise. We
+    # chose the criteria as "SNR(mean of sat spot)< 3""
+    PSFlib_filenames = []
+    if hdr_psf_lib['N_PSFLIB'] > 0:
+        for i in range(hdr_psf_lib['N_PSFLIB']):
+            PSFlib_filenames.append(hdr_psf['PSF' +
+                                            str(i).zfill(4)])
+
+    # load the correlation matrix
+    corr_matrix = fits.getdata(os.path.join(rdidir, "corr_matrix.fits"))
+
+    # make the PSF library again, this time we have the correlation matrix
+    psflib = rdi.PSFLibrary(PSFlib_input,
+                            aligned_center,
+                            PSFlib_filenames,
+                            correlation_matrix=corr_matrix)
+
+    psflib.prepare_library(dataset)
+
+    return psflib
+
+
+########################################################
 def initialize_diskfm(dataset, params_mcmc_yaml):
     """ initialize the MCMC by preparing the diskFM object
 
@@ -723,8 +824,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
     """
 
     first_time = params_mcmc_yaml['FIRST_TIME']
-    xcen = params_mcmc_yaml['xcen']
-    ycen = params_mcmc_yaml['ycen']
+    aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
     move_here = params_mcmc_yaml['MOVE_HERE']
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
@@ -769,7 +869,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
                          basis_filename=os.path.join(
                              klipdir, file_prefix + '_klbasis.h5'),
                          save_basis=True,
-                         aligned_center=[xcen, ycen],
+                         aligned_center=aligned_center,
                          numthreads=1)
         # measure the KL basis and save it
         fm.klip_dataset(dataset,
@@ -781,7 +881,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
                         mode=mode,
                         outputdir=klipdir,
                         fileprefix=file_prefix,
-                        aligned_center=[xcen, ycen],
+                        aligned_center=aligned_center,
                         mute_progression=True,
                         highpass=False,
                         minrot=move_here,
@@ -1019,7 +1119,7 @@ if __name__ == '__main__':
     DIMENSION = dataset.input.shape[1]
 
     # load PSF and make it global
-    PSF = fits.getdata(os.path.join(DATADIR, FILE_PREFIX + '_SatSpotPSF.fits'))
+    PSF = fits.getdata(os.path.join(klipdir, FILE_PREFIX + '_SatSpotPSF.fits'))
 
     # load wheremask2generatedisk and make it global
     WHEREMASK2GENERATEDISK = (fits.getdata(

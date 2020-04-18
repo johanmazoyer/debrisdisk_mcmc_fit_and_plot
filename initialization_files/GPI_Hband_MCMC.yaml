@@ -5,8 +5,7 @@ MODE: ADI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow t
 KLMODE_NUMBER: 3 # number of KL modes used in the reduction < nb images in the basis
 OWA: 100 # OWA of the reduction, in pixel. Reduce the zone to accelerate the code.
 MOVE_HERE: 6  #minrot in PyKLIP
-xcen: 140. #image center in your model, also use to center the image before KLIP
-ycen: 140.
+ALIGNED_CENTER: [140.,140.] #image center in your model, also use to center the image before KLIP
 
 #  In the KLIP do you want to remove the images where the disk is on the satspots 
 # 1 frames are removed
@@ -15,9 +14,10 @@ RM_FILE_DISK_CROSS_SATSPOTS: 0
 # The images where the disk is on the satspots are autonatically remove to measure the PSF
 
 # LOCATION AND NAME PARAMETERS. Parameters used to save the outputs or plots
-BAND_DIR: 160318_H_Spec
-FILE_PREFIX: Hband_hr4796
-BAND_NAME: GPI H band
+BAND_DIR: 160318_H_Spec  # name of folder where are the data (from basedir)
+RDI_DIR: RDI_lib        # name of folder where are are the RDI lib (from BAND_DIR)
+FILE_PREFIX: Hband_hr4796   #prefix for all saved files
+BAND_NAME: GPI H band       #for plot titles uniquely
 
 # STAR OBSERVATION PARAMETERS
 DISTANCE_STAR: 72.0   #distance of the disk in pc
