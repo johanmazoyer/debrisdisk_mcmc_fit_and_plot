@@ -379,7 +379,7 @@ def make_noise_map_no_mask(reduced_data,
     rho2d = np.sqrt(x**2 + y**2)
 
     noise_map = np.zeros((dim, dim))
-    for i_ring in range(0, int(np.floor(xcen / delta_raddii)) - 2):
+    for i_ring in range(0, int(np.floor(aligned_center[0] / delta_raddii)) - 2):
         wh_rings = np.where((rho2d >= i_ring * delta_raddii)
                             & (rho2d < (i_ring + 1) * delta_raddii))
         noise_map[wh_rings] = np.nanstd(reduced_data[wh_rings])
@@ -665,6 +665,11 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
     mask2minimize = fits.getdata(
         os.path.join(klipdir, file_prefix + '_mask2minimize.fits'))
 
+    if params_mcmc_yaml['MODE'] == 'RDI':
+        psflib = initialize_rdi(dataset, params_mcmc_yaml)
+    else:
+        psflib = None
+
     if first_time == 1:
         #measure the noise using the counter rotation trick
         # described in Sec4 of Gerard&Marois SPIE 2016 and probabaly elsewhere
@@ -681,7 +686,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
                                   aligned_center=aligned_center,
                                   highpass=False,
                                   minrot=move_here,
-                                  calibrate_flux=False)
+                                  calibrate_flux=False,
+                                  psf_library = psflib)
 
         reduced_data_nodisk = fits.getdata(
             os.path.join(klipdir, file_prefix +
@@ -703,16 +709,16 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             os.path.join(klipdir, file_prefix +
                          '_couter_rotate_trick-KLmodes-all.fits'))
 
-    return dataset
+    return dataset, psflib
 
 
 ########################################################
 def initialize_rdi(dataset, params_mcmc_yaml):
     """ initialize the rdi librairy. This should probabaly not be done in this code
-        since it can be extremely time consuming. 
+        since it can be extremely time consuming. Feel free to run this routine elsewhere
 
     Args:
-        dataset: a pyklip instance of Instrument.Data
+        dataset: a pyklip instance of Instrument.Data containing the data
         params_mcmc_yaml: dic, all the parameters of the MCMC and klip
                             read from yaml file
 
@@ -747,7 +753,7 @@ def initialize_rdi(dataset, params_mcmc_yaml):
         datasetlib = GPI.GPIData(lib_files,
                                  quiet=True,
                                  skipslices=excluded_slices)
-        
+
         #collapse the data spectrally
         datasetlib.spectral_collapse(align_frames=True,
                                      aligned_center=aligned_center)
@@ -756,18 +762,16 @@ def initialize_rdi(dataset, params_mcmc_yaml):
 
         # save the filenames in the header
         hdr_psf_lib = fits.Header()
-        
+
         hdr_psf_lib['N_PSFLIB'] = len(datasetlib.filenames)
         for i, filename in enumerate(datasetlib.filenames):
-            hdr_psf_lib['PSF' +
-                    str(i).zfill(4)] = filename
+            hdr_psf_lib['PSF' + str(i).zfill(4)] = filename
 
         #save the psf librairy aligned and collapsed
-        fits.writeto(os.path.join(rdidir,'PSFlib_aligned_collasped.fits'),
-                        datasetlib.input,
-                        header=hdr_psf_lib,
-                        overwrite=True)
-
+        fits.writeto(os.path.join(rdidir, 'PSFlib_aligned_collasped.fits'),
+                     datasetlib.input,
+                     header=hdr_psf_lib,
+                     overwrite=True)
 
         # make the PSF library
         # we need to compute the correlation matrix of all images vs each other since we haven't computed it before
@@ -782,19 +786,19 @@ def initialize_rdi(dataset, params_mcmc_yaml):
         psflib.save_correlation(os.path.join(rdidir, "corr_matrix.fits"),
                                 overwrite=True)
 
-
     # load the PSF librairy aligned and collapse
-    PSFlib_input = fits.getdata( os.path.join(rdidir, 'PSFlib_aligned_collasped.fits'))
+    PSFlib_input = fits.getdata(
+        os.path.join(rdidir, 'PSFlib_aligned_collasped.fits'))
 
-    hdr_psf_lib = fits.getheader( os.path.join(rdidir, 'PSFlib_aligned_collasped.fits'))
+    hdr_psf_lib = fits.getheader(
+        os.path.join(rdidir, 'PSFlib_aligned_collasped.fits'))
 
     # in IFS mode, we always exclude the slices with too much noise. We
     # chose the criteria as "SNR(mean of sat spot)< 3""
     PSFlib_filenames = []
     if hdr_psf_lib['N_PSFLIB'] > 0:
         for i in range(hdr_psf_lib['N_PSFLIB']):
-            PSFlib_filenames.append(hdr_psf['PSF' +
-                                            str(i).zfill(4)])
+            PSFlib_filenames.append(hdr_psf['PSF' + str(i).zfill(4)])
 
     # load the correlation matrix
     corr_matrix = fits.getdata(os.path.join(rdidir, "corr_matrix.fits"))
@@ -811,7 +815,7 @@ def initialize_rdi(dataset, params_mcmc_yaml):
 
 
 ########################################################
-def initialize_diskfm(dataset, params_mcmc_yaml):
+def initialize_diskfm(dataset,params_mcmc_yaml,  psflib = None):
     """ initialize the MCMC by preparing the diskFM object
 
     Args:
@@ -886,7 +890,8 @@ def initialize_diskfm(dataset, params_mcmc_yaml):
                         highpass=False,
                         minrot=move_here,
                         calibrate_flux=False,
-                        numthreads=1)
+                        numthreads=1,
+                        psf_library= psflib)
 
     # load the the KL basis and define the diskFM object
     diskobj = DiskFM(dataset.input.shape,
@@ -1113,7 +1118,7 @@ if __name__ == '__main__':
     PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
 
     # initialize the things necessary to measure the model (PSF, masks, etc)
-    dataset = initialize_mask_psf_noise(params_mcmc_yaml)
+    dataset, psflib = initialize_mask_psf_noise(params_mcmc_yaml)
 
     # measure the size of images DIMENSION and make it global
     DIMENSION = dataset.input.shape[1]
@@ -1129,7 +1134,7 @@ if __name__ == '__main__':
     NOISE = fits.getdata(os.path.join(klipdir, FILE_PREFIX + '_noisemap.fits'))
 
     # initialize_diskfm and make diskobj global
-    DISKOBJ = initialize_diskfm(dataset, params_mcmc_yaml)
+    DISKOBJ = initialize_diskfm(dataset, params_mcmc_yaml, psflib=psflib)
 
     # load reduced_dataand make it a global variable
     REDUCED_DATA = fits.getdata(
