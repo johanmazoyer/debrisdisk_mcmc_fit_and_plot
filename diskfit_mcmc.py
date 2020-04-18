@@ -6,11 +6,11 @@ author: Johan Mazoyer
 
 import os
 
-mpi = True  # mpi or not for parallelization.
+mpi = False  # mpi or not for parallelization.
 basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is your data
-# (using OS environnement variable allow to use same code on different comp[uter without changeing it].
-progress = False  # if on my local machine and print on console, showing the MCMC progress bar.
-# Avoid if print resutls of the code on file, it will not look pretty
+# (using OS environnement variable allow to use same code on different computer without changing this).
+progress = True  # if on my local machine and print on console, showing the MCMC progress bar.
+# Avoid if print resutls of the code in a file, it will not look pretty
 
 import sys
 import glob
@@ -531,7 +531,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml):
             # identify angles where the
             # disk intersect the satspots
             excluded_files = gpidiskpsf.check_satspots_disk_intersection(
-                dataset4psf, params_mcmc_yaml, quiet=True)
+                dataset4psf, params_mcmc_yaml, quiet=False)
 
             # exclude those angles for the PSF measurement
             for excluded_filesi in excluded_files:
@@ -1093,6 +1093,8 @@ if __name__ == '__main__':
 
     DATADIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
     FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
+    if params_mcmc_yaml['MODE'] == 'RDI':
+        FILE_PREFIX = FILE_PREFIX + '_RDI'
 
     klipdir = os.path.join(DATADIR, 'klip_fm_files')
     distutils.dir_util.mkpath(klipdir)

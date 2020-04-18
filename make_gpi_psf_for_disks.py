@@ -13,6 +13,7 @@ import scipy.ndimage.filters as scipy_filters
 import pyklip.klip as klip
 
 import astro_unit_conversion as convert
+import astropy.io.fits as fits
 
 
 def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
@@ -29,8 +30,7 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
     """
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
-    xcen = params_mcmc_yaml['xcen']
-    ycen = params_mcmc_yaml['ycen']
+    aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
     dimx = dataset.input.shape[1]
     dimy = dataset.input.shape[2]
     pixscale_ins = params_mcmc_yaml['PIXSCALE_INS']
@@ -42,23 +42,22 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
     # create nan and zeros masks for the disk
     mask_object_astro_ones = np.zeros((dimx, dimy))
 
-    # for hr4796 disk
     estimPA = params_mcmc_yaml['pa_init']
     estiminclin = params_mcmc_yaml['inc_init']
     estimminr = convert.au_to_pix(params_mcmc_yaml['r1_init'], pixscale_ins,
                                   distance_star)
     estimmaxr = convert.au_to_pix(params_mcmc_yaml['r2_init'], pixscale_ins,
                                   distance_star)
-
+    
     PA_rad = np.radians(90 + estimPA)
 
-    x = np.arange(dimx, dtype=np.float)[None, :] - xcen
-    y = np.arange(dimy, dtype=np.float)[:, None] - ycen
+    x = np.arange(dimx, dtype=np.float)[None, :] - aligned_center[0]
+    y = np.arange(dimy, dtype=np.float)[:, None] - aligned_center[1]
 
     x1 = x * np.cos(PA_rad) + y * np.sin(PA_rad)
     y1 = -x * np.sin(PA_rad) + y * np.cos(PA_rad)
     x = x1
-    y = y1 / np.cos(estiminclin * np.pi / 180.)
+    y = y1 / np.cos(np.radians(estiminclin))
     rho2dellip = np.sqrt(x**2 + y**2)
     mask_object_astro_ones[np.where((rho2dellip > estimminr)
                                     & (rho2dellip < estimmaxr))] = 1.
@@ -81,7 +80,7 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
         model_mask_rot = np.round(
             np.abs(
                 klip.rotate(mask_object_astro_ones,
-                            PA_here, [xcen, ycen],
+                            PA_here, aligned_center,
                             new_center=[Starpos[0], Starpos[1]])))
 
         # now grab the values from them by parsing the header
@@ -102,9 +101,12 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
             wh_sat_spot = np.where((rho2d_sat < 3 / 1.6 * wls))
 
             is_on_the_disk = np.sum(model_mask_rot[wh_sat_spot]) > 0
-            if is_on_the_disk:
-                # model_mask_rot[wh_sat_spot] = 1
-                # fits.writeto("/Users/jmazoyer/Desktop/toto.fits",model_mask_rot, overwrite = True)
+            if is_on_the_disk and wls > 1.6:
+                model_mask_rot[wh_sat_spot] = 1
+                fits.writeto("/Users/jmazoyer/Desktop/toto.fits",model_mask_rot*dataset.input[i], overwrite = True)
+                fits.writeto("/Users/jmazoyer/Desktop/tutu.fits",dataset.input[i], overwrite = True)
+
+                asd
                 # print(filename_here,np.sum(model_mask_rot[wh_sat_spot]))
                 if not quiet:
                     head, _ = os.path.split(filename_here)
@@ -138,8 +140,7 @@ def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet=True):
 
     wls = np.unique(dataset_multi_wl.wvs)
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
-    xcen = params_mcmc_yaml['xcen']
-    ycen = params_mcmc_yaml['ycen']
+    aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
     dimx = dataset_multi_wl.input.shape[1]
     dimy = dataset_multi_wl.input.shape[2]
 
@@ -148,8 +149,8 @@ def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet=True):
     # create a triangle nan mask for the bright regions in 2015 in some data probably due
     # to the malfunctionning diode (I don't think this has described in an article before)
     if (file_prefix == 'K2band_hr4796') or (file_prefix == 'K1band_hr4796'):
-        x_image = np.arange(dimx, dtype=np.float)[None, :] - xcen
-        y_image = np.arange(dimy, dtype=np.float)[:, None] - ycen
+        x_image = np.arange(dimx, dtype=np.float)[None, :] - aligned_center[0]
+        y_image = np.arange(dimy, dtype=np.float)[:, None] - aligned_center[1]
         triangle1 = 0.67 * x_image + y_image - 114.5
         triangle2 = -3.2 * x_image + y_image - 330
 
@@ -208,16 +209,15 @@ def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=20):
     """
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
-    xcen = params_mcmc_yaml['xcen']
-    ycen = params_mcmc_yaml['ycen']
+    aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
     dimx = dataset.input.shape[1]
     dimy = dataset.input.shape[2]
 
     # create a traingle nan mask for the bright regions in 2015 probably due
     # to the malfunctionning diode
     if (file_prefix == 'K2band_hr4796') or (file_prefix == 'K1band_hr4796'):
-        x_image = np.arange(dimx, dtype=np.float)[None, :] - xcen
-        y_image = np.arange(dimy, dtype=np.float)[:, None] - ycen
+        x_image = np.arange(dimx, dtype=np.float)[None, :] - aligned_center[0]
+        y_image = np.arange(dimy, dtype=np.float)[:, None] - aligned_center[1]
         triangle1 = 0.67 * x_image + y_image - 114.5
         triangle2 = -3.2 * x_image + y_image - 330
 
