@@ -35,7 +35,7 @@ NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
 
 N_DIM_MCMC: 11  #Number of parmeter in the MCMC
 # INITIAL MODEL PARAMETERS
-r1_init: 40
+r1_init: 74.3
 r2_init: 95
 beta_init: 12
 g1_init: 0.90
