@@ -1071,7 +1071,7 @@ if __name__ == '__main__':
     # warnings.simplefilter('ignore', category=AstropyWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC_RDI.yaml'
+        str_yalm = 'GPI_Hband_MCMC_ADI.yaml'
     else:
         str_yalm = sys.argv[1]
 

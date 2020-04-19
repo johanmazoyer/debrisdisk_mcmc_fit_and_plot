@@ -1,10 +1,10 @@
 # PYKLIP PARAMETERS
-FIRST_TIME: True
+FIRST_TIME: False
 #if FIRST_TIME=True the masks, reduced data, noise map, PSF lib, KL vectors are (re)calculated.
 MODE: RDI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
 KLMODE_NUMBER: 10 # number of KL modes used in the reduction < nb images in the basis
 OWA: 100 # OWA of the reduction, in pixel. Reduce the zone to accelerate the code.
-MOVE_HERE: 6  #minrot in PyKLIP
+MOVE_HERE: 6  #minrot in PyKLIP ADI
 ALIGNED_CENTER: [140.,140.] #image center in your model, also use to center the image before KLIP
 
 #  In the KLIP do you want to remove the images where the disk is on the satspots 
