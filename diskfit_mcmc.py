@@ -321,7 +321,7 @@ def lnpb(theta):
 
 
 ########################################################
-def make_noise_map_no_mask(reduced_data,
+def make_noise_map_rings(reduced_data,
                            aligned_center=[140., 140.],
                            delta_raddii=3):
     """ create a noise map from a image using concentring rings
@@ -352,6 +352,56 @@ def make_noise_map_no_mask(reduced_data,
     return noise_map
 
 
+def create_uncertainty_map(dataset,params_mcmc_yaml):
+
+    file_prefix = params_mcmc_yaml['FILE_PREFIX']
+    move_here = params_mcmc_yaml['MOVE_HERE']
+    numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
+    mode = params_mcmc_yaml['MODE']
+    aligned_center = params_mcmc_yaml['ALIGNED_CENTER'] 
+    noise_multiplication_factor = params_mcmc_yaml[
+        'NOISE_MULTIPLICATION_FACTOR']  
+
+    #measure the uncertainty map using the counter rotation trick
+    # described in Sec4 of Gerard&Marois SPIE 2016 and probabaly elsewhere
+    
+    dataset.PAs = -dataset.PAs
+
+    parallelized.klip_dataset(dataset,
+                                numbasis=numbasis,
+                                maxnumbasis=120,
+                                annuli=1,
+                                subsections=1,
+                                mode=mode,
+                                outputdir=klipdir,
+                                fileprefix=file_prefix +
+                                '_couter_rotate_trick',
+                                aligned_center=aligned_center,
+                                highpass=False,
+                                minrot=move_here,
+                                calibrate_flux=False,
+                                psf_library=psflib)
+
+    reduced_data_nodisk = fits.getdata(
+        os.path.join(klipdir, file_prefix +
+                        '_couter_rotate_trick-KLmodes-all.fits'))[0]
+    noise = make_noise_map_rings(reduced_data_nodisk,
+                                    aligned_center=aligned_center,
+                                    delta_raddii=3)
+    noise[np.where(
+        noise == 0)] = np.nan  #we are going to divide by this noise
+
+    #### We know our noise is too small so we multiply by a given factor
+    noise = noise_multiplication_factor * noise
+
+    dataset.PAs = -dataset.PAs
+    os.remove(
+        os.path.join(klipdir, file_prefix +
+                        '_couter_rotate_trick-KLmodes-all.fits'))
+    
+    return noise
+
+
 ########################################################
 def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     """ initialize the MCMC by preparing the useful things to measure the
@@ -377,12 +427,6 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     pixscale_ins = params_mcmc_yaml['PIXSCALE_INS']
 
     owa = params_mcmc_yaml['OWA']
-    move_here = params_mcmc_yaml['MOVE_HERE']
-    numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
-    mode = params_mcmc_yaml['MODE']
-
-    noise_multiplication_factor = params_mcmc_yaml[
-        'NOISE_MULTIPLICATION_FACTOR']
 
     klipdir = os.path.join(DATADIR, 'klip_fm_files') + os.path.sep
 
@@ -513,8 +557,6 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
                                                             params_mcmc_yaml,
                                                             quiet=True)
 
-            params_mcmc_yaml['EXCLUDED_SLICES'] = excluded_slices
-
             # extract the data this time wihtout the bad files nor slices
             dataset4psf = GPI.GPIData(filelist4psf,
                                       quiet=True,
@@ -638,51 +680,18 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
         psflib = None
 
     if first_time:
-        #measure the uncertainty map using the counter rotation trick
-        # described in Sec4 of Gerard&Marois SPIE 2016 and probabaly elsewhere
         print("\n Create the uncertainty map")
-        dataset.PAs = -dataset.PAs
-
+        
         # Disable print for pyklip
         if quietklip:
             sys.stdout = open(os.devnull, 'w')
-
-        parallelized.klip_dataset(dataset,
-                                  numbasis=numbasis,
-                                  maxnumbasis=120,
-                                  annuli=1,
-                                  subsections=1,
-                                  mode=mode,
-                                  outputdir=klipdir,
-                                  fileprefix=file_prefix +
-                                  '_couter_rotate_trick',
-                                  aligned_center=aligned_center,
-                                  highpass=False,
-                                  minrot=move_here,
-                                  calibrate_flux=False,
-                                  psf_library=psflib)
-        sys.stdout = sys.__stdout__
-
-        reduced_data_nodisk = fits.getdata(
-            os.path.join(klipdir, file_prefix +
-                         '_couter_rotate_trick-KLmodes-all.fits'))[0]
-        noise = make_noise_map_no_mask(reduced_data_nodisk,
-                                       aligned_center=aligned_center,
-                                       delta_raddii=3)
-        noise[np.where(
-            noise == 0)] = np.nan  #we are going to divide by this noise
-
-        #### We know our noise is too small so we multiply by a given factor
-        noise = noise_multiplication_factor * noise
-
+        
+        noise = create_uncertainty_map(dataset,params_mcmc_yaml)
         fits.writeto(os.path.join(klipdir, file_prefix + '_noisemap.fits'),
-                     noise,
-                     overwrite='True')
-
-        dataset.PAs = -dataset.PAs
-        os.remove(
-            os.path.join(klipdir, file_prefix +
-                         '_couter_rotate_trick-KLmodes-all.fits'))
+                        noise,
+                        overwrite='True')
+        
+        sys.stdout = sys.__stdout__
 
     return dataset, psflib
 

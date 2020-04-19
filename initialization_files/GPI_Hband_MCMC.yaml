@@ -14,10 +14,10 @@ RM_FILE_DISK_CROSS_SATSPOTS: False
 # The images where the disk is on the satspots are autonatically remove to measure the PSF
 
 # LOCATION AND NAME PARAMETERS. Parameters used to save the outputs or plots
-BAND_DIR: 160318_H_SpecTest  # name of folder where are the data (from basedir)
+BAND_DIR: 160318_H_Spec  # name of folder where are the data (from basedir)
 RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
                         # Carefull, this dir must also contains the data
-FILE_PREFIX: Hband_hr4796_test_adi  #prefix for all saved files (carefull not to erase your results)
+FILE_PREFIX: Hband_hr4796  #prefix for all saved files (carefull not to erase your results)
 BAND_NAME: GPI H band ADI      #for plot titles uniquely
 
 # STAR OBSERVATION PARAMETERS
