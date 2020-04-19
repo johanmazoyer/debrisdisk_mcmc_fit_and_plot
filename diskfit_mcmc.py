@@ -615,7 +615,6 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
         dataset.spectral_collapse(align_frames=True,
                                   aligned_center=aligned_center)
 
-    
     #After this, this is for both GPI and SPHERE
     #define the outer working angle
     dataset.OWA = params_mcmc_yaml['OWA']
@@ -679,7 +678,9 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     mask2minimize = fits.getdata(
         os.path.join(klipdir, file_prefix + '_mask2minimize.fits'))
 
-    if params_mcmc_yaml['MODE'] == 'RDI':
+    # RDI case, if it's not the first time, we do not even need to load the correlation
+    # psflib, all needed information is already loaded in the KL modes
+    if params_mcmc_yaml['MODE'] == 'RDI' and first_time:
         psflib = initialize_rdi(dataset, params_mcmc_yaml)
     else:
         psflib = None
@@ -719,14 +720,14 @@ def initialize_rdi(dataset, params_mcmc_yaml):
     """
 
     print("\n Initialize RDI")
-    first_time = params_mcmc_yaml['FIRST_TIME']
+    do_rdi_correlation = params_mcmc_yaml['DO_RDI_CORRELATION']
     aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     rdidir = os.path.join(DATADIR, params_mcmc_yaml['RDI_DIR'])
     rdi_matrix_dir = os.path.join(rdidir, 'rdi_matrix')
     distutils.dir_util.mkpath(rdi_matrix_dir)
 
-    if first_time:
+    if do_rdi_correlation:
 
         # load the bad slices in the psf header (IFS slices where satspots SNR < 3).
         # This is only for GPI. Normally this should not happen because RDI is in
@@ -1156,23 +1157,31 @@ if __name__ == '__main__':
         os.path.join(klipdir, FILE_PREFIX + '_mask2minimize.fits'))
     mask2minimize[np.where(mask2minimize == 0.)] = np.nan
     REDUCED_DATA *= mask2minimize
-    del mask2minimize, dataset
+    
+    #last chance to delete useless big variables to avoid sending them 
+    # to every CPUs when paralelizing
+    del mask2minimize, dataset, psflib
 
-    # Make a final test by printing the likelyhood of the iniatial model
-    lnpb_model = lnpb(from_param_to_theta_init(params_mcmc_yaml))
-    if not np.isfinite(lnpb_model):
-        raise ValueError(""" Test Likelyhood on initial parameter set is {0}. 
-            Do not launch MCMC, your initial guess is probably out of the prior 
-            range for one of the parameter""".format(lnpb_model))
-
+    # Before launching th parallel MCMC
+    # Make a final test "in c" by printing the likelyhood of the iniatial 
+    # set of parameter
     startTime = datetime.now()
+    lnpb_model = lnpb(from_param_to_theta_init(params_mcmc_yaml))
+    print("""Test: Likelyhood on initial parameter set is {0}. Time 
+            from parameter values to Likelyhood (create model+FM+Likelyhood): 
+            {1}""".format(lnpb_model, datetime.now() - startTime))
+    
+    if not np.isfinite(lnpb_model):
+        raise ValueError("""Do not launch MCMC, Likelyhood=-inf:your initial guess 
+                            is probably out of the prior range for one of the parameter""")
+
+    
     if mpi:
         mpistr = "\n In MPI mode"
     else:
         mpistr = "\n In sequential mode"
-
     print(mpistr + ", initialize walkers and start the MCMC...")
-
+    startTime = datetime.now()
     with MultiPool() as pool:
 
         if mpi:

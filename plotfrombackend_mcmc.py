@@ -39,19 +39,16 @@ plt.switch_backend('agg')
 # There is a conflict when I import
 # matplotlib with pyklip if I don't use this line
 
-# define global variables in the global scope
-DISTANCE_STAR = PIXSCALE_INS = DIMENSION = None
-wheremask2generatedisk = 12310120398
-
 basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is your data 
 # (using OS environnement variable allow to use same code on different comp[uter without changeing it].
 
 
-########################################################
+#######################################################
 def call_gen_disk_2g(theta):
     """ call the disk model from a set of parameters. 2g SPF
-        use DIMENSION, PIXSCALE_INS and distance_star  and
-        wheremask2generatedisk as global variables
+        
+        use DIMENSION, PIXSCALE_INS and DISTANCE_STAR and
+        WHEREMASK2GENERATEDISK as global variables
 
     Args:
         theta: list of parameters of the MCMC
@@ -59,7 +56,7 @@ def call_gen_disk_2g(theta):
     Returns:
         a 2d model
     """
-
+    # TODO check very deeply where is the position of the star in the model
     r1 = mt.exp(theta[0])
     r2 = mt.exp(theta[1])
     beta = theta[2]
@@ -86,7 +83,7 @@ def call_gen_disk_2g(theta):
                                     pa=pa,
                                     dx=dx,
                                     dy=dy,
-                                    mask=wheremask2generatedisk,
+                                    mask=WHEREMASK2GENERATEDISK,
                                     pixscale=PIXSCALE_INS,
                                     distance=DISTANCE_STAR)  #+ offset
 
@@ -97,7 +94,7 @@ def call_gen_disk_2g(theta):
 def call_gen_disk_3g(theta):
     """ call the disk model from a set of parameters. 3g SPF
         use DIMENSION, PIXSCALE_INS and DISTANCE_STAR  and
-        wheremask2generatedisk as global variables
+        WHEREMASK2GENERATEDISK as global variables
 
     Args:
         theta: list of parameters of the MCMC
@@ -135,10 +132,11 @@ def call_gen_disk_3g(theta):
                                     pa=pa,
                                     dx=dx,
                                     dy=dy,
-                                    mask=wheremask2generatedisk,
+                                    mask=WHEREMASK2GENERATEDISK,
                                     pixscale=PIXSCALE_INS,
                                     distance=DISTANCE_STAR)  #+ offset
     return model
+
 
 
 ########################################################
@@ -147,7 +145,6 @@ def crop_center_odd(img, crop):
     startx = (x - 1) // 2 - crop // 2
     starty = (y - 1) // 2 - crop // 2
     return img[starty:starty + crop, startx:startx + crop]
-
 
 ########################################################
 def offset_2_RA_dec(dx, dy, inclination, principal_angle, distance_star):
@@ -644,7 +641,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     # I am going to plot the model, I need to define some of the
     # global variables to do so
 
-    global PIXSCALE_INS, DISTANCE_STAR, wheremask2generatedisk, DIMENSION
+    global PIXSCALE_INS, DISTANCE_STAR, WHEREMASK2GENERATEDISK, DIMENSION
 
     DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
     PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
@@ -688,13 +685,13 @@ def best_model_plot(params_mcmc_yaml, hdr):
         # theta_ml[6] = 0.99949596
         # theta_ml[7] = -0.03397267
 
-    psf = fits.getdata(os.path.join(DATADIR, file_prefix + '_SatSpotPSF.fits'))
+    psf = fits.getdata(os.path.join(klipdir, file_prefix + '_SatSpotPSF.fits'))
 
     mask2generatedisk = fits.getdata(
         os.path.join(klipdir, file_prefix + '_mask2generatedisk.fits'))
 
     mask2generatedisk[np.where(mask2generatedisk == 0.)] = np.nan
-    wheremask2generatedisk = (mask2generatedisk != mask2generatedisk)
+    WHEREMASK2GENERATEDISK = (mask2generatedisk != mask2generatedisk)
 
     # load the raw data (necessary to create the DiskFM obj)
     # this is the only part different for SPHERE and GPI
@@ -1131,7 +1128,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC.yaml'
+        str_yalm = 'GPI_Hband_MCMC_ADI.yaml'
     else:
         str_yalm = sys.argv[1]
 
@@ -1163,5 +1160,5 @@ if __name__ == '__main__':
     # save the fits, plot the model and residuals
     best_model_plot(params_mcmc_yaml, hdr)
 
-    # print the values to put in excel sheet easily
+    # print some of the best parameter values to put in excel/latex easily(not super clean)
     # print_geometry_parameter(params_mcmc_yaml, hdr)
