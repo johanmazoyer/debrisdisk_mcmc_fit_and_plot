@@ -155,8 +155,7 @@ def make_disk_mask(dim,
                    estiminclin,
                    estimminr,
                    estimmaxr,
-                   xcen=140.,
-                   ycen=140.):
+                   aligned_center=[140., 140.]):
     """ make a zeros mask for a disk
 
 
@@ -166,16 +165,15 @@ def make_disk_mask(dim,
         estiminclin: degree, estimation of the inclination
         estimminr: pixel, inner radius of the mask
         estimmaxr: pixel, outer radius of the mask
-        xcen: pixel, center of the mask
-        ycen: pixel, center of the mask
+        aligned_center: [pixel,pixel], position of the star in the mask
 
     Returns:
         a [dim,dim] array where the mask is at 0 and the rest at 1
     """
 
     PA_rad = (90 + estimPA) * np.pi / 180.
-    x = np.arange(dim, dtype=np.float)[None, :] - xcen
-    y = np.arange(dim, dtype=np.float)[:, None] - ycen
+    x = np.arange(dim, dtype=np.float)[None, :] - aligned_center[0]
+    y = np.arange(dim, dtype=np.float)[:, None] - aligned_center[1]
 
     x1 = x * np.cos(PA_rad) + y * np.sin(PA_rad)
     y1 = -x * np.sin(PA_rad) + y * np.cos(PA_rad)
@@ -698,8 +696,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
     n_dim_mcmc = hdr['n_param']
 
-    xcen = params_mcmc_yaml['xcen']
-    ycen = params_mcmc_yaml['ycen']
+    aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
 
     #Format the most likely values
     #generate the best model
@@ -749,7 +746,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
             os.path.join(DATADIR, file_prefix + '_true_parangs.fits'))
 
         size_datacube = datacube_sphere.shape
-        centers_sphere = np.zeros((size_datacube[0], 2)) + [xcen, ycen]
+        centers_sphere = np.zeros((size_datacube[0], 2)) + aligned_center
         dataset = Instrument.GenericData(datacube_sphere,
                                          centers_sphere,
                                          parangs=parangs_sphere,
@@ -815,7 +812,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     model_rot = np.clip(
         rotate(disk_ml, argpe + pa, mode='wrap', reshape=False), 0., None)
 
-    argpe_direction = model_rot[int(xcen):, int(ycen)]
+    argpe_direction = model_rot[int(aligned_center[0]):, int(aligned_center[1])]
     radius_argpe = np.where(argpe_direction == np.nanmax(argpe_direction))[0]
 
     x_peri_true = radius_argpe * np.cos(
@@ -876,8 +873,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
             params_mcmc_yaml['inc_init'],
             convert.au_to_pix(40, PIXSCALE_INS, DISTANCE_STAR),
             convert.au_to_pix(41, PIXSCALE_INS, DISTANCE_STAR),
-            xcen=xcen,
-            ycen=ycen)
+            aligned_center=[140., 140.])
 
         mask_disk_ext = make_disk_mask(
             disk_ml_FM.shape[0],
@@ -885,8 +881,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
             params_mcmc_yaml['inc_init'],
             convert.au_to_pix(129, PIXSCALE_INS, DISTANCE_STAR),
             convert.au_to_pix(130, PIXSCALE_INS, DISTANCE_STAR),
-            xcen=xcen,
-            ycen=ycen)
+            aligned_center=[140., 140.])
 
         mask_disk_int[np.where(mask_disk_int == 0.)] = np.nan
         mask_disk_ext[np.where(mask_disk_ext == 0.)] = np.nan
