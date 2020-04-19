@@ -150,45 +150,6 @@ def crop_center_odd(img, crop):
 
 
 ########################################################
-def make_disk_mask(dim,
-                   estimPA,
-                   estiminclin,
-                   estimminr,
-                   estimmaxr,
-                   aligned_center=[140., 140.]):
-    """ make a zeros mask for a disk
-
-
-    Args:
-        dim: pixel, dimension of the square mask
-        estimPA: degree, estimation of the PA
-        estiminclin: degree, estimation of the inclination
-        estimminr: pixel, inner radius of the mask
-        estimmaxr: pixel, outer radius of the mask
-        aligned_center: [pixel,pixel], position of the star in the mask
-
-    Returns:
-        a [dim,dim] array where the mask is at 0 and the rest at 1
-    """
-
-    PA_rad = (90 + estimPA) * np.pi / 180.
-    x = np.arange(dim, dtype=np.float)[None, :] - aligned_center[0]
-    y = np.arange(dim, dtype=np.float)[:, None] - aligned_center[1]
-
-    x1 = x * np.cos(PA_rad) + y * np.sin(PA_rad)
-    y1 = -x * np.sin(PA_rad) + y * np.cos(PA_rad)
-    x = x1
-    y = y1 / np.cos(estiminclin * np.pi / 180.)
-    rho2dellip = np.sqrt(x**2 + y**2)
-
-    mask_object_astro_zeros = np.ones((dim, dim))
-    mask_object_astro_zeros[np.where((rho2dellip > estimminr)
-                                     & (rho2dellip < estimmaxr))] = 0.
-
-    return mask_object_astro_zeros
-
-
-########################################################
 def offset_2_RA_dec(dx, dy, inclination, principal_angle, distance_star):
     """ right ascension and declination of the ellipse centre with respect to the star
         location from the offset in AU in the disk plane define by the max disk code
@@ -756,22 +717,28 @@ def best_model_plot(params_mcmc_yaml, hdr):
         filelist = sorted(glob.glob(os.path.join(DATADIR,
                                                  "*_distorcorr.fits")))
 
-        # in the general case we can choose to
-        # keep the files where the disk intersect the disk.
-        # We can removed those if rm_file_disk_cross_satspots == 1
-        rm_file_disk_spots = params_mcmc_yaml['RM_FILE_DISK_CROSS_SATSPOTS']
-        if rm_file_disk_spots == 1:
-            dataset_for_exclusion = GPI.GPIData(filelist, quiet=True)
-            excluded_files = gpidiskpsf.check_satspots_disk_intersection(
-                dataset_for_exclusion, params_mcmc_yaml, quiet=True)
+        # load the bad slices and bad files in the psf header
+        hdr_psf = fits.getheader(
+            os.path.join(klipdir, file_prefix + '_SatSpotPSF.fits'))
+
+        # We can choose to remove completely from the correction 
+        # the angles where the disk intersect the disk (they are exlcuded 
+        # from the PSF measurement by defaut).
+        # We can removed those if rm_file_disk_cross_satspots=True
+        if params_mcmc_yaml['RM_FILE_DISK_CROSS_SATSPOTS']:
+        
+            excluded_files = []
+            if hdr_psf['N_BADFIL'] > 0:
+                for badfile_i in range(hdr_psf['N_BADFIL']):
+                    excluded_files.append(hdr_psf['BADFIL' +
+                                                str(badfile_i).zfill(2)])
+
             for excluded_filesi in excluded_files:
                 if excluded_filesi in filelist:
                     filelist.remove(excluded_filesi)
 
-        # load the bad slices in the psf header
-        hdr_psf = fits.getheader(
-            os.path.join(DATADIR, file_prefix + '_SatSpotPSF.fits'))
-
+        # in IFS mode, we always exclude the slices with too much noise. We
+        # chose the criteria as "SNR(mean of sat spot)< 3""
         excluded_slices = []
         if hdr_psf['N_BADSLI'] > 0:
             for badslice_i in range(hdr_psf['N_BADSLI']):
@@ -867,7 +834,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     if file_prefix == 'Hband_hd48524_fake':
         # We are showing only here a white line the extension of the minimization line
 
-        mask_disk_int = make_disk_mask(
+        mask_disk_int = gpidiskpsf.make_disk_mask(
             disk_ml_FM.shape[0],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
@@ -875,7 +842,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
             convert.au_to_pix(41, PIXSCALE_INS, DISTANCE_STAR),
             aligned_center=[140., 140.])
 
-        mask_disk_ext = make_disk_mask(
+        mask_disk_ext = gpidiskpsf.make_disk_mask(
             disk_ml_FM.shape[0],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],

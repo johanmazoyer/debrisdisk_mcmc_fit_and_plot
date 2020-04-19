@@ -6,13 +6,13 @@ author: Johan Mazoyer
 
 import os
 
-mpi = True  # mpi or not for parallelization.
-basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is 
-# your data (using OS environnement variable allow to use same code on 
+mpi = False  # mpi or not for parallelization.
+basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
+# your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
 
 progress = False  # if on my local machine and print on console, showing the
-# MCMC progress bar. Avoid if print resutls of the code in a file, it will 
+# MCMC progress bar. Avoid if print resutls of the code in a file, it will
 # not look pretty
 
 import sys
@@ -56,8 +56,8 @@ import make_gpi_psf_for_disks as gpidiskpsf
 from anadisk_johan import gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import astro_unit_conversion as convert
 
-# recommended by emcee https://emcee.readthedocs.io/en/stable/tutorials/parallel/ 
-# and by PyKLIPto avoid that NumPy automatically parallelizes some operations, 
+# recommended by emcee https://emcee.readthedocs.io/en/stable/tutorials/parallel/
+# and by PyKLIPto avoid that NumPy automatically parallelizes some operations,
 # which kill the speed
 os.environ["OMP_NUM_THREADS"] = "1"
 
@@ -322,8 +322,8 @@ def lnpb(theta):
 
 ########################################################
 def make_noise_map_rings(reduced_data,
-                           aligned_center=[140., 140.],
-                           delta_raddii=3):
+                         aligned_center=[140., 140.],
+                         delta_raddii=3):
     """ create a noise map from a image using concentring rings
         and measuring the standard deviation on them
 
@@ -352,53 +352,51 @@ def make_noise_map_rings(reduced_data,
     return noise_map
 
 
-def create_uncertainty_map(dataset,params_mcmc_yaml):
+def create_uncertainty_map(dataset, params_mcmc_yaml, psflib=None):
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     move_here = params_mcmc_yaml['MOVE_HERE']
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
     mode = params_mcmc_yaml['MODE']
-    aligned_center = params_mcmc_yaml['ALIGNED_CENTER'] 
+    aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
     noise_multiplication_factor = params_mcmc_yaml[
-        'NOISE_MULTIPLICATION_FACTOR']  
+        'NOISE_MULTIPLICATION_FACTOR']
 
     #measure the uncertainty map using the counter rotation trick
     # described in Sec4 of Gerard&Marois SPIE 2016 and probabaly elsewhere
-    
+
     dataset.PAs = -dataset.PAs
 
     parallelized.klip_dataset(dataset,
-                                numbasis=numbasis,
-                                maxnumbasis=120,
-                                annuli=1,
-                                subsections=1,
-                                mode=mode,
-                                outputdir=klipdir,
-                                fileprefix=file_prefix +
-                                '_couter_rotate_trick',
-                                aligned_center=aligned_center,
-                                highpass=False,
-                                minrot=move_here,
-                                calibrate_flux=False,
-                                psf_library=psflib)
+                              numbasis=numbasis,
+                              maxnumbasis=120,
+                              annuli=1,
+                              subsections=1,
+                              mode=mode,
+                              outputdir=klipdir,
+                              fileprefix=file_prefix + '_couter_rotate_trick',
+                              aligned_center=aligned_center,
+                              highpass=False,
+                              minrot=move_here,
+                              calibrate_flux=False,
+                              psf_library=psflib)
 
     reduced_data_nodisk = fits.getdata(
-        os.path.join(klipdir, file_prefix +
-                        '_couter_rotate_trick-KLmodes-all.fits'))[0]
+        os.path.join(klipdir,
+                     file_prefix + '_couter_rotate_trick-KLmodes-all.fits'))[0]
     noise = make_noise_map_rings(reduced_data_nodisk,
-                                    aligned_center=aligned_center,
-                                    delta_raddii=3)
-    noise[np.where(
-        noise == 0)] = np.nan  #we are going to divide by this noise
+                                 aligned_center=aligned_center,
+                                 delta_raddii=3)
+    noise[np.where(noise == 0)] = np.nan  #we are going to divide by this noise
 
     #### We know our noise is too small so we multiply by a given factor
     noise = noise_multiplication_factor * noise
 
     dataset.PAs = -dataset.PAs
     os.remove(
-        os.path.join(klipdir, file_prefix +
-                        '_couter_rotate_trick-KLmodes-all.fits'))
-    
+        os.path.join(klipdir,
+                     file_prefix + '_couter_rotate_trick-KLmodes-all.fits'))
+
     return noise
 
 
@@ -528,7 +526,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
                                          wvs=None)
 
     else:
-        #only for GPI. Data reduction is simpler for GPI but PSF 
+        #only for GPI. Data reduction is simpler for GPI but PSF
         # measurement form satspot is more complicated.
 
         if first_time:
@@ -567,12 +565,17 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
                                                            params_mcmc_yaml,
                                                            boxrad=15)
 
-            # save the excluded_slices in the psf header
+            # save the excluded_slices in the psf header (SNR too low)
             hdr_psf = fits.Header()
             hdr_psf['N_BADSLI'] = len(excluded_slices)
             for badslice_i, excluded_slices_num in enumerate(excluded_slices):
                 hdr_psf['BADSLI' +
                         str(badslice_i).zfill(2)] = excluded_slices_num
+
+            # save the excluded_files in the psf header (disk on satspots)
+            hdr_psf['N_BADFIL'] = len(excluded_files)
+            for badfile_i, badfilestr in enumerate(excluded_files):
+                hdr_psf['BADFIL' + str(badfile_i).zfill(2)] = badfilestr
 
             #save the psf
             fits.writeto(os.path.join(klipdir,
@@ -583,24 +586,27 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
         filelist = sorted(glob.glob(os.path.join(DATADIR, "*.fits")))
 
-        # in the general case we can choose to
-        # keep the files where the disk intersect the disk.
+        # load the bad slices and bad files in the psf header
+        hdr_psf = fits.getheader(
+            os.path.join(klipdir, file_prefix + '_SatSpotPSF.fits'))
+
+        # We can choose to remove completely from the correction
+        # the angles where the disk intersect the disk (they are exlcuded
+        # from the PSF measurement by defaut).
         # We can removed those if rm_file_disk_cross_satspots=True
-        rm_file_disk_cross_satspots = params_mcmc_yaml[
-            'RM_FILE_DISK_CROSS_SATSPOTS']
-        if rm_file_disk_cross_satspots:
-            dataset_for_exclusion = GPI.GPIData(filelist, quiet=True)
-            excluded_files = gpidiskpsf.check_satspots_disk_intersection(
-                dataset_for_exclusion, params_mcmc_yaml, quiet=True)
+        if params_mcmc_yaml['RM_FILE_DISK_CROSS_SATSPOTS']:
+
+            excluded_files = []
+            if hdr_psf['N_BADFIL'] > 0:
+                for badfile_i in range(hdr_psf['N_BADFIL']):
+                    excluded_files.append(hdr_psf['BADFIL' +
+                                                  str(badfile_i).zfill(2)])
+
             for excluded_filesi in excluded_files:
                 if excluded_filesi in filelist:
                     filelist.remove(excluded_filesi)
 
-        # load the bad slices in the psf header
-        hdr_psf = fits.getheader(
-            os.path.join(klipdir, file_prefix + '_SatSpotPSF.fits'))
-
-        # in IFS mode, we always exclude the slices with too much noise. We
+        # in IFS mode, we always exclude the IFS slices with too much noise. We
         # chose the criteria as "SNR(mean of sat spot)< 3""
         excluded_slices = []
         if hdr_psf['N_BADSLI'] > 0:
@@ -625,10 +631,10 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     print("\n Create the binary masks to define model zone and chisquare zone")
     if first_time:
         #create the mask where the non convoluted disk is going to be generated.
-        # To gain time, it is tightely adjusted to the expected models BEFORE 
-        # convolution. Inded, the models are generated pixel by pixels. 0.1 s 
-        # gained on every model is a day of calculation gain on one million model, 
-        # so adjust your mask tightly to your model. Carefull mask paramters are 
+        # To gain time, it is tightely adjusted to the expected models BEFORE
+        # convolution. Inded, the models are generated pixel by pixels. 0.1 s
+        # gained on every model is a day of calculation gain on one million model,
+        # so adjust your mask tightly to your model. Carefull mask paramters are
         # hardcoded here
 
         mask_disk_zeros = gpidiskpsf.make_disk_mask(
@@ -681,16 +687,18 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
     if first_time:
         print("\n Create the uncertainty map")
-        
+
         # Disable print for pyklip
         if quietklip:
             sys.stdout = open(os.devnull, 'w')
-        
-        noise = create_uncertainty_map(dataset,params_mcmc_yaml)
+
+        noise = create_uncertainty_map(dataset,
+                                       params_mcmc_yaml,
+                                       psflib=psflib)
         fits.writeto(os.path.join(klipdir, file_prefix + '_noisemap.fits'),
-                        noise,
-                        overwrite='True')
-        
+                     noise,
+                     overwrite='True')
+
         sys.stdout = sys.__stdout__
 
     return dataset, psflib
@@ -722,7 +730,7 @@ def initialize_rdi(dataset, params_mcmc_yaml):
     if first_time:
 
         # load the bad slices in the psf header (IFS slices where satspots SNR < 3).
-        # This is only for GPI. Normally this should not happen because RDI is in 
+        # This is only for GPI. Normally this should not happen because RDI is in
         # H band and H band data have very little thermal noise.
 
         hdr_psf = fits.getheader(
@@ -764,16 +772,16 @@ def initialize_rdi(dataset, params_mcmc_yaml):
                      overwrite=True)
 
         # make the PSF library
-        # we need to compute the correlation matrix of all images vs each 
+        # we need to compute the correlation matrix of all images vs each
         # other since we haven't computed it before
         psflib = rdi.PSFLibrary(datasetlib.input,
                                 aligned_center,
                                 datasetlib.filenames,
                                 compute_correlation=True)
 
-        # save the correlation matrix to disk so that we also don't need to 
-        # recomptue this ever again. In the future we can just pass in the 
-        # correlation matrix into the PSFLibrary object rather than having it 
+        # save the correlation matrix to disk so that we also don't need to
+        # recomptue this ever again. In the future we can just pass in the
+        # correlation matrix into the PSFLibrary object rather than having it
         # compute it
         psflib.save_correlation(os.path.join(rdi_matrix_dir,
                                              "corr_matrix.fits"),
@@ -930,7 +938,7 @@ def initialize_walkers_backend(params_mcmc_yaml):
     """
 
     # if new_backend=False, reset the backend, if not restart the chains.
-    # Be careful if you change the parameters or walkers #, you have to put 
+    # Be careful if you change the parameters or walkers #, you have to put
     # new_backend=True
     new_backend = params_mcmc_yaml['NEW_BACKEND']
 
@@ -1080,7 +1088,7 @@ if __name__ == '__main__':
     # warnings.simplefilter('ignore', category=AstropyWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC_ADI.yaml'
+        str_yalm = 'GPI_Hband_MCMC_RDI.yaml'
     else:
         str_yalm = sys.argv[1]
 
@@ -1165,7 +1173,7 @@ if __name__ == '__main__':
         mpistr = "\n In sequential mode"
 
     print(mpistr + ", initialize walkers and start the MCMC...")
-    
+
     with MultiPool() as pool:
 
         if mpi:
@@ -1194,4 +1202,3 @@ if __name__ == '__main__':
           ", time {0} iterations with {1} walkers and {2} cpus: {3}".format(
               N_ITER_MCMC, NWALKERS, cpu_count(),
               datetime.now() - startTime))
-
