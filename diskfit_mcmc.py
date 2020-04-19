@@ -75,7 +75,7 @@ def call_gen_disk_2g(theta):
     Returns:
         a 2d model
     """
-    # TODO check where is the position of the star in the model
+    # TODO check very deeply where is the position of the star in the model
     r1 = mt.exp(theta[0])
     r2 = mt.exp(theta[1])
     beta = theta[2]
@@ -420,12 +420,6 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     first_time = params_mcmc_yaml['FIRST_TIME']
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
-
-    distance_star = params_mcmc_yaml['DISTANCE_STAR']
-    pixscale_ins = params_mcmc_yaml['PIXSCALE_INS']
-
-    owa = params_mcmc_yaml['OWA']
-
     klipdir = os.path.join(DATADIR, 'klip_fm_files') + os.path.sep
 
     #The PSF centers
@@ -621,11 +615,10 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
         dataset.spectral_collapse(align_frames=True,
                                   aligned_center=aligned_center)
 
+    
+    #After this, this is for both GPI and SPHERE
     #define the outer working angle
-    dataset.OWA = owa
-
-    #assuming square data
-    dimension = dataset.input.shape[2]
+    dataset.OWA = params_mcmc_yaml['OWA']
 
     #create the masks
     print("\n Create the binary masks to define model zone and chisquare zone")
@@ -638,11 +631,13 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
         # hardcoded here
 
         mask_disk_zeros = gpidiskpsf.make_disk_mask(
-            dimension,
+            DIMENSION,
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init']-20, pixscale_ins, distance_star),
-            convert.au_to_pix(params_mcmc_yaml['r2_init']+10, pixscale_ins, distance_star),
+            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 20, PIXSCALE_INS,
+                              DISTANCE_STAR),
+            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 10, PIXSCALE_INS,
+                              DISTANCE_STAR),
             aligned_center=aligned_center)
         mask2generatedisk = 1 - mask_disk_zeros
         fits.writeto(os.path.join(klipdir,
@@ -654,21 +649,25 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
         # (because model expect to grow with the PSF convolution and the FM)
         # and we can also exclude the center region where there are too much speckles
         mask_disk_zeros = gpidiskpsf.make_disk_mask(
-            dimension,
+            DIMENSION,
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init']-40, pixscale_ins, distance_star),
-            convert.au_to_pix(params_mcmc_yaml['r2_init']+40, pixscale_ins, distance_star),
+            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 40, PIXSCALE_INS,
+                              DISTANCE_STAR),
+            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 40, PIXSCALE_INS,
+                              DISTANCE_STAR),
             aligned_center=aligned_center)
 
-        mask_speckle_region = np.ones((dimension, dimension))
-        # a few lines to create a circular central mask to hide regions with a lot of speckles
-        # Currently not using it but it's there
-        # x = np.arange(dimension, dtype=np.float)[None,:] - aligned_center[0]
-        # y = np.arange(dimension, dtype=np.float)[:,None] - aligned_center[1]
+        mask2minimize = (1 - mask_disk_zeros)
+
+        ### a few lines to create a circular central mask to hide center regions with a lot
+        ### of speckles. Currently not using it but it's there
+        # mask_speckle_region = np.ones((DIMENSION, DIMENSION))
+        # x = np.arange(DIMENSION, dtype=np.float)[None,:] - aligned_center[0]
+        # y = np.arange(DIMENSION, dtype=np.float)[:,None] - aligned_center[1]
         # rho2d = np.sqrt(x**2 + y**2)
         # mask_speckle_region[np.where(rho2d < 21)] = 0.
-        mask2minimize = mask_speckle_region * (1 - mask_disk_zeros)
+        # mask2minimize = mask2minimize*mask_speckle_region
 
         fits.writeto(os.path.join(klipdir,
                                   file_prefix + '_mask2minimize.fits'),
@@ -1114,7 +1113,7 @@ if __name__ == '__main__':
                 only in sequential (to measure and save all the necessary .fits files 
                 (PSF, masks, etc) and then run MPI with 'FIRST_TIME=False' """)
 
-    # load the Parameters necessary to launch the MCMC
+    # load in global the Parameters necessary to launch the MCMC
     NWALKERS = params_mcmc_yaml['NWALKERS']  #Number of walkers
     N_ITER_MCMC = params_mcmc_yaml['N_ITER_MCMC']  #Number of interation
     N_DIM_MCMC = params_mcmc_yaml['N_DIM_MCMC']  #Number of MCMC dimension
