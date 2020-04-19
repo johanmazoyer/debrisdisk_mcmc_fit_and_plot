@@ -1,9 +1,0 @@
-#!/bin/bash
-#PBS -l walltime=192:00:00
-#PBS -q verylongq
-#PBS -l select=1:ncpus=16
-#PBS -N mcmc_maz_sph3gpri
-source activate astroconda
-cd /home/jmazoyer/codes_python/hr4796_mcmc_run_and_read/
-python diskfit_mcmc.py SPHERE_Hband_3greducedprior_MCMC.yaml
-exit
