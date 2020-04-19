@@ -634,15 +634,15 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
         # To gain time, it is tightely adjusted to the expected models BEFORE
         # convolution. Inded, the models are generated pixel by pixels. 0.1 s
         # gained on every model is a day of calculation gain on one million model,
-        # so adjust your mask tightly to your model. Carefull mask paramters are
+        # so adjust your mask tightly to your model. Carefull somes mask paramters are
         # hardcoded here
 
         mask_disk_zeros = gpidiskpsf.make_disk_mask(
             dimension,
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(55, pixscale_ins, distance_star),
-            convert.au_to_pix(105, pixscale_ins, distance_star),
+            convert.au_to_pix(params_mcmc_yaml['r1_init']-20, pixscale_ins, distance_star),
+            convert.au_to_pix(params_mcmc_yaml['r2_init']+10, pixscale_ins, distance_star),
             aligned_center=aligned_center)
         mask2generatedisk = 1 - mask_disk_zeros
         fits.writeto(os.path.join(klipdir,
@@ -657,8 +657,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             dimension,
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(40, pixscale_ins, distance_star),
-            convert.au_to_pix(130, pixscale_ins, distance_star),
+            convert.au_to_pix(params_mcmc_yaml['r1_init']-40, pixscale_ins, distance_star),
+            convert.au_to_pix(params_mcmc_yaml['r2_init']+40, pixscale_ins, distance_star),
             aligned_center=aligned_center)
 
         mask_speckle_region = np.ones((dimension, dimension))
