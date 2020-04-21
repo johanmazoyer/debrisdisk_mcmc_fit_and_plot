@@ -78,11 +78,10 @@ def call_gen_disk(theta):
         a 2d model
     """
 
-
     # TODO check very deeply where is the position of the star in the model
-    
-    param_disk={}
-    
+
+    param_disk = {}
+
     param_disk['r1'] = mt.exp(theta[0])
     param_disk['r2'] = mt.exp(theta[1])
     param_disk['beta'] = theta[2]
@@ -93,30 +92,31 @@ def call_gen_disk(theta):
     param_disk['Norm'] = mt.exp(theta[7])
 
     param_disk['SPF_MODEL'] = SPF_MODEL
-    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
-        
+    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
+            SPF_MODEL == 'hg_3g'):
+
         param_disk['g1'] = theta[8]
 
         if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
             param_disk['g2'] = theta[9]
             param_disk['alpha1'] = theta[10]
-        
+
             if SPF_MODEL == 'hg_3g':
                 param_disk['g3'] = theta[11]
                 param_disk['alpha2'] = theta[12]
 
-    param_disk['a_r'] = 0.01 # we fix the aspect ratio
-    param_disk['offset'] = 0. # no vertical offset in KLIP
-
+    param_disk['a_r'] = 0.01  # we fix the aspect ratio
+    param_disk['offset'] = 0.  # no vertical offset in KLIP
 
     #generate the model
     model = gen_disk(DIMENSION,
-                    param_disk,
-                    mask=WHEREMASK2GENERATEDISK,
-                    pixscale=PIXSCALE_INS,
-                    distance=DISTANCE_STAR)
+                     param_disk,
+                     mask=WHEREMASK2GENERATEDISK,
+                     pixscale=PIXSCALE_INS,
+                     distance=DISTANCE_STAR)
 
     return model
+
 
 ########################################################
 def logl(theta):
@@ -162,34 +162,34 @@ def logp(theta):
         log of priors
     """
 
-
     r1 = mt.exp(theta[0])
     r2 = mt.exp(theta[1])
     beta = theta[2]
     inc = np.degrees(np.arccos(theta[3]))
     pa = theta[4]
-    dx= theta[5]
+    dx = theta[5]
     dy = theta[6]
     Norm = mt.exp(theta[7])
-    
-    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
+
+    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
+            SPF_MODEL == 'hg_3g'):
         g1 = theta[8]
 
         if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
             g2 = theta[9]
             alpha1 = theta[10]
-        
+
             if SPF_MODEL == 'hg_3g':
                 g3 = theta[11]
                 alpha2 = theta[12]
-    
+
     prior_rout = 1.
     # define the prior values
-    if (r1 < 60 or r1 > 80): 
+    if (r1 < 60 or r1 > 80):
         print('a')
         return -np.inf
-    else: 
-        prior_rout = prior_rout  *1.
+    else:
+        prior_rout = prior_rout * 1.
 
     # - rout = Logistic We arbitralily cut the prior at r2 = 100
     # (~25 AU large) because this parameter is very limited by the ADI
@@ -203,71 +203,71 @@ def logp(theta):
     if (beta < 1 or beta > 30):
         print('c')
         return -np.inf
-    else: 
-        prior_rout = prior_rout  *1.
+    else:
+        prior_rout = prior_rout * 1.
 
     # if (a_r < 0.0001 or a_r > 0.5 ): #The aspect ratio
     #     return -np.inf
-    # else: 
+    # else:
     #    prior_rout = prior_rout  *1.
 
     if (inc < 70 or inc > 80):
         print('d')
         return -np.inf
-    else: 
-        prior_rout = prior_rout  *1.
-    
+    else:
+        prior_rout = prior_rout * 1.
+
     if (pa < 20 or pa > 30):
         return -np.inf
-    else: 
-        prior_rout = prior_rout  *1.
-    
+    else:
+        prior_rout = prior_rout * 1.
+
     if (dx < -10) or (dx > 10):  #The x offset
         return -np.inf
-    else: 
-        prior_rout = prior_rout  *1.
-    
+    else:
+        prior_rout = prior_rout * 1.
+
     if (dy < -10) or (dy > 10):  #The y offset
         return -np.inf
-    else: 
-        prior_rout = prior_rout  *1.
-    
+    else:
+        prior_rout = prior_rout * 1.
+
     if (Norm < 0.5 or Norm > 50000):
         return -np.inf
-    else: 
-        prior_rout = prior_rout  *1.
-    
-    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
+    else:
+        prior_rout = prior_rout * 1.
+
+    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
+            SPF_MODEL == 'hg_3g'):
         if (g1 < 0.05 or g1 > 0.9999):
             return -np.inf
-        else: 
-            prior_rout = prior_rout  *1.
+        else:
+            prior_rout = prior_rout * 1.
 
         if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
             if (g2 < -0.9999 or g2 > -0.05):
                 return -np.inf
-            else: 
-                prior_rout = prior_rout  *1.
+            else:
+                prior_rout = prior_rout * 1.
 
             if (alpha1 < 0.01 or alpha1 > 0.9999):
                 return -np.inf
-            else: 
-                prior_rout = prior_rout  *1.
+            else:
+                prior_rout = prior_rout * 1.
 
             if SPF_MODEL == 'hg_3g':
                 if (g3 < -1 or g3 > 1):
                     return -np.inf
-                else: 
-                    prior_rout = prior_rout  *1.
-                
+                else:
+                    prior_rout = prior_rout * 1.
+
                 if (alpha2 < -1 or alpha2 > 1):
                     return -np.inf
-                else: 
-                    prior_rout = prior_rout  *1.
-    
+                else:
+                    prior_rout = prior_rout * 1.
+
     # otherwise ...
     return np.log(prior_rout)
-
 
 
 ########################################################
@@ -394,7 +394,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
     datadir = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
     klipdir = os.path.join(datadir, 'klip_fm_files')
-    
+
     if first_time and os.path.exists(klipdir):
         shutil.rmtree(klipdir)
 
@@ -839,7 +839,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
 
         #generate the model
         model_here = call_gen_disk(theta_init)
-    
+
         fits.writeto(os.path.join(klipdir, file_prefix + '_FirstModel.fits'),
                      model_here,
                      overwrite='True')
@@ -1049,34 +1049,32 @@ def from_param_to_theta_init(params_mcmc_yaml):
     dx_init = params_mcmc_yaml['dx_init']
     dy_init = params_mcmc_yaml['dy_init']
     logN_init = np.log(params_mcmc_yaml['N_init'])
-    
+
     if (SPF_MODEL == 'hg_1g'):
         g1_init = params_mcmc_yaml['g1_init']
-        
-        theta_init = (logr1_init, logr2_init, beta_init, cosinc_init,
-                      pa_init, dx_init, dy_init, logN_init, g1_init)
-    
+
+        theta_init = (logr1_init, logr2_init, beta_init, cosinc_init, pa_init,
+                      dx_init, dy_init, logN_init, g1_init)
+
     elif (SPF_MODEL == 'hg_2g'):
         g1_init = params_mcmc_yaml['g1_init']
         g2_init = params_mcmc_yaml['g2_init']
         alpha1_init = params_mcmc_yaml['alpha1_init']
 
-        theta_init = (logr1_init, logr2_init, beta_init, cosinc_init,
-                      pa_init, dx_init, dy_init, logN_init,  g1_init,
-                      g2_init, alpha1_init)
-    
-    
+        theta_init = (logr1_init, logr2_init, beta_init, cosinc_init, pa_init,
+                      dx_init, dy_init, logN_init, g1_init, g2_init,
+                      alpha1_init)
+
     elif (SPF_MODEL == 'hg_3g'):
         g1_init = params_mcmc_yaml['g1_init']
         g2_init = params_mcmc_yaml['g2_init']
         alpha1_init = params_mcmc_yaml['alpha1_init']
         g3_init = params_mcmc_yaml['g3_init']
         alpha2_init = params_mcmc_yaml['alpha2_init']
-        
-        theta_init = (logr1_init, logr2_init, beta_init, cosinc_init,
-                      pa_init, dx_init, dy_init, logN_init,  g1_init,
-                      g2_init, alpha1_init, g3_init, alpha2_init)
 
+        theta_init = (logr1_init, logr2_init, beta_init, cosinc_init, pa_init,
+                      dx_init, dy_init, logN_init, g1_init, g2_init,
+                      alpha1_init, g3_init, alpha2_init)
 
     return theta_init
 
@@ -1111,19 +1109,18 @@ if __name__ == '__main__':
     NWALKERS = params_mcmc_yaml['NWALKERS']  #Number of walkers
     N_ITER_MCMC = params_mcmc_yaml['N_ITER_MCMC']  #Number of interation
     SPF_MODEL = params_mcmc_yaml['SPF_MODEL']  #Type of description for the SPF
-    
-    if SPF_MODEL == "hg_1g": #1g henyey greenstein, SPF described with 1 parameter
+
+    if SPF_MODEL == "hg_1g":  #1g henyey greenstein, SPF described with 1 parameter
         N_DIM_MCMC = 9  #Number of dimension of the parameter space
         from anadisk_johan import gen_disk_dxdy_1g as gen_disk
-    elif SPF_MODEL == "hg_2g": #2g henyey greenstein, SPF described with 3 parameter
+    elif SPF_MODEL == "hg_2g":  #2g henyey greenstein, SPF described with 3 parameter
         N_DIM_MCMC = 11  #Number of dimension of the parameter space
         from anadisk_johan import gen_disk_dxdy_2g as gen_disk
-    elif SPF_MODEL == "hg_3g": #1g henyey greenstein, SPF described with 5 parameter
+    elif SPF_MODEL == "hg_3g":  #1g henyey greenstein, SPF described with 5 parameter
         N_DIM_MCMC = 13  #Number of dimension of the parameter space
         from anadisk_johan import gen_disk_dxdy_3g as gen_disk
     else:
         raise ValueError(SPF_MODEL + " not a valid SPF model")
-
 
     # load DISTANCE_STAR & PIXSCALE_INS and make them global
     DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
@@ -1196,7 +1193,7 @@ if __name__ == '__main__':
             """Do not launch MCMC, Likelyhood=-inf:your initial guess 
                             is probably out of the prior range for one of the parameter"""
         )
-        
+
     if MPI:
         mpistr = "\n In MPI mode"
     else:

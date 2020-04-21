@@ -37,7 +37,7 @@ def make_disk_mask(dim,
     Returns:
         a [dim,dim] array where the mask is at 0 and the rest at 1
     """
-    #TODO: Maybe one day think carefully on make it work for non-square mask, 
+    #TODO: Maybe one day think carefully on make it work for non-square mask,
     # but honneslty not urgent
 
     PA_rad = np.radians(90 + estimPA)
@@ -158,8 +158,8 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
 
     if filename_disk_intercept_satspot:
         print(file_prefix + ': We remove ' +
-              str(len(filename_disk_intercept_satspot)) +
-              ' files (out of ' + str(nfiles) + ') for the psf measurement'+
+              str(len(filename_disk_intercept_satspot)) + ' files (out of ' +
+              str(nfiles) + ') for the psf measurement' +
               ' because sat spots intersected the disk')
     else:
         print(
