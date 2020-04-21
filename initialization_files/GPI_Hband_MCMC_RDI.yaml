@@ -35,6 +35,7 @@ NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
 
 
 N_DIM_MCMC: 11  #Number of parmeter in the MCMC
+SPF_MODEL: 'hg_2g' # Heyniey greenstein ('hg_1g', 'hg_2g', 'hg_3g') or 
 # INITIAL MODEL PARAMETERS
 r1_init: 74.3
 r2_init: 95

@@ -37,6 +37,8 @@ def make_disk_mask(dim,
     Returns:
         a [dim,dim] array where the mask is at 0 and the rest at 1
     """
+    #TODO: Maybe one day think carefully on make it work for non-square mask, 
+    # but honneslty not urgent
 
     PA_rad = np.radians(90 + estimPA)
     x = np.arange(dim, dtype=np.float)[None, :] - aligned_center[0]
