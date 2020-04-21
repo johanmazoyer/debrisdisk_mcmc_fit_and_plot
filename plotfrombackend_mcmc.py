@@ -825,11 +825,11 @@ def best_model_plot(params_mcmc_yaml, hdr):
                      cmap=plt.cm.get_cmap('viridis'))
 
     if file_prefix == 'Hband_hd48524_fake':
-        ax1.set_title("Injected Disk (ADI-KLIP)",
+        ax1.set_title("Injected Disk (KLIP)",
                       fontsize=caracsize,
                       pad=caracsize / 3.)
     else:
-        ax1.set_title("HR 4796A (ADI-KLIP)",
+        ax1.set_title("KLIP reduced data",
                       fontsize=caracsize,
                       pad=caracsize / 3.)
     cbar = fig.colorbar(cax, fraction=0.046, pad=0.04)
@@ -1084,7 +1084,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC_ADI.yaml'
+        str_yalm = 'GPI_Hband_MCMC_RDI.yaml'
     else:
         str_yalm = sys.argv[1]
 
