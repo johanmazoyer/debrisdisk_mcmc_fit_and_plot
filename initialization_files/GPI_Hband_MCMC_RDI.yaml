@@ -28,21 +28,16 @@ PIXSCALE_INS: 0.01414  #picscale of your data
 # MCMC PARAMETERS
 NEW_BACKEND: True
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
-NWALKERS: 256 #Number of walkers
-N_ITER_MCMC: 10000 #Number of interation
+NWALKERS: 25 #Number of walkers
+N_ITER_MCMC: 2 #Number of interation
 NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
 # There is no burn-in phase here, the burnin only intervened when reading the data
 
 
-N_DIM_MCMC: 11  #Number of parmeter in the MCMC
-SPF_MODEL: 'hg_2g' # Heyniey greenstein ('hg_1g', 'hg_2g', 'hg_3g') or 
 # INITIAL MODEL PARAMETERS
 r1_init: 74.3
 r2_init: 95
 beta_init: 12
-g1_init: 0.90
-g2_init: -0.24
-alpha1_init: 0.45
 inc_init: 76.44
 pa_init: 26.64
 dx_init: -1.
@@ -50,7 +45,17 @@ dy_init: 1.8
 N_init: 220
 # the parameter of the priors are still defined inside the code logp(theta) function
 
-# for 3g SPF (N_DIM_MCMC = 13)
+# SPF parameters
+SPF_MODEL: 'hg_2g' # Heyniey greenstein ('hg_1g', 'hg_2g', 'hg_3g') or 
+
+# for 1g SPF (N_DIM_MCMC = 9) and more
+g1_init: 0.90
+
+# for 2g SPF (N_DIM_MCMC = 11) and 3g SPF (N_DIM_MCMC = 13) only
+g2_init: -0.24
+alpha1_init: 0.45
+
+# for 3g SPF (N_DIM_MCMC = 13) only
 g3_init: 0.
 alpha2_init: 0.
 
@@ -67,14 +72,16 @@ NAMES:
 - R1
 - R2
 - Beta
-- g1
-- g2
-- Alph1
 - inc
 - PA
 - dx
 - dy
 - Norm
+- g1
+- g2
+- Alph1
+- g3
+- Alph2
 - Argpe
 - R1mas
 - ecc

@@ -16,8 +16,6 @@ progress = False  # if on my local machine and print on console, showing the
 # MCMC progress bar. Avoid if print resutls of the code in a file, it will
 # not look pretty
 
-import shutil
-
 import sys
 import glob
 
@@ -66,7 +64,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 
 #######################################################
 def call_gen_disk(theta):
-    """ call the disk model from a set of parameters. 2g SPF
+    """ call the disk model from a set of parameters.
         
         use DIMENSION, PIXSCALE_INS and DISTANCE_STAR and
         wheremask2generatedisk as global variables
@@ -395,12 +393,15 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     datadir = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
     klipdir = os.path.join(datadir, 'klip_fm_files')
 
-    if first_time and os.path.exists(klipdir):
-        shutil.rmtree(klipdir)
 
     distutils.dir_util.mkpath(klipdir)
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
+
+    if first_time:
+        previous_files = glob.glob(os.path.join(klipdir,file_prefix+ "*.fits"))
+        if not previous_files == []:
+            os.remove(previous_files)
 
     #The PSF centers
     aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
@@ -953,69 +954,68 @@ def initialize_walkers_backend(nwalkers,
     if new_backend:
         init_ball0 = np.random.uniform(theta_init[0] * 0.999,
                                        theta_init[0] * 1.001,
-                                       size=(nwalkers))  # r1 log[AU]
+                                       size=(nwalkers))  #logr1
         init_ball1 = np.random.uniform(theta_init[1] * 0.999,
                                        theta_init[1] * 1.001,
-                                       size=(nwalkers))  # r2 log[AU]
-        init_ball2 = np.random.uniform(theta_init[2] * 0.99,
-                                       theta_init[2] * 1.01,
+                                       size=(nwalkers))  #logr2
+        init_ball2 = np.random.uniform(theta_init[2] * 0.999,
+                                       theta_init[2] * 1.001,
                                        size=(nwalkers))  #beta
-        init_ball3 = np.random.uniform(theta_init[3] * 0.99,
-                                       theta_init[3] * 1.01,
-                                       size=(nwalkers))  #g1
-        init_ball4 = np.random.uniform(theta_init[4] * 0.99,
-                                       theta_init[4] * 1.01,
-                                       size=(nwalkers))  #g2
+        init_ball3 = np.random.uniform(theta_init[3] * 0.999,
+                                       theta_init[3] * 1.001,
+                                       size=(nwalkers))  #cosinc
+        init_ball4 = np.random.uniform(theta_init[4] * 0.999,
+                                       theta_init[4] * 1.001,
+                                       size=(nwalkers))  #pa
+        init_ball5 = np.random.uniform(theta_init[5] * 0.999,
+                                       theta_init[5] * 1.001,
+                                       size=(nwalkers))  #dx
+        init_ball6 = np.random.uniform(theta_init[6] * 0.999,
+                                       theta_init[6] * 1.001,
+                                       size=(nwalkers))  #dy
+        init_ball7 = np.random.uniform(theta_init[7] * 0.999,
+                                       theta_init[7] * 1.001,
+                                       size=(nwalkers))  #logNorm
 
-        if n_dim_mcmc == 11:
-            init_ball5 = np.random.uniform(theta_init[5] * 0.99,
-                                           theta_init[5] * 1.01,
-                                           size=(nwalkers))  #alpha1
-            init_ball6 = np.random.uniform(theta_init[6] * 0.99,
-                                           theta_init[6] * 1.01,
-                                           size=(nwalkers))  #cinc
-            init_ball7 = np.random.uniform(theta_init[7] * 0.99,
-                                           theta_init[7] * 1.01,
-                                           size=(nwalkers))  #pa [degrees]
-            init_ball8 = np.random.uniform(
-                theta_init[8] * 0.99, theta_init[8] * 1.01,
-                size=(nwalkers))  # offset in minor axis
-            init_ball9 = np.random.uniform(
-                theta_init[9] * 0.99, theta_init[9] * 1.01,
-                size=(nwalkers))  # offset in major axis
-            init_ball10 = np.random.uniform(
-                theta_init[10] * 0.99, theta_init[10] * 1.01,
-                size=(nwalkers))  #log normalizing factor
+        if (SPF_MODEL == 'hg_1g'):
+            init_ball8 = np.random.uniform(theta_init[8] * 0.999,
+                                           theta_init[8] * 1.001,
+                                           size=(nwalkers))  #g1
+            p0 = np.dstack(
+                (init_ball0, init_ball1, init_ball2, init_ball3, init_ball4,
+                 init_ball5, init_ball6, init_ball7, init_ball8))
+
+        elif (SPF_MODEL == 'hg_2g'):
+            init_ball8 = np.random.uniform(theta_init[8] * 0.999,
+                                           theta_init[8] * 1.001,
+                                           size=(nwalkers))  #g1
+            init_ball9 = np.random.uniform(theta_init[9] * 0.999,
+                                           theta_init[9] * 1.001,
+                                           size=(nwalkers))  #g2
+            init_ball10 = np.random.uniform(theta_init[10] * 0.999,
+                                            theta_init[10] * 1.001,
+                                            size=(nwalkers))  #alpha1
             p0 = np.dstack((init_ball0, init_ball1, init_ball2, init_ball3,
                             init_ball4, init_ball5, init_ball6, init_ball7,
                             init_ball8, init_ball9, init_ball10))
 
-        if n_dim_mcmc == 13:
-            init_ball5 = np.random.uniform(theta_init[5] * 0.99,
-                                           theta_init[5] * 1.01,
-                                           size=(nwalkers))  #g3
-            init_ball6 = np.random.uniform(theta_init[6] * 0.99,
-                                           theta_init[6] * 1.01,
-                                           size=(nwalkers))  #alpha1
-            init_ball7 = np.random.uniform(theta_init[7] * 0.99,
-                                           theta_init[7] * 1.01,
-                                           size=(nwalkers))  #alpha2
+        elif (SPF_MODEL == 'hg_3g'):
+            init_ball8 = np.random.uniform(theta_init[8] * 0.999,
+                                           theta_init[8] * 1.001,
+                                           size=(nwalkers))  #g1
+            init_ball9 = np.random.uniform(theta_init[9] * 0.999,
+                                           theta_init[9] * 1.001,
+                                           size=(nwalkers))  #g2
+            init_ball10 = np.random.uniform(theta_init[10] * 0.999,
+                                            theta_init[10] * 1.001,
+                                            size=(nwalkers))  #alpha1
+            init_ball11 = np.random.uniform(theta_init[11] * 0.999,
+                                            theta_init[11] * 1.001,
+                                            size=(nwalkers))  #g3
+            init_ball12 = np.random.uniform(theta_init[12] * 0.999,
+                                            theta_init[12] * 1.001,
+                                            size=(nwalkers))  #alpha2
 
-            init_ball8 = np.random.uniform(theta_init[8] * 0.99,
-                                           theta_init[8] * 1.01,
-                                           size=(nwalkers))  #cinc
-            init_ball9 = np.random.uniform(theta_init[9] * 0.99,
-                                           theta_init[9] * 1.01,
-                                           size=(nwalkers))  #pa [degrees]
-            init_ball10 = np.random.uniform(
-                theta_init[10] * 0.99, theta_init[10] * 1.01,
-                size=(nwalkers))  # offset in minor axis
-            init_ball11 = np.random.uniform(
-                theta_init[11] * 0.99, theta_init[11] * 1.01,
-                size=(nwalkers))  # offset in major axis
-            init_ball12 = np.random.uniform(
-                theta_init[12] * 0.99, theta_init[12] * 1.01,
-                size=(nwalkers))  #log normalizing factor
             p0 = np.dstack(
                 (init_ball0, init_ball1, init_ball2, init_ball3, init_ball4,
                  init_ball5, init_ball6, init_ball7, init_ball8, init_ball9,
@@ -1038,8 +1038,6 @@ def from_param_to_theta_init(params_mcmc_yaml):
     Returns:
         initial set of MCMC parameter
     """
-
-    n_dim_mcmc = params_mcmc_yaml['N_DIM_MCMC']  #Number of interation
 
     logr1_init = np.log(params_mcmc_yaml['r1_init'])
     logr2_init = np.log(params_mcmc_yaml['r2_init'])
