@@ -1196,7 +1196,7 @@ if __name__ == '__main__':
             """Do not launch MCMC, Likelyhood=-inf:your initial guess 
                             is probably out of the prior range for one of the parameter"""
         )
-    sdf
+        
     if MPI:
         mpistr = "\n In MPI mode"
     else:
