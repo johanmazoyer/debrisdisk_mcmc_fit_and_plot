@@ -6,7 +6,7 @@ author: Johan Mazoyer
 
 import os
 
-MPI = False  # MPI or not for parallelization.
+MPI = True  # MPI or not for parallelization.
 
 basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
@@ -397,11 +397,6 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     distutils.dir_util.mkpath(klipdir)
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
-
-    if first_time:
-        previous_files = glob.glob(os.path.join(klipdir,file_prefix+ "*.fits"))
-        if not previous_files == []:
-            os.remove(previous_files)
 
     #The PSF centers
     aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
@@ -1085,7 +1080,7 @@ if __name__ == '__main__':
     # warnings.simplefilter('ignore', category=AstropyWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC_RDI.yaml'
+        str_yalm = 'GPI_Hband_MCMC_ADI.yaml'
     else:
         str_yalm = sys.argv[1]
 
