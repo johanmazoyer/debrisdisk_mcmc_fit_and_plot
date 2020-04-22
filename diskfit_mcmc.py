@@ -944,8 +944,9 @@ def initialize_walkers_backend(nwalkers,
     #############################################################
     # Initialize the walkers. The best technique seems to be
     # to start in a small ball around the a priori preferred position.
-    # Dont worry, the walkers quickly branch out and explore the
-    # rest of the space.
+    # I start with a +/-0.1% ball for parameters defined in log and 
+    # +/-1% ball for the others
+    
     if new_backend:
         init_ball0 = np.random.uniform(theta_init[0] * 0.999,
                                        theta_init[0] * 1.001,
@@ -953,62 +954,62 @@ def initialize_walkers_backend(nwalkers,
         init_ball1 = np.random.uniform(theta_init[1] * 0.999,
                                        theta_init[1] * 1.001,
                                        size=(nwalkers))  #logr2
-        init_ball2 = np.random.uniform(theta_init[2] * 0.999,
-                                       theta_init[2] * 1.001,
+        init_ball2 = np.random.uniform(theta_init[2] * 0.99,
+                                       theta_init[2] * 1.01,
                                        size=(nwalkers))  #beta
-        init_ball3 = np.random.uniform(theta_init[3] * 0.999,
-                                       theta_init[3] * 1.001,
+        init_ball3 = np.random.uniform(theta_init[3] * 0.99,
+                                       theta_init[3] * 1.01,
                                        size=(nwalkers))  #cosinc
-        init_ball4 = np.random.uniform(theta_init[4] * 0.999,
-                                       theta_init[4] * 1.001,
+        init_ball4 = np.random.uniform(theta_init[4] * 0.99,
+                                       theta_init[4] * 1.01,
                                        size=(nwalkers))  #pa
-        init_ball5 = np.random.uniform(theta_init[5] * 0.999,
-                                       theta_init[5] * 1.001,
+        init_ball5 = np.random.uniform(theta_init[5] * 0.99,
+                                       theta_init[5] * 1.01,
                                        size=(nwalkers))  #dx
-        init_ball6 = np.random.uniform(theta_init[6] * 0.999,
-                                       theta_init[6] * 1.001,
+        init_ball6 = np.random.uniform(theta_init[6] * 0.99,
+                                       theta_init[6] * 1.01,
                                        size=(nwalkers))  #dy
         init_ball7 = np.random.uniform(theta_init[7] * 0.999,
                                        theta_init[7] * 1.001,
                                        size=(nwalkers))  #logNorm
 
         if (SPF_MODEL == 'hg_1g'):
-            init_ball8 = np.random.uniform(theta_init[8] * 0.999,
-                                           theta_init[8] * 1.001,
+            init_ball8 = np.random.uniform(theta_init[8] * 0.99,
+                                           theta_init[8] * 1.01,
                                            size=(nwalkers))  #g1
             p0 = np.dstack(
                 (init_ball0, init_ball1, init_ball2, init_ball3, init_ball4,
                  init_ball5, init_ball6, init_ball7, init_ball8))
 
         elif (SPF_MODEL == 'hg_2g'):
-            init_ball8 = np.random.uniform(theta_init[8] * 0.999,
-                                           theta_init[8] * 1.001,
+            init_ball8 = np.random.uniform(theta_init[8] * 0.99,
+                                           theta_init[8] * 1.01,
                                            size=(nwalkers))  #g1
-            init_ball9 = np.random.uniform(theta_init[9] * 0.999,
-                                           theta_init[9] * 1.001,
+            init_ball9 = np.random.uniform(theta_init[9] * 0.99,
+                                           theta_init[9] * 1.01,
                                            size=(nwalkers))  #g2
-            init_ball10 = np.random.uniform(theta_init[10] * 0.999,
-                                            theta_init[10] * 1.001,
+            init_ball10 = np.random.uniform(theta_init[10] * 0.99,
+                                            theta_init[10] * 1.01,
                                             size=(nwalkers))  #alpha1
             p0 = np.dstack((init_ball0, init_ball1, init_ball2, init_ball3,
                             init_ball4, init_ball5, init_ball6, init_ball7,
                             init_ball8, init_ball9, init_ball10))
 
         elif (SPF_MODEL == 'hg_3g'):
-            init_ball8 = np.random.uniform(theta_init[8] * 0.999,
-                                           theta_init[8] * 1.001,
+            init_ball8 = np.random.uniform(theta_init[8] * 0.99,
+                                           theta_init[8] * 1.01,
                                            size=(nwalkers))  #g1
-            init_ball9 = np.random.uniform(theta_init[9] * 0.999,
-                                           theta_init[9] * 1.001,
+            init_ball9 = np.random.uniform(theta_init[9] * 0.99,
+                                           theta_init[9] * 1.01,
                                            size=(nwalkers))  #g2
-            init_ball10 = np.random.uniform(theta_init[10] * 0.999,
-                                            theta_init[10] * 1.001,
+            init_ball10 = np.random.uniform(theta_init[10] * 0.99,
+                                            theta_init[10] * 1.01,
                                             size=(nwalkers))  #alpha1
-            init_ball11 = np.random.uniform(theta_init[11] * 0.999,
-                                            theta_init[11] * 1.001,
+            init_ball11 = np.random.uniform(theta_init[11] * 0.99,
+                                            theta_init[11] * 1.01,
                                             size=(nwalkers))  #g3
-            init_ball12 = np.random.uniform(theta_init[12] * 0.999,
-                                            theta_init[12] * 1.001,
+            init_ball12 = np.random.uniform(theta_init[12] * 0.99,
+                                            theta_init[12] * 1.01,
                                             size=(nwalkers))  #alpha2
 
             p0 = np.dstack(

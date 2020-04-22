@@ -1084,7 +1084,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC_RDI.yaml'
+        str_yalm = 'GPI_Hband_MCMC_ADI.yaml'
     else:
         str_yalm = sys.argv[1]
 
