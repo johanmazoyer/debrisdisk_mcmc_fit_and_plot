@@ -3,6 +3,14 @@
 ####### This is the MCMC plotting code for HR 4796 data #######
 import sys
 import os
+
+basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
+# your data (using OS environnement variable allow to use same code on
+# different computer without changing this).
+
+default_parameter_file = 'GPI_Hband_MCMC_ADI.yaml'
+
+
 import glob
 import socket
 import warnings
@@ -30,7 +38,7 @@ import pyklip.instruments.GPI as GPI
 import pyklip.instruments.Instrument as Instrument
 from pyklip.fmlib.diskfm import DiskFM
 
-from anadisk_johan import gen_disk_dxdy_1g, gen_disk_dxdy_2g, gen_disk_dxdy_3g
+from disk_models import gen_disk_dxdy_1g, gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import astro_unit_conversion as convert
 from kowalsky import kowalsky
 import make_gpi_psf_for_disks as gpidiskpsf
@@ -38,11 +46,6 @@ import make_gpi_psf_for_disks as gpidiskpsf
 plt.switch_backend('agg')
 # There is a conflict when I import
 # matplotlib with pyklip if I don't use this line
-
-basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is your data
-
-# (using OS environnement variable allow to use same code on different comp[uter without changeing it].
-
 
 #######################################################
 def call_gen_disk(theta):
@@ -58,9 +61,10 @@ def call_gen_disk(theta):
         a 2d model
     """
 
-    # TODO check very deeply where is the position of the star in the model
-
     param_disk = {}
+
+    param_disk['a_r'] = 0.01  # we fix the aspect ratio
+    param_disk['offset'] = 0.  # no vertical offset in KLIP
 
     param_disk['r1'] = mt.exp(theta[0])
     param_disk['r2'] = mt.exp(theta[1])
@@ -72,30 +76,45 @@ def call_gen_disk(theta):
     param_disk['Norm'] = mt.exp(theta[7])
 
     param_disk['SPF_MODEL'] = SPF_MODEL
-    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
-            SPF_MODEL == 'hg_3g'):
 
+    if (SPF_MODEL == 'hg_1g'):
         param_disk['g1'] = theta[8]
 
-        if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
-            param_disk['g2'] = theta[9]
-            param_disk['alpha1'] = theta[10]
+        #generate the model
+        model = gen_disk_dxdy_1g(DIMENSION,
+                                 param_disk,
+                                 mask=WHEREMASK2GENERATEDISK,
+                                 pixscale=PIXSCALE_INS,
+                                 distance=DISTANCE_STAR)
 
-            if SPF_MODEL == 'hg_3g':
-                param_disk['g3'] = theta[11]
-                param_disk['alpha2'] = theta[12]
+    elif SPF_MODEL == 'hg_2g':
+        param_disk['g1'] = theta[8]
+        param_disk['g2'] = theta[9]
+        param_disk['alpha1'] = theta[10]
 
-    param_disk['a_r'] = 0.01  # we fix the aspect ratio
-    param_disk['offset'] = 0.  # no vertical offset in KLIP
+        #generate the model
+        model = gen_disk_dxdy_2g(DIMENSION,
+                                 param_disk,
+                                 mask=WHEREMASK2GENERATEDISK,
+                                 pixscale=PIXSCALE_INS,
+                                 distance=DISTANCE_STAR)
 
-    #generate the model
-    model = gen_disk(DIMENSION,
-                     param_disk,
-                     mask=WHEREMASK2GENERATEDISK,
-                     pixscale=PIXSCALE_INS,
-                     distance=DISTANCE_STAR)
+    elif SPF_MODEL == 'hg_3g':
+        param_disk['g1'] = theta[8]
+        param_disk['g2'] = theta[9]
+        param_disk['alpha1'] = theta[10]
+        param_disk['g3'] = theta[11]
+        param_disk['alpha2'] = theta[12]
+
+        #generate the model
+        model = gen_disk_dxdy_3g(DIMENSION,
+                                 param_disk,
+                                 mask=WHEREMASK2GENERATEDISK,
+                                 pixscale=PIXSCALE_INS,
+                                 distance=DISTANCE_STAR)
 
     return model
+
 
 
 ########################################################
@@ -1084,7 +1103,7 @@ if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC_ADI.yaml'
+        str_yalm = default_parameter_file
     else:
         str_yalm = sys.argv[1]
 
@@ -1096,6 +1115,8 @@ if __name__ == '__main__':
     DATADIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
     klipdir = os.path.join(DATADIR, 'klip_fm_files')
     mcmcresultdir = os.path.join(DATADIR, 'results_MCMC')
+    SPF_MODEL = params_mcmc_yaml['SPF_MODEL']  #Type of description for the SPF
+
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     name_h5 = file_prefix + '_backend_file_mcmc'
@@ -1111,18 +1132,6 @@ if __name__ == '__main__':
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)
-
-    
-    SPF_MODEL = params_mcmc_yaml['SPF_MODEL']  #Type of description for the SPF
-
-    if SPF_MODEL == "hg_1g":  #1g henyey greenstein, SPF described with 1 parameter
-        from anadisk_johan import gen_disk_dxdy_1g as gen_disk
-    elif SPF_MODEL == "hg_2g":  #2g henyey greenstein, SPF described with 3 parameter
-        from anadisk_johan import gen_disk_dxdy_2g as gen_disk
-    elif SPF_MODEL == "hg_3g":  #1g henyey greenstein, SPF described with 5 parameter
-        from anadisk_johan import gen_disk_dxdy_3g as gen_disk
-    else:
-        raise ValueError(SPF_MODEL + " not a valid SPF model")
 
     # save the fits, plot the model and residuals
     best_model_plot(params_mcmc_yaml, hdr)

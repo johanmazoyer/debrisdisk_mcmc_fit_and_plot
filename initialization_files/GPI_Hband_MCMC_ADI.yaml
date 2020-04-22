@@ -1,7 +1,8 @@
 # PYKLIP PARAMETERS
-FIRST_TIME: False
+FIRST_TIME: True
 #if FIRST_TIME=True the masks, reduced data, noise map, PSF lib, KL vectors are (re)calculated.
 MODE: ADI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
+DO_RDI_CORRELATION: False # Measure the correlation matrix of the RDI PSF lib. Very long.
 KLMODE_NUMBER: 3 # number of KL modes used in the reduction < nb images in the basis
 OWA: 100 # OWA of the reduction, in pixel. Reduce the zone to accelerate the code.
 MOVE_HERE: 6  #minrot in PyKLIP ADI
@@ -14,7 +15,7 @@ RM_FILE_DISK_CROSS_SATSPOTS: False
 # The images where the disk is on the satspots are autonatically remove to measure the PSF
 
 # LOCATION AND NAME PARAMETERS. Parameters used to save the outputs or plots
-BAND_DIR: 160318_H_Spec  # name of folder where are the data (from basedir)
+BAND_DIR: 160318_H_Spec_smalltest  # name of folder where are the data (from basedir)
 RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
                         # Carefull, this dir must also contains the data
 FILE_PREFIX: Hband_hr4796_adi  #prefix for all saved files (carefull not to erase your results)
@@ -27,19 +28,15 @@ PIXSCALE_INS: 0.01414  #picscale of your data
 # MCMC PARAMETERS
 NEW_BACKEND: True
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
-NWALKERS: 256 #Number of walkers
-N_ITER_MCMC: 10000 #Number of interation
+NWALKERS: 25 #Number of walkers (should be at least twice the # parameters)
+N_ITER_MCMC: 3 #Number of interation
 NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
 # There is no burn-in phase here, the burnin only intervened when reading the data
 
-
-N_DIM_MCMC: 11  #Number of parmeter in the MCMC
-SPF_MODEL: 'hg_2g' # Heyniey greenstein ('hg_1g', 'hg_2g', 'hg_3g') or 
 # INITIAL MODEL PARAMETERS
 r1_init: 74.3
 r2_init: 95
 beta_init: 12
-g1_init: 0.90
 inc_init: 76.44
 pa_init: 26.64
 dx_init: -1.
@@ -47,11 +44,17 @@ dy_init: 1.8
 N_init: 220
 # the parameter of the priors are still defined inside the code logp(theta) function
 
-# for 2g SPF (SPF_MODEL = 'hg_2g')
+# SPF parameters
+SPF_MODEL: 'hg_2g' # Heyniey greenstein ('hg_1g', 'hg_2g', 'hg_3g') or 
+
+# for 1g SPF (N_DIM_MCMC = 9) and more
+g1_init: 0.90
+
+# for 2g SPF (N_DIM_MCMC = 11) and 3g SPF (N_DIM_MCMC = 13) only
 g2_init: -0.24
 alpha1_init: 0.45
 
-# for 3g SPF (SPF_MODEL = 'hg_3g')
+# for 3g SPF (N_DIM_MCMC = 13) only
 g3_init: 0.
 alpha2_init: 0.
 

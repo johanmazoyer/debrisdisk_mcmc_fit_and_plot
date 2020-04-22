@@ -6,13 +6,15 @@ author: Johan Mazoyer
 
 import os
 
-MPI = True  # MPI or not for parallelization.
+MPI = False  # MPI or not for parallelization.
 
 basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
 
-progress = False  # if on my local machine and print on console, showing the
+default_parameter_file = 'GPI_Hband_MCMC_RDI.yaml'
+
+progress = True  # if on my local machine and print on console, showing the
 # MCMC progress bar. Avoid if print resutls of the code in a file, it will
 # not look pretty
 
@@ -52,8 +54,8 @@ from pyklip.fmlib.diskfm import DiskFM
 import pyklip.fm as fm
 import pyklip.rdi as rdi
 
+from disk_models import gen_disk_dxdy_1g, gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import make_gpi_psf_for_disks as gpidiskpsf
-
 import astro_unit_conversion as convert
 
 # recommended by emcee https://emcee.readthedocs.io/en/stable/tutorials/parallel/
@@ -76,9 +78,10 @@ def call_gen_disk(theta):
         a 2d model
     """
 
-    # TODO check very deeply where is the position of the star in the model
-
     param_disk = {}
+
+    param_disk['a_r'] = 0.01  # we fix the aspect ratio
+    param_disk['offset'] = 0.  # no vertical offset in KLIP
 
     param_disk['r1'] = mt.exp(theta[0])
     param_disk['r2'] = mt.exp(theta[1])
@@ -90,28 +93,42 @@ def call_gen_disk(theta):
     param_disk['Norm'] = mt.exp(theta[7])
 
     param_disk['SPF_MODEL'] = SPF_MODEL
-    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
-            SPF_MODEL == 'hg_3g'):
 
+    if (SPF_MODEL == 'hg_1g'):
         param_disk['g1'] = theta[8]
 
-        if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
-            param_disk['g2'] = theta[9]
-            param_disk['alpha1'] = theta[10]
+        #generate the model
+        model = gen_disk_dxdy_1g(DIMENSION,
+                                 param_disk,
+                                 mask=WHEREMASK2GENERATEDISK,
+                                 pixscale=PIXSCALE_INS,
+                                 distance=DISTANCE_STAR)
 
-            if SPF_MODEL == 'hg_3g':
-                param_disk['g3'] = theta[11]
-                param_disk['alpha2'] = theta[12]
+    elif SPF_MODEL == 'hg_2g':
+        param_disk['g1'] = theta[8]
+        param_disk['g2'] = theta[9]
+        param_disk['alpha1'] = theta[10]
 
-    param_disk['a_r'] = 0.01  # we fix the aspect ratio
-    param_disk['offset'] = 0.  # no vertical offset in KLIP
+        #generate the model
+        model = gen_disk_dxdy_2g(DIMENSION,
+                                 param_disk,
+                                 mask=WHEREMASK2GENERATEDISK,
+                                 pixscale=PIXSCALE_INS,
+                                 distance=DISTANCE_STAR)
 
-    #generate the model
-    model = gen_disk(DIMENSION,
-                     param_disk,
-                     mask=WHEREMASK2GENERATEDISK,
-                     pixscale=PIXSCALE_INS,
-                     distance=DISTANCE_STAR)
+    elif SPF_MODEL == 'hg_3g':
+        param_disk['g1'] = theta[8]
+        param_disk['g2'] = theta[9]
+        param_disk['alpha1'] = theta[10]
+        param_disk['g3'] = theta[11]
+        param_disk['alpha2'] = theta[12]
+
+        #generate the model
+        model = gen_disk_dxdy_3g(DIMENSION,
+                                 param_disk,
+                                 mask=WHEREMASK2GENERATEDISK,
+                                 pixscale=PIXSCALE_INS,
+                                 distance=DISTANCE_STAR)
 
     return model
 
@@ -392,7 +409,6 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
     datadir = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
     klipdir = os.path.join(datadir, 'klip_fm_files')
-
 
     distutils.dir_util.mkpath(klipdir)
 
@@ -944,9 +960,9 @@ def initialize_walkers_backend(nwalkers,
     #############################################################
     # Initialize the walkers. The best technique seems to be
     # to start in a small ball around the a priori preferred position.
-    # I start with a +/-0.1% ball for parameters defined in log and 
+    # I start with a +/-0.1% ball for parameters defined in log and
     # +/-1% ball for the others
-    
+
     if new_backend:
         init_ball0 = np.random.uniform(theta_init[0] * 0.999,
                                        theta_init[0] * 1.001,
@@ -1081,7 +1097,7 @@ if __name__ == '__main__':
     # warnings.simplefilter('ignore', category=AstropyWarning)
 
     if len(sys.argv) == 1:
-        str_yalm = 'GPI_Hband_MCMC_ADI.yaml'
+        str_yalm = default_parameter_file
     else:
         str_yalm = sys.argv[1]
 
@@ -1106,13 +1122,10 @@ if __name__ == '__main__':
 
     if SPF_MODEL == "hg_1g":  #1g henyey greenstein, SPF described with 1 parameter
         N_DIM_MCMC = 9  #Number of dimension of the parameter space
-        from anadisk_johan import gen_disk_dxdy_1g as gen_disk
     elif SPF_MODEL == "hg_2g":  #2g henyey greenstein, SPF described with 3 parameter
         N_DIM_MCMC = 11  #Number of dimension of the parameter space
-        from anadisk_johan import gen_disk_dxdy_2g as gen_disk
     elif SPF_MODEL == "hg_3g":  #1g henyey greenstein, SPF described with 5 parameter
         N_DIM_MCMC = 13  #Number of dimension of the parameter space
-        from anadisk_johan import gen_disk_dxdy_3g as gen_disk
     else:
         raise ValueError(SPF_MODEL + " not a valid SPF model")
 
