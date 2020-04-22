@@ -1,9 +1,0 @@
-
-/Users/jmazoyer/anaconda3/envs/astroconda/bin/python plotfrombackend_mcmc.py SPHERE_Hband_3g_MCMC.yaml
-/Users/jmazoyer/anaconda3/envs/astroconda/bin/python plotfrombackend_mcmc.py GPI_Hband_fake_MCMC.yaml
-/Users/jmazoyer/anaconda3/envs/astroconda/bin/python plotfrombackend_mcmc.py SPHERE_Hband_MCMC.yaml
-/Users/jmazoyer/anaconda3/envs/astroconda/bin/python plotfrombackend_mcmc.py GPI_Jband_MCMC.yaml
-/Users/jmazoyer/anaconda3/envs/astroconda/bin/python plotfrombackend_mcmc.py GPI_Hband_MCMC.yaml
-/Users/jmazoyer/anaconda3/envs/astroconda/bin/python plotfrombackend_mcmc.py GPI_K1band_MCMC.yaml
-/Users/jmazoyer/anaconda3/envs/astroconda/bin/python plotfrombackend_mcmc.py GPI_K2band_MCMC.yaml
-
