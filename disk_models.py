@@ -1,7 +1,10 @@
 ########################################################
 ########################################################
 #### MAIN AUTHOR Max Millar Blanchaer
-#### modified by Johan Mazoyer
+#### from a James Graham's original code
+#### Initial model by Max Millar Blanchaer from a James Graham's original code, 
+### If you are using this model, please cite 
+### Millar-Blanchaer, M. A., Graham, J. R., Pueyo, L., et al. 2015, ApJ, 811, 18
 #### exctracted from anadisk_e.py sent by Max in 2017
 ########################################################
 ########################################################

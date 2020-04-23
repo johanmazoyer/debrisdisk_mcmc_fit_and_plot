@@ -12,7 +12,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
 
-default_parameter_file = 'GPI_Hband_MCMC_RDI.yaml'
+default_parameter_file = 'GPI_Hband_MCMC_ADI.yaml'
 
 progress = True  # if on my local machine and print on console, showing the
 # MCMC progress bar. Avoid if print resutls of the code in a file, it will
