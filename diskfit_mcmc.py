@@ -12,7 +12,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
 
-default_parameter_file = 'FakeHr4796brigth_MCMC_RDI.yaml'
+default_parameter_file = 'FakeHr4796brigth_MCMC_ADI.yaml'
 
 progress = False  # if on my local machine and print on console, showing the
 # MCMC progress bar. Avoid if print resutls of the code in a file, it will
@@ -346,6 +346,7 @@ def create_uncertainty_map(dataset, params_mcmc_yaml, psflib=None):
     move_here = params_mcmc_yaml['MOVE_HERE']
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
     mode = params_mcmc_yaml['MODE']
+    annuli = params_mcmc_yaml['ANNULI']
     aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
     noise_multiplication_factor = params_mcmc_yaml[
         'NOISE_MULTIPLICATION_FACTOR']
@@ -358,7 +359,7 @@ def create_uncertainty_map(dataset, params_mcmc_yaml, psflib=None):
     parallelized.klip_dataset(dataset,
                               numbasis=numbasis,
                               maxnumbasis=120,
-                              annuli=1,
+                              annuli=annuli,
                               subsections=1,
                               mode=mode,
                               outputdir=klipdir,
@@ -837,6 +838,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
     move_here = params_mcmc_yaml['MOVE_HERE']
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     mode = params_mcmc_yaml['MODE']
+    annuli = params_mcmc_yaml['ANNULI']
     datadir = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
     klipdir = os.path.join(datadir, 'klip_fm_files')
 
@@ -885,7 +887,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
                         diskobj,
                         numbasis=numbasis,
                         maxnumbasis=120,
-                        annuli=1,
+                        annuli=annuli,
                         subsections=1,
                         mode=mode,
                         outputdir=klipdir,

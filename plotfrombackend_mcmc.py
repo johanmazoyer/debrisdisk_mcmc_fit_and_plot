@@ -8,7 +8,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
 
-default_parameter_file = 'GPI_Hband_MCMC_ADI.yaml'
+default_parameter_file = 'FakeHr4796brigth_MCMC_ADI.yaml'
 
 
 import glob
@@ -317,7 +317,7 @@ def make_corner_plot(params_mcmc_yaml):
         quants = (0.001, 0.5, 0.999)
 
     #### Check truths = bests parameters
-    if file_prefix == 'Hband_hd48524_fake':
+    if 'Fake' in file_prefix:
         shouldweplotalldatapoints = True
     else:
         shouldweplotalldatapoints = False
@@ -329,10 +329,8 @@ def make_corner_plot(params_mcmc_yaml):
                         plot_datapoints=shouldweplotalldatapoints,
                         verbose=False)
 
-    if file_prefix == 'Hband_hd48524_fake':
-        initial_values = [
-            74.5, 100, 12.4, 82.5, -20.1, 29.8, 76.8, 26.64, -2., 0.94, 80
-        ]
+    if 'Fake' in file_prefix:
+        initial_values = [70, 90, 12.4, 76.8, 26.64, -2., 0.94, 70,70, -20, 66]
 
         green_line = mlines.Line2D([], [],
                                    color='green',
@@ -728,7 +726,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
             0]  ### we take only the first KL mode
 
     # load the noise
-    noise = fits.getdata(os.path.join(klipdir, file_prefix + '_noisemap.fits'))
+    noise = fits.getdata(os.path.join(klipdir, file_prefix + '_noisemap.fits'))/3.
 
 
     disk_ml = call_gen_disk(theta_ml)

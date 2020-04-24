@@ -4,6 +4,7 @@ FIRST_TIME: True
 MODE: ADI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
 DO_RDI_CORRELATION: True # Measure the correlation matrix of the RDI PSF lib. Very long.
 KLMODE_NUMBER: 3 # number of KL modes used in the reduction < nb images in the basis
+ANNULI: 1 # number of annuli in the KLIP reduction
 OWA: 100 # OWA of the reduction, in pixel. Reduce the zone to accelerate the code.
 MOVE_HERE: 6  #minrot in PyKLIP ADI
 ALIGNED_CENTER: [140.,140.] #image center in your model, also use to center the image before KLIP

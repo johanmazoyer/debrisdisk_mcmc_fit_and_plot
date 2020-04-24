@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=Maz_H_ADI
-#SBATCH --nodes=2 --ntasks-per-node=16
+#SBATCH --nodes=4 --ntasks-per-node=16
 #SBATCH --time=23:59:00
 #SBATCH --partition=medium
 #SBATCH --mail-user=johan.mazoyer@obspm.fr
