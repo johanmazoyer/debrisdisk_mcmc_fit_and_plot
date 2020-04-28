@@ -5,18 +5,20 @@ author: Johan Mazoyer
 """
 
 import os
-
-MPI = True  # MPI or not for parallelization.
+import argparse
 
 basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
+default_parameter_file = 'FakeHr4796brigth_MCMC_RDI.yaml' # name of the parameter file
+                            # you can also call it with a function argument
 
-default_parameter_file = 'FakeHr4796brigth_MCMC_RDI.yaml'
+MPI = False                 # by default the MCMC is not mpi. you can change it in the function
 
-progress = False  # if on my local machine and print on console, showing the
-# MCMC progress bar. Avoid if print resutls of the code in a file, it will
-# not look pretty
+parser = argparse.ArgumentParser(description='run diskFM MCMC')
+parser.add_argument('-p', '--param_file', required=False, help='parameter file name')
+parser.add_argument("--mpi", help="run in mpi mode", action="store_true")
+args = parser.parse_args()
 
 import sys
 import glob
@@ -24,13 +26,12 @@ import glob
 import distutils.dir_util
 import warnings
 
-from multiprocessing import cpu_count
-
-if MPI:
+if args.mpi: # MPI or not for parallelization.
     from schwimmbad import MPIPool as MultiPool
 else:
-    # from schwimmbad import MultiPool as MultiPool
     from multiprocessing import Pool as MultiPool
+
+from multiprocessing import cpu_count
 
 from datetime import datetime
 
@@ -1098,10 +1099,17 @@ if __name__ == '__main__':
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
 
-    if len(sys.argv) == 1:
+    if args.mpi: # MPI or not for parallelization.
+        MPI = True
+        progress = False 
+    else:
+        MPI = False
+        progress = True
+
+    if args.param_file == None:
         str_yalm = default_parameter_file
     else:
-        str_yalm = sys.argv[1]
+        str_yalm = args.param_file
 
     # open the parameter file
     yaml_path_file = os.path.join(os.getcwd(), 'initialization_files',
@@ -1206,7 +1214,7 @@ if __name__ == '__main__':
     if MPI:
         mpistr = "\n In MPI mode"
     else:
-        mpistr = "\n In sequential mode"
+        mpistr = "\n In non MPI mode"
     print(mpistr + ", initialize walkers and start the MCMC...")
     startTime = datetime.now()
     with MultiPool() as pool:
