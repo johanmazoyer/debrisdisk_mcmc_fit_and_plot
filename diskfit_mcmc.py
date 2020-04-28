@@ -6,7 +6,7 @@ author: Johan Mazoyer
 
 import os
 
-MPI = False  # MPI or not for parallelization.
+MPI = True  # MPI or not for parallelization.
 
 basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
