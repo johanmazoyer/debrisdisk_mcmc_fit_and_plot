@@ -11,9 +11,11 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
 default_parameter_file = 'FakeHr4796brigth_MCMC_RDI.yaml' # name of the parameter file
-                            # you can also call it with a function argument
+                            # you can also call it with the python function argument -p
 
-MPI = False                 # by default the MCMC is not mpi. you can change it in the function
+
+MPI = False         ## by default the MCMC is not mpi. you can change it
+                    ## in the the python function argument --mpi
 
 parser = argparse.ArgumentParser(description='run diskFM MCMC')
 parser.add_argument('-p', '--param_file', required=False, help='parameter file name')
@@ -1102,9 +1104,11 @@ if __name__ == '__main__':
     if args.mpi: # MPI or not for parallelization.
         MPI = True
         progress = False 
+        mpistr = "\n In MPI mode"
     else:
         MPI = False
         progress = True
+        mpistr = "\n In non MPI mode"
 
     if args.param_file == None:
         str_yalm = default_parameter_file
@@ -1210,13 +1214,10 @@ if __name__ == '__main__':
             """Do not launch MCMC, Likelyhood=-inf:your initial guess 
                             is probably out of the prior range for one of the parameter"""
         )
-
-    if MPI:
-        mpistr = "\n In MPI mode"
-    else:
-        mpistr = "\n In non MPI mode"
+    
     print(mpistr + ", initialize walkers and start the MCMC...")
     startTime = datetime.now()
+    
     with MultiPool() as pool:
 
         if MPI:
