@@ -10,7 +10,7 @@ import argparse
 basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
-default_parameter_file = 'FakeHr4796brigth_MCMC_RDI.yaml'  # name of the parameter file
+default_parameter_file = 'FakeHd32297brigth_MCMC_ADI.yaml'  # name of the parameter file
 # you can also call it with the python function argument -p
 
 MPI = False  ## by default the MCMC is not mpi. you can change it
