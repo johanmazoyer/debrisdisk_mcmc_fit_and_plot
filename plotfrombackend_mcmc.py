@@ -8,7 +8,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
 
-default_parameter_file = 'FakeHr4796brigth_MCMC_RDI.yaml'
+default_parameter_file = 'FakeHr4796brigth_MCMC_ADI.yaml'
 
 
 import glob

@@ -10,15 +10,17 @@ import argparse
 basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
-default_parameter_file = 'FakeHr4796brigth_MCMC_RDI.yaml' # name of the parameter file
-                            # you can also call it with the python function argument -p
+default_parameter_file = 'FakeHr4796brigth_MCMC_RDI.yaml'  # name of the parameter file
+# you can also call it with the python function argument -p
 
-
-MPI = False         ## by default the MCMC is not mpi. you can change it
-                    ## in the the python function argument --mpi
+MPI = False  ## by default the MCMC is not mpi. you can change it
+## in the the python function argument --mpi
 
 parser = argparse.ArgumentParser(description='run diskFM MCMC')
-parser.add_argument('-p', '--param_file', required=False, help='parameter file name')
+parser.add_argument('-p',
+                    '--param_file',
+                    required=False,
+                    help='parameter file name')
 parser.add_argument("--mpi", help="run in mpi mode", action="store_true")
 args = parser.parse_args()
 
@@ -28,7 +30,7 @@ import glob
 import distutils.dir_util
 import warnings
 
-if args.mpi: # MPI or not for parallelization.
+if args.mpi:  # MPI or not for parallelization.
     from schwimmbad import MPIPool as MultiPool
 else:
     from multiprocessing import Pool as MultiPool
@@ -1101,9 +1103,9 @@ if __name__ == '__main__':
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
 
-    if args.mpi: # MPI or not for parallelization.
+    if args.mpi:  # MPI or not for parallelization.
         MPI = True
-        progress = False 
+        progress = False
         mpistr = "\n In MPI mode"
     else:
         MPI = False
@@ -1214,10 +1216,10 @@ if __name__ == '__main__':
             """Do not launch MCMC, Likelyhood=-inf:your initial guess 
                             is probably out of the prior range for one of the parameter"""
         )
-    
+
     print(mpistr + ", initialize walkers and start the MCMC...")
     startTime = datetime.now()
-    
+
     with MultiPool() as pool:
 
         if MPI:
