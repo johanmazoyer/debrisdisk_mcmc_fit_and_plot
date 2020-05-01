@@ -60,7 +60,7 @@ g3_init: 0.
 alpha2_init: 0.
 
 # MCMC PLOTTING PARAMETERS
-BURNIN: 3   #We remove the first BURNIN iteration
+BURNIN: 250   #We remove the first BURNIN iteration
 THIN: 1       #thin (bin) the chains
 QUALITY_PLOT: 2 # usefull because corner plots can be huge. When paper, QUALITY_PLOT: 4
 sigma: 1 # the number of sigma used to measure the error bars.

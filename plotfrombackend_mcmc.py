@@ -10,7 +10,6 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 
 default_parameter_file = 'FakeHr4796brigth_MCMC_RDI.yaml'
 
-
 import glob
 import socket
 import warnings
@@ -39,13 +38,17 @@ import pyklip.instruments.Instrument as Instrument
 from pyklip.fmlib.diskfm import DiskFM
 
 from disk_models import gen_disk_dxdy_1g, gen_disk_dxdy_2g, gen_disk_dxdy_3g
+from disk_models import hg_1g, hg_2g, hg_3g, log_hg_2g, log_hg_3g
+
 import astro_unit_conversion as convert
 from kowalsky import kowalsky
 import make_gpi_psf_for_disks as gpidiskpsf
 
 plt.switch_backend('agg')
+
 # There is a conflict when I import
 # matplotlib with pyklip if I don't use this line
+
 
 #######################################################
 def call_gen_disk(theta):
@@ -114,7 +117,6 @@ def call_gen_disk(theta):
                                  distance=DISTANCE_STAR)
 
     return model
-
 
 
 ########################################################
@@ -317,7 +319,7 @@ def make_corner_plot(params_mcmc_yaml):
         quants = (0.001, 0.5, 0.999)
 
     #### Check truths = bests parameters
-    
+
     if 'Fake' in file_prefix:
         shouldweplotalldatapoints = True
     else:
@@ -331,7 +333,14 @@ def make_corner_plot(params_mcmc_yaml):
                         verbose=False)
 
     if 'Fake' in file_prefix:
-        initial_values = [70, 90, 12.4, 76.8, 26.64, -2., 0.94, 70,70, -20, 66]
+        initial_values = [
+            params_mcmc_yaml['r1_init'], params_mcmc_yaml['r2_init'],
+            params_mcmc_yaml['beta_init'], params_mcmc_yaml['inc_init'],
+            params_mcmc_yaml['pa_init'], params_mcmc_yaml['dx_init'],
+            params_mcmc_yaml['dy_init'], params_mcmc_yaml['dy_init'],
+            params_mcmc_yaml['N_init'], params_mcmc_yaml['g2_init'],
+            params_mcmc_yaml['alpha1_init']
+        ]
 
         green_line = mlines.Line2D([], [],
                                    color='green',
@@ -727,11 +736,11 @@ def best_model_plot(params_mcmc_yaml, hdr):
             0]  ### we take only the first KL mode
 
     # load the noise
-    noise = fits.getdata(os.path.join(klipdir, file_prefix + '_noisemap.fits'))/3.
-
+    noise = fits.getdata(os.path.join(klipdir,
+                                      file_prefix + '_noisemap.fits')) / 3.
 
     disk_ml = call_gen_disk(theta_ml)
-    
+
     fits.writeto(os.path.join(mcmcresultdir, name_h5 + '_BestModel.fits'),
                  disk_ml,
                  header=hdr,
@@ -1097,6 +1106,270 @@ def print_geometry_parameter(params_mcmc_yaml, hdr):
     f1.close()
 
 
+def measure_spf_errors(params_mcmc_yaml,
+                       Number_rand_mcmc,
+                       Norm_90_inplot=1.,
+                       save=False):
+    """
+    take a set of scatt angles and a set of HG parameter and return
+    the log of a 2g HG SPF (usefull to fit from a set of points)
+
+    Args:
+        params_mcmc_yaml: name of the yaml_ parameter file
+        Number_rand_mcmc: number of randomnly selected psf we use to
+                        plot the error bars
+        Norm_90_inplot: the value at which you want to normalize the spf
+                        in the plot ay 90 degree (to re-measure the error
+                        bars properly)
+
+    Returns:
+        a dic that contains the 'best_spf', 'errorbar_sup',
+                                'errorbar_sup', 'errorbar'
+    """
+
+    dico_return = dict()
+
+    nwalkers = params_mcmc_yaml['NWALKERS']
+    DATADIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
+    mcmcresultdir = os.path.join(DATADIR, 'results_MCMC')
+    file_prefix = params_mcmc_yaml['FILE_PREFIX']
+    SPF_MODEL = params_mcmc_yaml['SPF_MODEL']  #Type of description for the SPF
+
+    name_h5 = file_prefix + "_backend_file_mcmc"
+    chain_name = os.path.join(mcmcresultdir, name_h5 + ".h5")
+    reader = backends.HDFBackend(chain_name)
+
+    min_scat = 90 - params_mcmc_yaml['inc_init']
+    max_scat = 90 + params_mcmc_yaml['inc_init']
+
+    scattered_angles = np.arange(np.round(max_scat - min_scat)) + np.round(
+        np.min(min_scat))
+
+    #we only exctract the last itearations, assuming it converged
+    chain_flat = reader.get_chain(discard=0, flat=True)
+    burnin = np.clip(reader.iteration - 10 * Number_rand_mcmc // nwalkers, 0,
+                     None)
+    chain_flat = reader.get_chain(discard=burnin, flat=True)
+
+    if (SPF_MODEL == 'hg_1g'):
+        norm_chain = np.exp(chain_flat[:, 7])
+        g1_chain = chain_flat[:, 8]
+
+        bestmodel_Norm = np.percentile(norm_chain, 50)
+        bestmodel_g1 = np.percentile(g1_chain, 50)
+
+        Normalization = Norm_90_inplot
+
+        if save == True:
+            Normalization = bestmodel_Norm
+
+        best_hg_mcmc = hg_1g(scattered_angles, bestmodel_g1, Normalization)
+
+    elif SPF_MODEL == 'hg_2g':
+        norm_chain = np.exp(chain_flat[:, 7])
+        g1_chain = chain_flat[:, 8]
+        g2_chain = chain_flat[:, 9]
+        alph1_chain = chain_flat[:, 10]
+
+        bestmodel_Norm = np.percentile(norm_chain, 50)
+        bestmodel_g1 = np.percentile(g1_chain, 50)
+        bestmodel_g2 = np.percentile(g2_chain, 50)
+        bestmodel_alpha1 = np.percentile(alph1_chain, 50)
+        Normalization = Norm_90_inplot
+
+        if save == True:
+            Normalization = bestmodel_Norm
+
+        best_hg_mcmc = hg_2g(scattered_angles, bestmodel_g1, bestmodel_g2,
+                             bestmodel_alpha1, Normalization)
+
+    elif SPF_MODEL == 'hg_3g':
+        # temporary, the 3g is not finish so we remove some of the
+        # chains that are obvisouly bad. When 3g is finally converged,
+        # we removed that
+        # incl_chain = np.degrees(np.arccos(chain_flat[:, 3]))
+        # where_incl_is_ok = np.where(incl_chain > 76)
+        # norm_chain = np.exp(chain_flat[where_incl_is_ok, 7]).flatten()
+        # g1_chain =  chain_flat[where_incl_is_ok, 8].flatten()
+        # g2_chain = chain_flat[where_incl_is_ok, 9].flatten()
+        # alph1_chain = chain_flat[where_incl_is_ok, 10].flatten()
+        # g3_chain = chain_flat[where_incl_is_ok, 11].flatten()
+        # alph2_chain = chain_flat[where_incl_is_ok, 12].flatten()
+
+        # log_prob_samples_flat = reader.get_log_prob(discard=burnin,
+        #                                             flat=True)
+        # log_prob_samples_flat = log_prob_samples_flat[where_incl_is_ok]
+        # wheremin = np.where(
+        #         log_prob_samples_flat == np.max(log_prob_samples_flat))
+        # wheremin0 = np.array(wheremin).flatten()[0]
+
+        # bestmodel_g1 = g1_chain[wheremin0]
+        # bestmodel_g2 = g2_chain[wheremin0]
+        # bestmodel_g3 = g3_chain[wheremin0]
+        # bestmodel_alpha1 = alph1_chain[wheremin0]
+        # bestmodel_alpha2 = alph2_chain[wheremin0]
+        # bestmodel_Norm = norm_chain[wheremin0]
+
+        norm_chain = np.exp(chain_flat[:, 7])
+        g1_chain = chain_flat[:, 8]
+        g2_chain = chain_flat[:, 9]
+        alph1_chain = chain_flat[:, 10]
+        g3_chain = chain_flat[:, 11]
+        alph2_chain = chain_flat[:, 12]
+
+        bestmodel_Norm = np.percentile(norm_chain, 50)
+        bestmodel_g1 = np.percentile(g1_chain, 50)
+        bestmodel_g2 = np.percentile(g2_chain, 50)
+        bestmodel_alpha1 = np.percentile(alph1_chain, 50)
+        bestmodel_g3 = np.percentile(g3_chain, 50)
+        bestmodel_alpha2 = np.percentile(alph2_chain, 50)
+        Normalization = Norm_90_inplot
+
+        # we normalize the best model at 90 either by the value found
+        # by the MCMC if we want to save or by the value in the
+        # Norm_90_inplot if we want to plot
+
+        Normalization = Norm_90_inplot
+        if save == True:
+            Normalization = bestmodel_Norm
+
+        best_hg_mcmc = hg_3g(scattered_angles, bestmodel_g1, bestmodel_g2,
+                             bestmodel_g3, bestmodel_alpha1, bestmodel_alpha2,
+                             Normalization)
+
+    dico_return['best_spf'] = best_hg_mcmc
+
+    random_param_number = np.random.randint(1,
+                                            len(g1_chain) - 1,
+                                            Number_rand_mcmc)
+
+    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
+            SPF_MODEL == 'hg_3g'):
+        g1_rand = g1_chain[random_param_number]
+        norm_rand = norm_chain[random_param_number]
+
+        if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
+            g2_rand = g2_chain[random_param_number]
+            alph1_rand = alph1_chain[random_param_number]
+
+            if SPF_MODEL == 'hg_3g':
+                g3_rand = g3_chain[random_param_number]
+                alph2_rand = alph2_chain[random_param_number]
+
+    hg_mcmc_rand = np.zeros((len(best_hg_mcmc), len(random_param_number)))
+
+    errorbar_sup = scattered_angles * 0.
+    errorbar_inf = scattered_angles * 0.
+    errorbar = scattered_angles * 0.
+
+    for num_model in range(Number_rand_mcmc):
+
+        norm_here = norm_rand[num_model]
+
+        # we normalize the random SPF at 90 either by the value of
+        # the SPF by the MCMC if we want to save or around the
+        # Norm_90_inplot if we want to plot
+
+        Normalization = norm_here * Norm_90_inplot / bestmodel_Norm
+        if save == True:
+            Normalization = norm_here
+
+        if (SPF_MODEL == 'hg_1g'):
+            g1_here = g1_rand[num_model]
+
+        if (SPF_MODEL == 'hg_2g'):
+            g1_here = g1_rand[num_model]
+            g2_here = g2_rand[num_model]
+            alph1_here = alph1_rand[num_model]
+            hg_mcmc_rand[:,
+                         num_model] = hg_2g(scattered_angles, g1_here, g2_here,
+                                            alph1_here, Normalization)
+
+        if SPF_MODEL == 'hg_3g':
+            g3_here = g3_rand[num_model]
+            alph2_here = alph2_rand[num_model]
+            hg_mcmc_rand[:, num_model] = hg_3g(scattered_angles, g1_here,
+                                               g2_here, g3_here, alph1_here,
+                                               alph2_here, Normalization)
+
+    for anglei in range(len(scattered_angles)):
+        errorbar_sup[anglei] = np.max(hg_mcmc_rand[anglei, :])
+        errorbar_inf[anglei] = np.min(hg_mcmc_rand[anglei, :])
+        errorbar[anglei] = (np.max(hg_mcmc_rand[anglei, :]) -
+                            np.min(hg_mcmc_rand[anglei, :])) / 2.
+
+    dico_return['errorbar_sup'] = errorbar_sup
+    dico_return['errorbar_inf'] = errorbar_inf
+    dico_return['errorbar'] = errorbar
+
+    dico_return['scattered_angles'] = scattered_angles
+    
+    return dico_return
+
+
+def compare_injected_spfs(params_mcmc_yaml):
+    ####################################################################################
+    ## injected spf plot
+    ####################################################################################
+
+    color0 = 'black'
+    color1 = '#3B73FF'
+    color2 = '#ED0052'
+    color3 = '#00AF64'
+    color4 = '#FFCF0B'
+    
+    band_name = params_mcmc_yaml['BAND_NAME']
+
+    file_prefix = params_mcmc_yaml['FILE_PREFIX']
+    name_pdf = file_prefix + '_comparison_spf.pdf'
+    plt.figure()
+
+    spf_fake_recovered = measure_spf_errors(params_mcmc_yaml, 100)
+
+    scattered_angles = spf_fake_recovered['scattered_angles']
+
+    injected_hg = hg_2g(scattered_angles, params_mcmc_yaml['g1_init'],
+                        params_mcmc_yaml['g2_init'],
+                        params_mcmc_yaml['alpha1_init'], 1.0)
+
+    plt.fill_between(scattered_angles,
+                     spf_fake_recovered['errorbar_sup'],
+                     spf_fake_recovered['errorbar_inf'],
+                     facecolor=color3,
+                     alpha=0.1)
+
+    plt.plot(scattered_angles,
+             spf_fake_recovered['best_spf'],
+             linewidth=2,
+             color=color3,
+             label="SPF Recoreved After MCMC")
+
+    plt.plot(scattered_angles,
+             injected_hg,
+             linewidth=1.5,
+             linestyle='-.',
+             color=color2,
+             label="SPF Injected into Empty Dataset")
+
+    handles, labels = plt.gca().get_legend_handles_labels()
+    order = [1, 0]
+    plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
+
+    plt.yscale('log')
+
+    plt.ylim(bottom=0.3, top=30)
+    plt.xlim(left=0, right=180)
+    plt.xlabel('Scattering angles')
+    plt.ylabel('Normalized total intensity')
+    plt.title(band_name + ' SPF')
+
+    plt.tight_layout()
+
+    plt.savefig(os.path.join(mcmcresultdir, name_pdf))
+
+    plt.close()
+
+
 if __name__ == '__main__':
 
     warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -1116,7 +1389,6 @@ if __name__ == '__main__':
     mcmcresultdir = os.path.join(DATADIR, 'results_MCMC')
     SPF_MODEL = params_mcmc_yaml['SPF_MODEL']  #Type of description for the SPF
 
-
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     name_h5 = file_prefix + '_backend_file_mcmc'
 
@@ -1125,6 +1397,9 @@ if __name__ == '__main__':
 
     # Plot the chain values
     make_chain_plot(params_mcmc_yaml)
+
+    # compare SPF with injected
+    compare_injected_spfs(params_mcmc_yaml)
 
     # # Plot the PDFs
     make_corner_plot(params_mcmc_yaml)

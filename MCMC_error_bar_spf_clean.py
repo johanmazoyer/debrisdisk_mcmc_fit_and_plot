@@ -227,392 +227,393 @@ def measure_spf_errors(yaml_file_str, Number_rand_mcmc, Norm_90_inplot=1., save 
         np.savetxt( path_and_name_txt, savefortext, delimiter=',', fmt = '%10.2f')   # save the array in a txt
     return dico_return
 
-basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
-# your data (using OS environnement variable allow to use same code on
-# different computer without changing this).
-# basedir = '/Users/jmazoyer/Dropbox/ExchangeFolder/data_python/Aurora/'
-
-min_scat = 13.3
-max_scat = 166.7
-nb_random_models = 1000
-
-
-folder_save_pdf = os.path.join(basedir, 'Spf_plots_produced')
-
-scattered_angles = np.arange(np.round(max_scat - min_scat)) + np.round(
-    np.min(min_scat))
-
-# ###########################################################################
-# ### SPF injected real value
-# ###########################################################################
-g1_injected = 0.825
-g2_injected = -0.201
-alph1_injected = 0.298
-injected_hg = hg_2g(scattered_angles,g1_injected,g2_injected,alph1_injected, 1.0)
-
-
-# ###########################################################################
-# ### SPHERE H2 exctracted by Milli et al. 2017
-# ###########################################################################
-# sphere spf extracted by Milli et al. 2017
-angles_sphere_extractJulien = np.zeros(49)
-spf_shpere_extractJulien = np.zeros(49)
-errors_sphere_extractJulien = np.zeros(49)
-
-i = 0
-with open(os.path.join(basedir, 'SPHERE_Hdata', 'SPHERE_extraction_Milli.csv'),
-          'rt') as f:
-    readercsv = csv.reader(f)
-    for row in readercsv:
-        angles_sphere_extractJulien[i] = float(row[0])
-        spf_shpere_extractJulien[i] = float(row[1])
-        errors_sphere_extractJulien[i] = float(row[2])
-        i += 1
-
-# fit a 3g function to sphere spf extracted by Milli et al. 2017
-log_spf_sphere = np.log(spf_shpere_extractJulien)
-log_errors_sphere = np.log(spf_shpere_extractJulien +
-                           errors_sphere_extractJulien) - np.log(
-                               spf_shpere_extractJulien)
-
-initial_guess = [
-    0.99997858, 0.05095741, 0.04765255, 0.99946266, -0.03396517, 0.94720999
-]
-params = initial_guess
-a = optimize.curve_fit(log_hg_3g,
-                       angles_sphere_extractJulien,
-                       log_spf_sphere,
-                       initial_guess,
-                       log_errors_sphere,
-                       maxfev=10000,
-                       bounds=([-1, -1., -1., -1., -1.,
-                                -1.], [1, 1., 1., 1., 1., 4.]))
-params_3g_fir_from_extraction = a[0]
-hg3g_fitted_Milliextraction = hg_3g(
-    scattered_angles, params_3g_fir_from_extraction[0],
-    params_3g_fir_from_extraction[1], params_3g_fir_from_extraction[2],
-    params_3g_fir_from_extraction[3], params_3g_fir_from_extraction[4],
-    params_3g_fir_from_extraction[5])
-
-# ##############################
-# # GPI K1 extracted by Pauline from Pol
-# ##############################
-
-dir_exctract_Pauline = os.path.join(basedir, '150403_K1_Spec',
-                                    'Pauline_SPF_from_Pol')
-
-data_exctract_Pauline = os.path.join(dir_exctract_Pauline,
-                                     'Pauline_SPF_ktot_NE_errs.txt')
-text_array = np.loadtxt(data_exctract_Pauline)
-angles_GPIPolK1_extractPauline = text_array[:, 0]
-spf_GPIPolK1_extractPaulineNE = text_array[:, 1]
-errors_GPIPolK1_extractPaulineNE = text_array[:, 2]
-
-data_exctract_Pauline = os.path.join(dir_exctract_Pauline,
-                                     'Pauline_SPF_ktot_SW_errs.txt')
-
-text_array = np.loadtxt(data_exctract_Pauline)
-# angles_GPIPolK1_extractPaulineSW =  text_array[:, 0] ## identical to NE
-spf_GPIPolK1_extractPaulineSW = text_array[:, 1]
-errors_GPIPolK1_extractPaulineSW = text_array[:, 2]
-
-spf_GPIPolK1_extractPauline = 0.5 * (spf_GPIPolK1_extractPaulineSW +
-                                     spf_GPIPolK1_extractPaulineNE)
-
-error_GPIPolK1_extractPauline = np.sqrt(errors_GPIPolK1_extractPaulineSW**2 +
-                                        errors_GPIPolK1_extractPaulineNE**2)
-
-error_GPIPolK1_extractPauline = error_GPIPolK1_extractPauline / spf_GPIPolK1_extractPauline[
-    np.where(angles_GPIPolK1_extractPauline == 90)]
-spf_GPIPolK1_extractPauline = spf_GPIPolK1_extractPauline / spf_GPIPolK1_extractPauline[
-    np.where(angles_GPIPolK1_extractPauline == 90)]
-
-index = (np.arange((error_GPIPolK1_extractPauline.shape[0]) / 2)) * 2 + 1
-
-angles_GPIPolK1_extractPauline = np.delete(angles_GPIPolK1_extractPauline,
-                                           index)
-spf_GPIPolK1_extractPauline = np.delete(spf_GPIPolK1_extractPauline, index)
-error_GPIPolK1_extractPauline = np.delete(error_GPIPolK1_extractPauline, index)
-
-spf_sphere_h = measure_spf_errors('SPHERE_Hband_MCMC', nb_random_models)
-spf_sphere_h_3g = measure_spf_errors('SPHERE_Hband_3g_MCMC', nb_random_models)
-spf_gpi_not1at90 = measure_spf_errors('GPI_Hband_MCMC',
-                                      nb_random_models,
-                                      Norm_90_inplot=0.93)
-spf_gpi_h_1at90 = measure_spf_errors('GPI_Hband_MCMC', nb_random_models)
-spf_gpi_j = measure_spf_errors('GPI_Jband_MCMC', nb_random_models)
-spf_gpi_k1 = measure_spf_errors('GPI_K1band_MCMC', nb_random_models)
-spf_gpi_k2 = measure_spf_errors('GPI_K2band_MCMC', nb_random_models)
-
-spf_gpi_h_fake = measure_spf_errors('GPI_Hband_fake_MCMC', nb_random_models)
-
-spf_gpi_h_save = measure_spf_errors('GPI_Hband_MCMC', nb_random_models, save = True)
-
-color0 = 'black'
-color1 = '#3B73FF'
-color2 = '#ED0052'
-color3 = '#00AF64'
-color4 = '#FFCF0B'
-
-####################################################################################
-## plot h only
-####################################################################################
-plot.figure()
-name_pdf = 'compare_SPHERE_GPI_H.pdf'
-
-plot.fill_between(scattered_angles,
-                  spf_sphere_h['errorbar_sup'],
-                  spf_sphere_h['errorbar_inf'],
-                  facecolor=color0,
-                  alpha=0.1)
-
-plot.fill_between(scattered_angles,
-                  spf_gpi_not1at90['errorbar_sup'],
-                  spf_gpi_not1at90['errorbar_inf'],
-                  facecolor=color1,
-                  alpha=0.1)
-
-plot.plot(scattered_angles,
-          spf_sphere_h['best_spf'],
-          linewidth=2,
-          color=color0,
-          label="SPHERE H2 (extraction MCMC, this work)")
-
-plot.plot(scattered_angles,
-          spf_gpi_not1at90['best_spf'],
-          linewidth=2,
-          color=color1,
-          label="GPI H (extraction MCMC)")
-
-plot.errorbar(angles_sphere_extractJulien,
-              1.38 * spf_shpere_extractJulien,
-              yerr=errors_sphere_extractJulien,
-              fmt='o',
-              label='SPHERE H2 (previous extraction by M17)',
-              ms=3,
-              capthick=1,
-              capsize=2,
-              elinewidth=1,
-              markeredgewidth=1,
-              color='grey')
-
-# plot.errorbar(angles_GPIPolK1_extractPauline,
-#               spf_GPIPolK1_extractPauline,
-#               yerr=error_GPIPolK1_extractPauline,
-#               fmt='x',
-#               label='GPI Pol K1 (extraction P. Arriaga)',
-#               ms=3,
-#               capthick=1,
-#               capsize=2,
-#               elinewidth=1,
-#               markeredgewidth=1,
-#               color=color3)
-
-plot.legend()
-plot.yscale('log')
-
-plot.ylim(bottom=0.3, top=30)
-plot.xlim(left=0, right=180)
-plot.xlabel('Scattering angles')
-plot.ylabel('Normalized total intensity')
-
-plot.tight_layout()
-
-plot.savefig(os.path.join(folder_save_pdf, name_pdf))
-
-plot.close()
-
-####################################################################################
-## plot all colors
-####################################################################################
-name_pdf = 'compare_GPI_color.pdf'
-plot.figure()
-
-plot.fill_between(scattered_angles,
-                  spf_gpi_j['errorbar_sup'],
-                  spf_gpi_j['errorbar_inf'],
-                  facecolor=color4,
-                  alpha=0.1)
-
-plot.fill_between(scattered_angles,
-                  spf_gpi_h_1at90['errorbar_sup'],
-                  spf_gpi_h_1at90['errorbar_inf'],
-                  facecolor=color1,
-                  alpha=0.1)
-
-plot.fill_between(scattered_angles,
-                  spf_sphere_h['errorbar_sup'],
-                  spf_sphere_h['errorbar_inf'],
-                  facecolor=color0,
-                  alpha=0.1)
-
-plot.fill_between(scattered_angles,
-                  spf_gpi_k1['errorbar_sup'],
-                  spf_gpi_k1['errorbar_inf'],
-                  facecolor=color2,
-                  alpha=0.1)
-
-plot.fill_between(scattered_angles,
-                  spf_gpi_k2['errorbar_sup'],
-                  spf_gpi_k2['errorbar_inf'],
-                  facecolor=color3,
-                  alpha=0.1)
-
-plot.plot(scattered_angles,
-          spf_gpi_j['best_spf'],
-          linewidth=2,
-          color=color4,
-          label="GPI J (extraction MCMC)")
-
-plot.plot(scattered_angles,
-          spf_gpi_h_1at90['best_spf'],
-          linewidth=2,
-          color=color1,
-          label="GPI H (extraction MCMC)")
-
-plot.plot(scattered_angles,
-          spf_sphere_h['best_spf'],
-          linewidth=2,
-          color=color0,
-          label="SPHERE H2 (extraction MCMC)")
-
-plot.plot(scattered_angles,
-          spf_gpi_k1['best_spf'],
-          linewidth=2,
-          color=color2,
-          label="GPI K1 (extraction MCMC)")
-
-plot.plot(scattered_angles,
-          spf_gpi_k2['best_spf'],
-          linewidth=2,
-          color=color3,
-          label="GPI K2 (extraction MCMC)")
-
-plot.legend()
-plot.yscale('log')
-
-plot.ylim(bottom=0.3, top=30)
-plot.xlim(left=0, right=180)
-plot.xlabel('Scattering angles')
-plot.ylabel('Normalized total intensity')
-
-plot.tight_layout()
-
-plot.savefig(os.path.join(folder_save_pdf, name_pdf))
-
-plot.close()
-
-
-####################################################################################
-## 3g plot
-####################################################################################
-name_pdf = 'compare_3g_SPF.pdf'
-plot.figure()
-
-plot.fill_between(scattered_angles,
-                  spf_sphere_h['errorbar_sup'],
-                  spf_sphere_h['errorbar_inf'],
-                  facecolor=color0,
-                  alpha=0.1)
-
-plot.fill_between(scattered_angles,
-                  spf_sphere_h_3g['errorbar_sup'],
-                  spf_sphere_h_3g['errorbar_inf'],
-                  facecolor=color2,
-                  alpha=0.1)
-
-plot.plot(scattered_angles,
-          spf_sphere_h['best_spf'],
-          linewidth=2,
-          color=color0,
-          label="2 HG SPF (MCMC best model)")
-
-
-plot.plot(scattered_angles,
-          spf_sphere_h_3g['best_spf'],
-          linewidth=2,
-          color=color2,
-          linestyle = '-.',
-          label="3 HG SPF (MCMC best model)")
-
-
-plot.plot(scattered_angles,
-          1.38 * hg3g_fitted_Milliextraction,
-          linewidth=2,
-          color=color3,
-          label="3 HG SPF fitted to M17 SPF (MCMC initial point)")
-
-plot.errorbar(angles_sphere_extractJulien,
-              1.38 * spf_shpere_extractJulien,
-              yerr=errors_sphere_extractJulien,
-              fmt='o',
-              label='Previous extraction by M17',
-              ms=3,
-              capthick=1,
-              capsize=2,
-              elinewidth=1,
-              markeredgewidth=1,
-              color='grey')
-
-handles, labels = plot.gca().get_legend_handles_labels()
-order = [3, 2, 1, 0]
-plot.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
-
-plot.yscale('log')
-
-plot.ylim(bottom=0.3, top=30)
-plot.xlim(left=0, right=180)
-plot.xlabel('Scattering angles')
-plot.ylabel('Normalized total intensity')
-
-plot.tight_layout()
-
-plot.savefig(os.path.join(folder_save_pdf, name_pdf))
-
-plot.close()
-
-
-####################################################################################
-## injected spf plot
-####################################################################################
-name_pdf = 'Comparison_spf_injected_recovered.pdf'
-plot.figure()
-
-plot.fill_between(scattered_angles,
-                  spf_gpi_h_fake['errorbar_sup'],
-                  spf_gpi_h_fake['errorbar_inf'],
-                  facecolor=color3,
-                  alpha=0.1)
-
-
-plot.plot(scattered_angles,
-          spf_gpi_h_fake['best_spf'],
-          linewidth=2,
-          color=color3,
-          label="SPF Recoreved After MCMC")
-
-
-plot.plot(scattered_angles,
-          injected_hg,
-          linewidth=1.5 ,
-          linestyle = '-.',
-          color=color2,
-          label="SPF Injected into Empty Dataset")
-
-
-handles, labels = plot.gca().get_legend_handles_labels()
-order = [1, 0]
-plot.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
-
-plot.yscale('log')
-
-plot.ylim(bottom=0.3, top=30)
-plot.xlim(left=0, right=180)
-plot.xlabel('Scattering angles')
-plot.ylabel('Normalized total intensity')
-
-plot.tight_layout()
-
-plot.savefig(os.path.join(folder_save_pdf, name_pdf))
-
-plot.close()
+if __name__ == '__main__':
+    basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
+    # your data (using OS environnement variable allow to use same code on
+    # different computer without changing this).
+    # basedir = '/Users/jmazoyer/Dropbox/ExchangeFolder/data_python/Aurora/'
+
+    min_scat = 13.3
+    max_scat = 166.7
+    nb_random_models = 1000
+
+
+    folder_save_pdf = os.path.join(basedir, 'Spf_plots_produced')
+
+    scattered_angles = np.arange(np.round(max_scat - min_scat)) + np.round(
+        np.min(min_scat))
+
+    # ###########################################################################
+    # ### SPF injected real value
+    # ###########################################################################
+    g1_injected = 0.825
+    g2_injected = -0.201
+    alph1_injected = 0.298
+    injected_hg = hg_2g(scattered_angles,g1_injected,g2_injected,alph1_injected, 1.0)
+
+
+    # ###########################################################################
+    # ### SPHERE H2 exctracted by Milli et al. 2017
+    # ###########################################################################
+    # sphere spf extracted by Milli et al. 2017
+    angles_sphere_extractJulien = np.zeros(49)
+    spf_shpere_extractJulien = np.zeros(49)
+    errors_sphere_extractJulien = np.zeros(49)
+
+    i = 0
+    with open(os.path.join(basedir, 'SPHERE_Hdata', 'SPHERE_extraction_Milli.csv'),
+            'rt') as f:
+        readercsv = csv.reader(f)
+        for row in readercsv:
+            angles_sphere_extractJulien[i] = float(row[0])
+            spf_shpere_extractJulien[i] = float(row[1])
+            errors_sphere_extractJulien[i] = float(row[2])
+            i += 1
+
+    # fit a 3g function to sphere spf extracted by Milli et al. 2017
+    log_spf_sphere = np.log(spf_shpere_extractJulien)
+    log_errors_sphere = np.log(spf_shpere_extractJulien +
+                            errors_sphere_extractJulien) - np.log(
+                                spf_shpere_extractJulien)
+
+    initial_guess = [
+        0.99997858, 0.05095741, 0.04765255, 0.99946266, -0.03396517, 0.94720999
+    ]
+    params = initial_guess
+    a = optimize.curve_fit(log_hg_3g,
+                        angles_sphere_extractJulien,
+                        log_spf_sphere,
+                        initial_guess,
+                        log_errors_sphere,
+                        maxfev=10000,
+                        bounds=([-1, -1., -1., -1., -1.,
+                                    -1.], [1, 1., 1., 1., 1., 4.]))
+    params_3g_fir_from_extraction = a[0]
+    hg3g_fitted_Milliextraction = hg_3g(
+        scattered_angles, params_3g_fir_from_extraction[0],
+        params_3g_fir_from_extraction[1], params_3g_fir_from_extraction[2],
+        params_3g_fir_from_extraction[3], params_3g_fir_from_extraction[4],
+        params_3g_fir_from_extraction[5])
+
+    # ##############################
+    # # GPI K1 extracted by Pauline from Pol
+    # ##############################
+
+    dir_exctract_Pauline = os.path.join(basedir, '150403_K1_Spec',
+                                        'Pauline_SPF_from_Pol')
+
+    data_exctract_Pauline = os.path.join(dir_exctract_Pauline,
+                                        'Pauline_SPF_ktot_NE_errs.txt')
+    text_array = np.loadtxt(data_exctract_Pauline)
+    angles_GPIPolK1_extractPauline = text_array[:, 0]
+    spf_GPIPolK1_extractPaulineNE = text_array[:, 1]
+    errors_GPIPolK1_extractPaulineNE = text_array[:, 2]
+
+    data_exctract_Pauline = os.path.join(dir_exctract_Pauline,
+                                        'Pauline_SPF_ktot_SW_errs.txt')
+
+    text_array = np.loadtxt(data_exctract_Pauline)
+    # angles_GPIPolK1_extractPaulineSW =  text_array[:, 0] ## identical to NE
+    spf_GPIPolK1_extractPaulineSW = text_array[:, 1]
+    errors_GPIPolK1_extractPaulineSW = text_array[:, 2]
+
+    spf_GPIPolK1_extractPauline = 0.5 * (spf_GPIPolK1_extractPaulineSW +
+                                        spf_GPIPolK1_extractPaulineNE)
+
+    error_GPIPolK1_extractPauline = np.sqrt(errors_GPIPolK1_extractPaulineSW**2 +
+                                            errors_GPIPolK1_extractPaulineNE**2)
+
+    error_GPIPolK1_extractPauline = error_GPIPolK1_extractPauline / spf_GPIPolK1_extractPauline[
+        np.where(angles_GPIPolK1_extractPauline == 90)]
+    spf_GPIPolK1_extractPauline = spf_GPIPolK1_extractPauline / spf_GPIPolK1_extractPauline[
+        np.where(angles_GPIPolK1_extractPauline == 90)]
+
+    index = (np.arange((error_GPIPolK1_extractPauline.shape[0]) / 2)) * 2 + 1
+
+    angles_GPIPolK1_extractPauline = np.delete(angles_GPIPolK1_extractPauline,
+                                            index)
+    spf_GPIPolK1_extractPauline = np.delete(spf_GPIPolK1_extractPauline, index)
+    error_GPIPolK1_extractPauline = np.delete(error_GPIPolK1_extractPauline, index)
+
+    spf_sphere_h = measure_spf_errors('SPHERE_Hband_MCMC', nb_random_models)
+    spf_sphere_h_3g = measure_spf_errors('SPHERE_Hband_3g_MCMC', nb_random_models)
+    spf_gpi_not1at90 = measure_spf_errors('GPI_Hband_MCMC',
+                                        nb_random_models,
+                                        Norm_90_inplot=0.93)
+    spf_gpi_h_1at90 = measure_spf_errors('GPI_Hband_MCMC', nb_random_models)
+    spf_gpi_j = measure_spf_errors('GPI_Jband_MCMC', nb_random_models)
+    spf_gpi_k1 = measure_spf_errors('GPI_K1band_MCMC', nb_random_models)
+    spf_gpi_k2 = measure_spf_errors('GPI_K2band_MCMC', nb_random_models)
+
+    spf_gpi_h_fake = measure_spf_errors('GPI_Hband_fake_MCMC', nb_random_models)
+
+    spf_gpi_h_save = measure_spf_errors('GPI_Hband_MCMC', nb_random_models, save = True)
+
+    color0 = 'black'
+    color1 = '#3B73FF'
+    color2 = '#ED0052'
+    color3 = '#00AF64'
+    color4 = '#FFCF0B'
+
+    ####################################################################################
+    ## plot h only
+    ####################################################################################
+    plot.figure()
+    name_pdf = 'compare_SPHERE_GPI_H.pdf'
+
+    plot.fill_between(scattered_angles,
+                    spf_sphere_h['errorbar_sup'],
+                    spf_sphere_h['errorbar_inf'],
+                    facecolor=color0,
+                    alpha=0.1)
+
+    plot.fill_between(scattered_angles,
+                    spf_gpi_not1at90['errorbar_sup'],
+                    spf_gpi_not1at90['errorbar_inf'],
+                    facecolor=color1,
+                    alpha=0.1)
+
+    plot.plot(scattered_angles,
+            spf_sphere_h['best_spf'],
+            linewidth=2,
+            color=color0,
+            label="SPHERE H2 (extraction MCMC, this work)")
+
+    plot.plot(scattered_angles,
+            spf_gpi_not1at90['best_spf'],
+            linewidth=2,
+            color=color1,
+            label="GPI H (extraction MCMC)")
+
+    plot.errorbar(angles_sphere_extractJulien,
+                1.38 * spf_shpere_extractJulien,
+                yerr=errors_sphere_extractJulien,
+                fmt='o',
+                label='SPHERE H2 (previous extraction by M17)',
+                ms=3,
+                capthick=1,
+                capsize=2,
+                elinewidth=1,
+                markeredgewidth=1,
+                color='grey')
+
+    # plot.errorbar(angles_GPIPolK1_extractPauline,
+    #               spf_GPIPolK1_extractPauline,
+    #               yerr=error_GPIPolK1_extractPauline,
+    #               fmt='x',
+    #               label='GPI Pol K1 (extraction P. Arriaga)',
+    #               ms=3,
+    #               capthick=1,
+    #               capsize=2,
+    #               elinewidth=1,
+    #               markeredgewidth=1,
+    #               color=color3)
+
+    plot.legend()
+    plot.yscale('log')
+
+    plot.ylim(bottom=0.3, top=30)
+    plot.xlim(left=0, right=180)
+    plot.xlabel('Scattering angles')
+    plot.ylabel('Normalized total intensity')
+
+    plot.tight_layout()
+
+    plot.savefig(os.path.join(folder_save_pdf, name_pdf))
+
+    plot.close()
+
+    ####################################################################################
+    ## plot all colors
+    ####################################################################################
+    name_pdf = 'compare_GPI_color.pdf'
+    plot.figure()
+
+    plot.fill_between(scattered_angles,
+                    spf_gpi_j['errorbar_sup'],
+                    spf_gpi_j['errorbar_inf'],
+                    facecolor=color4,
+                    alpha=0.1)
+
+    plot.fill_between(scattered_angles,
+                    spf_gpi_h_1at90['errorbar_sup'],
+                    spf_gpi_h_1at90['errorbar_inf'],
+                    facecolor=color1,
+                    alpha=0.1)
+
+    plot.fill_between(scattered_angles,
+                    spf_sphere_h['errorbar_sup'],
+                    spf_sphere_h['errorbar_inf'],
+                    facecolor=color0,
+                    alpha=0.1)
+
+    plot.fill_between(scattered_angles,
+                    spf_gpi_k1['errorbar_sup'],
+                    spf_gpi_k1['errorbar_inf'],
+                    facecolor=color2,
+                    alpha=0.1)
+
+    plot.fill_between(scattered_angles,
+                    spf_gpi_k2['errorbar_sup'],
+                    spf_gpi_k2['errorbar_inf'],
+                    facecolor=color3,
+                    alpha=0.1)
+
+    plot.plot(scattered_angles,
+            spf_gpi_j['best_spf'],
+            linewidth=2,
+            color=color4,
+            label="GPI J (extraction MCMC)")
+
+    plot.plot(scattered_angles,
+            spf_gpi_h_1at90['best_spf'],
+            linewidth=2,
+            color=color1,
+            label="GPI H (extraction MCMC)")
+
+    plot.plot(scattered_angles,
+            spf_sphere_h['best_spf'],
+            linewidth=2,
+            color=color0,
+            label="SPHERE H2 (extraction MCMC)")
+
+    plot.plot(scattered_angles,
+            spf_gpi_k1['best_spf'],
+            linewidth=2,
+            color=color2,
+            label="GPI K1 (extraction MCMC)")
+
+    plot.plot(scattered_angles,
+            spf_gpi_k2['best_spf'],
+            linewidth=2,
+            color=color3,
+            label="GPI K2 (extraction MCMC)")
+
+    plot.legend()
+    plot.yscale('log')
+
+    plot.ylim(bottom=0.3, top=30)
+    plot.xlim(left=0, right=180)
+    plot.xlabel('Scattering angles')
+    plot.ylabel('Normalized total intensity')
+
+    plot.tight_layout()
+
+    plot.savefig(os.path.join(folder_save_pdf, name_pdf))
+
+    plot.close()
+
+
+    ####################################################################################
+    ## 3g plot
+    ####################################################################################
+    name_pdf = 'compare_3g_SPF.pdf'
+    plot.figure()
+
+    plot.fill_between(scattered_angles,
+                    spf_sphere_h['errorbar_sup'],
+                    spf_sphere_h['errorbar_inf'],
+                    facecolor=color0,
+                    alpha=0.1)
+
+    plot.fill_between(scattered_angles,
+                    spf_sphere_h_3g['errorbar_sup'],
+                    spf_sphere_h_3g['errorbar_inf'],
+                    facecolor=color2,
+                    alpha=0.1)
+
+    plot.plot(scattered_angles,
+            spf_sphere_h['best_spf'],
+            linewidth=2,
+            color=color0,
+            label="2 HG SPF (MCMC best model)")
+
+
+    plot.plot(scattered_angles,
+            spf_sphere_h_3g['best_spf'],
+            linewidth=2,
+            color=color2,
+            linestyle = '-.',
+            label="3 HG SPF (MCMC best model)")
+
+
+    plot.plot(scattered_angles,
+            1.38 * hg3g_fitted_Milliextraction,
+            linewidth=2,
+            color=color3,
+            label="3 HG SPF fitted to M17 SPF (MCMC initial point)")
+
+    plot.errorbar(angles_sphere_extractJulien,
+                1.38 * spf_shpere_extractJulien,
+                yerr=errors_sphere_extractJulien,
+                fmt='o',
+                label='Previous extraction by M17',
+                ms=3,
+                capthick=1,
+                capsize=2,
+                elinewidth=1,
+                markeredgewidth=1,
+                color='grey')
+
+    handles, labels = plot.gca().get_legend_handles_labels()
+    order = [3, 2, 1, 0]
+    plot.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
+
+    plot.yscale('log')
+
+    plot.ylim(bottom=0.3, top=30)
+    plot.xlim(left=0, right=180)
+    plot.xlabel('Scattering angles')
+    plot.ylabel('Normalized total intensity')
+
+    plot.tight_layout()
+
+    plot.savefig(os.path.join(folder_save_pdf, name_pdf))
+
+    plot.close()
+
+
+    ####################################################################################
+    ## injected spf plot
+    ####################################################################################
+    name_pdf = 'Comparison_spf_injected_recovered.pdf'
+    plot.figure()
+
+    plot.fill_between(scattered_angles,
+                    spf_gpi_h_fake['errorbar_sup'],
+                    spf_gpi_h_fake['errorbar_inf'],
+                    facecolor=color3,
+                    alpha=0.1)
+
+
+    plot.plot(scattered_angles,
+            spf_gpi_h_fake['best_spf'],
+            linewidth=2,
+            color=color3,
+            label="SPF Recoreved After MCMC")
+
+
+    plot.plot(scattered_angles,
+            injected_hg,
+            linewidth=1.5 ,
+            linestyle = '-.',
+            color=color2,
+            label="SPF Injected into Empty Dataset")
+
+
+    handles, labels = plot.gca().get_legend_handles_labels()
+    order = [1, 0]
+    plot.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
+
+    plot.yscale('log')
+
+    plot.ylim(bottom=0.3, top=30)
+    plot.xlim(left=0, right=180)
+    plot.xlabel('Scattering angles')
+    plot.ylabel('Normalized total intensity')
+
+    plot.tight_layout()
+
+    plot.savefig(os.path.join(folder_save_pdf, name_pdf))
+
+    plot.close()
