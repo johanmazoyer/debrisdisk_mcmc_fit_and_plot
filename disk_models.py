@@ -18,6 +18,156 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
+def hg_1g(scatt_angles, g1, Norm):
+    """
+    take a set of scatt angles and a set of HG parameter and return a
+    1g HG SPF
+
+    Args:
+        scatt_angles: a list of angles in degrees of dimensions N_angles.
+                        The list must contains 90 degree values
+        g1: first HG parameter
+        Norm: Normalisation (value at 90 degree of the function)
+
+    Returns:
+        the 1g SPF, list of dimensions N_angles.
+
+    """
+
+    scattered_angles_rad = np.radians(scatt_angles)
+    cos_phi = np.cos(scattered_angles_rad)
+
+    g1_2 = g1 * g1  #First HG g squared
+    #Constant for HG function
+    k = 1. / (4 * np.pi)
+
+    #Henyey Greenstein function
+    hg1 = k  * (1. - g1_2) / (1. + g1_2 - (2 * g1 * cos_phi))**1.5
+    hg = hg1
+    hg_norm = hg / hg[np.where(scatt_angles == 90)] * Norm
+    return hg_norm
+
+
+
+def hg_2g(scatt_angles, g1, g2, alpha, Norm):
+    """
+    take a set of scatt angles and a set of HG parameter and return a
+    2g HG SPF
+
+    Args:
+        scatt_angles: a list of angles in degrees of dimensions N_angles.
+                        The list must contains 90 degree values
+        g1: first HG parameter
+        g2: second HG parameter
+        alpha: relative weight
+                 hg = alpha * hg1 * hg2 + (1 - alpha) * hg2
+        Norm: Normalisation (value at 90 degree of the function)
+
+    Returns:
+        the 2g SPF, list of dimensions N_angles.
+
+    """
+
+    scattered_angles_rad = np.radians(scatt_angles)
+    cos_phi = np.cos(scattered_angles_rad)
+
+    g1_2 = g1 * g1  #First HG g squared
+    g2_2 = g2 * g2  #Second HG g squared
+    #Constant for HG function
+    k = 1. / (4 * np.pi)
+
+    #Henyey Greenstein function
+    hg1 = k * alpha * (1. - g1_2) / (1. + g1_2 - (2 * g1 * cos_phi))**1.5
+    hg2 = k * (1 - alpha) * (1. - g2_2) / (1. + g2_2 - (2 * g2 * cos_phi))**1.5
+    hg = hg1 + hg2
+    hg_norm = hg / hg[np.where(scatt_angles == 90)] * Norm
+    return hg_norm
+
+
+def hg_3g(scatt_angles, g1, g2, g3, alpha1, alpha2, Norm):
+    """
+    take a set of scatt angles and a set of HG parameter and return a
+    3g HG SPF
+
+    Args:
+        scatt_angles: a list of angles in degrees of dimensions N_angles.
+                        The list must contains 90 degree values
+        g1: first HG parameter
+        g2: second HG parameter
+        g3: third HG parameter
+        alpha1: first relative weight
+        alpha2: second relative weight
+                hg = alpha1 * hg1 + alpha2 * hg2 + (1 - alpha1 - alpha2) * hg3
+        Norm: Normalisation (value at 90 degree of the function)
+
+    Returns:
+        the 3g SPF, list of dimensions N_angles.
+    """
+
+    scattered_angles_rad = np.radians(scatt_angles)
+    cos_phi = np.cos(scattered_angles_rad)
+
+    g1_2 = g1 * g1  #First HG g squared
+    g2_2 = g2 * g2  #Second HG g squared
+    g3_2 = g3 * g3  #Third HG g squared
+
+    #Constant for HG function
+    k = 1. / (4 * np.pi)
+
+    #Henyey Greenstein function
+    hg1 = k * (1. - g1_2) / (1. + g1_2 - (2 * g1 * cos_phi))**1.5
+    hg2 = k * (1. - g2_2) / (1. + g2_2 - (2 * g2 * cos_phi))**1.5
+    hg3 = k * (1. - g3_2) / (1. + g3_2 - (2 * g3 * cos_phi))**1.5
+    hg = alpha1 * hg1 + alpha2 * hg2 + (1 - alpha1 - alpha2) * hg3
+
+    hg_norm = hg / hg[np.where(scatt_angles == 90)] * Norm
+
+    return hg_norm
+
+
+def log_hg_2g(scatt_angles, g1, g2, alpha, Norm):
+    """
+    take a set of scatt angles and a set of HG parameter and return
+    the log of a 2g HG SPF (usefull to fit from a set of points)
+
+    Args:
+        scatt_angles: a list of angles in degrees of dimensions N_angles.
+                        The list must contains 90 degree values
+        g1: first HG parameter
+        g2: second HG parameter
+        alpha: relative weight
+                 hg = alpha * hg1 * hg2 + (1 - alpha) * hg2
+        Norm: Normalisation (value at 90 degree of the function)
+
+    Returns:
+        the log of the 2g SPF, list of dimensions N_angles.
+
+    """
+
+    return np.log(hg_2g(scatt_angles, g1, g2, alpha, Norm))
+
+
+def log_hg_3g(scatt_angles, g1, g2, g3, alpha1, alpha2, Norm):
+    """
+    take a set of scatt angles and a set of HG parameter and return the
+    log of the 3g HG SPF (usefull to fit from a set of points)
+
+    Args:
+        scatt_angles: a list of angles in degrees of dimensions N_angles.
+                        The list must contains 90 degree values
+        g1: first HG parameter
+        g2: second HG parameter
+        g3: third HG parameter
+        alpha1: first relative weight
+        alpha2: second relative weight
+                hg = alpha1 * hg1 + alpha2 * hg2 + (1 - alpha1 - alpha2) * hg3
+        Norm: Normalisation (value at 90 degree of the function)
+
+    Returns:
+        the log of the 3g SPF, list of dimensions N_angles.
+    """
+    return np.log(hg_3g(scatt_angles, g1, g2, g3, alpha1, alpha2, Norm))
+
 def integrand_dxdy_1g(xp, yp_dy2, yp2, zp, zp2, zpsi_dx, zpci, R1, R2, beta,
                       a_r, g1, g1_2, ci, si, maxe, dx, dy,
                       k):

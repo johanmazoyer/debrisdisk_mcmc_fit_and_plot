@@ -206,7 +206,6 @@ def logp(theta):
     prior_rout = 1.
     # define the prior values
     if (r1 < 60 or r1 > 80):
-        print('a')
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
@@ -214,14 +213,12 @@ def logp(theta):
     # - rout = Logistic We arbitralily cut the prior at r2 = 100
     # (~25 AU large) because this parameter is very limited by the ADI
     if ((r2 < 82) and (r2 > 102)):
-        print('b')
         return -np.inf
     else:
         prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 100)))
         # prior_rout = prior_rout  *1. # or we can just use a flat prior
 
     if (beta < 1 or beta > 30):
-        print('c')
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
@@ -232,7 +229,6 @@ def logp(theta):
     #    prior_rout = prior_rout  *1.
 
     if (inc < 70 or inc > 80):
-        print('d')
         return -np.inf
     else:
         prior_rout = prior_rout * 1.

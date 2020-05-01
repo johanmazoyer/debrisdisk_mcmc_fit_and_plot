@@ -317,6 +317,7 @@ def make_corner_plot(params_mcmc_yaml):
         quants = (0.001, 0.5, 0.999)
 
     #### Check truths = bests parameters
+    
     if 'Fake' in file_prefix:
         shouldweplotalldatapoints = True
     else:
