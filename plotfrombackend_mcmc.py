@@ -8,7 +8,9 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
 
-default_parameter_file = 'FakeHr4796brigth_MCMC_RDI.yaml'
+# default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'
+default_parameter_file = 'FakeHr4796faint_MCMC_ADI.yaml'
+
 
 import glob
 import socket
@@ -337,17 +339,17 @@ def make_corner_plot(params_mcmc_yaml):
             params_mcmc_yaml['r1_init'], params_mcmc_yaml['r2_init'],
             params_mcmc_yaml['beta_init'], params_mcmc_yaml['inc_init'],
             params_mcmc_yaml['pa_init'], params_mcmc_yaml['dx_init'],
-            params_mcmc_yaml['dy_init'], params_mcmc_yaml['dy_init'],
-            params_mcmc_yaml['N_init'], params_mcmc_yaml['g2_init'],
+            params_mcmc_yaml['dy_init'], params_mcmc_yaml['N_init'],
+            params_mcmc_yaml['g1_init'], params_mcmc_yaml['g2_init'],
             params_mcmc_yaml['alpha1_init']
         ]
 
         green_line = mlines.Line2D([], [],
-                                   color='green',
+                                   color='red',
                                    label='True injected values')
         plt.legend(handles=[green_line],
-                   loc='upper right',
-                   bbox_to_anchor=(-1, 10),
+                   loc='center right',
+                   bbox_to_anchor=(0.5, 8),
                    fontsize=30)
 
         # log_prob_samples_flat = reader.get_log_prob(discard=burnin,
@@ -371,15 +373,15 @@ def make_corner_plot(params_mcmc_yaml):
         # Loop over the diagonal
         for i in range(n_dim_mcmc):
             ax = axes[i, i]
-            ax.axvline(initial_values[i], color="g")
+            ax.axvline(initial_values[i], color="r")
             # ax.axvline(samples[wheremin0, i], color="r")
 
         # Loop over the histograms
         for yi in range(n_dim_mcmc):
             for xi in range(yi):
                 ax = axes[yi, xi]
-                ax.axvline(initial_values[xi], color="g")
-                ax.axhline(initial_values[yi], color="g")
+                ax.axvline(initial_values[xi], color="r")
+                ax.axhline(initial_values[yi], color="r")
 
                 # ax.axvline(samples[wheremin0, xi], color="r")
                 # ax.axhline(samples[wheremin0, yi], color="r")
@@ -387,9 +389,7 @@ def make_corner_plot(params_mcmc_yaml):
     fig.subplots_adjust(hspace=0)
     fig.subplots_adjust(wspace=0)
 
-    fig.gca().annotate(band_name +
-                       ": {0:,} iterations (with {1:,} burn-in)".format(
-                           reader.iteration, burnin),
+    fig.gca().annotate(band_name,
                        xy=(0.55, 0.99),
                        xycoords="figure fraction",
                        xytext=(-20, -10),
@@ -398,9 +398,19 @@ def make_corner_plot(params_mcmc_yaml):
                        va="top",
                        fontsize=44)
 
-    fig.gca().annotate("{0:,} walkers: {1:,} models".format(
-        nwalkers, reader.iteration * nwalkers),
+    fig.gca().annotate("{0:,} iterations (+ {1:,} burn-in)".format(
+                           reader.iteration - burnin, burnin),
                        xy=(0.55, 0.95),
+                       xycoords="figure fraction",
+                       xytext=(-20, -10),
+                       textcoords="offset points",
+                       ha="center",
+                       va="top",
+                       fontsize=44)
+
+    fig.gca().annotate("with {0:,} walkers: {1:,} models".format(
+        nwalkers, reader.iteration * nwalkers),
+                       xy=(0.55, 0.91),
                        xycoords="figure fraction",
                        xytext=(-20, -10),
                        textcoords="offset points",
@@ -1109,18 +1119,23 @@ def print_geometry_parameter(params_mcmc_yaml, hdr):
 def measure_spf_errors(params_mcmc_yaml,
                        Number_rand_mcmc,
                        Norm_90_inplot=1.,
+                       median_or_max='median',
                        save=False):
     """
     take a set of scatt angles and a set of HG parameter and return
     the log of a 2g HG SPF (usefull to fit from a set of points)
 
     Args:
-        params_mcmc_yaml: name of the yaml_ parameter file
+        params_mcmc_yaml: dic, all the parameters of the MCMC and klip
+                            read from yaml file
         Number_rand_mcmc: number of randomnly selected psf we use to
                         plot the error bars
         Norm_90_inplot: the value at which you want to normalize the spf
                         in the plot ay 90 degree (to re-measure the error
                         bars properly)
+        median_or_max: 'median' or 'max' use 50% percentile 
+                        or maximum of likelyhood as "best model". default 'median'
+        save: 
 
     Returns:
         a dic that contains the 'best_spf', 'errorbar_sup',
@@ -1129,6 +1144,7 @@ def measure_spf_errors(params_mcmc_yaml,
 
     dico_return = dict()
 
+    burnin = params_mcmc_yaml['BURNIN']
     nwalkers = params_mcmc_yaml['NWALKERS']
     DATADIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
     mcmcresultdir = os.path.join(DATADIR, 'results_MCMC')
@@ -1145,18 +1161,27 @@ def measure_spf_errors(params_mcmc_yaml,
     scattered_angles = np.arange(np.round(max_scat - min_scat)) + np.round(
         np.min(min_scat))
 
+
     #we only exctract the last itearations, assuming it converged
-    chain_flat = reader.get_chain(discard=0, flat=True)
-    burnin = np.clip(reader.iteration - 10 * Number_rand_mcmc // nwalkers, 0,
-                     None)
     chain_flat = reader.get_chain(discard=burnin, flat=True)
+ 
+    #if we use the argmax(chi2) as the 'best model' we need to find this maximum 
+    if median_or_max == 'max':
+        log_prob_samples_flat = reader.get_log_prob(discard=burnin,
+                                                    flat=True)
+        wheremax = np.where(log_prob_samples_flat == np.max(log_prob_samples_flat))
+        wheremax0 = np.array(wheremax).flatten()[0]
 
     if (SPF_MODEL == 'hg_1g'):
         norm_chain = np.exp(chain_flat[:, 7])
         g1_chain = chain_flat[:, 8]
 
-        bestmodel_Norm = np.percentile(norm_chain, 50)
-        bestmodel_g1 = np.percentile(g1_chain, 50)
+        if median_or_max == 'median':
+            bestmodel_Norm = np.percentile(norm_chain, 50)
+            bestmodel_g1 = np.percentile(g1_chain, 50)
+        elif median_or_max == 'max':
+            bestmodel_Norm = norm_chain[wheremax0]
+            bestmodel_g1 = g1_chain[wheremax0]
 
         Normalization = Norm_90_inplot
 
@@ -1171,10 +1196,19 @@ def measure_spf_errors(params_mcmc_yaml,
         g2_chain = chain_flat[:, 9]
         alph1_chain = chain_flat[:, 10]
 
-        bestmodel_Norm = np.percentile(norm_chain, 50)
-        bestmodel_g1 = np.percentile(g1_chain, 50)
-        bestmodel_g2 = np.percentile(g2_chain, 50)
-        bestmodel_alpha1 = np.percentile(alph1_chain, 50)
+        if median_or_max == 'median':
+            bestmodel_Norm = np.percentile(norm_chain, 50)
+            bestmodel_g1 = np.percentile(g1_chain, 50)
+            bestmodel_g2 = np.percentile(g2_chain, 50)
+            bestmodel_alpha1 = np.percentile(alph1_chain, 50)
+
+        elif median_or_max == 'max':
+            bestmodel_Norm = norm_chain[wheremax0]
+            bestmodel_g1 = g1_chain[wheremax0]
+            bestmodel_g2 = g2_chain[wheremax0]
+            bestmodel_alpha1 = alph1_chain[wheremax0]
+
+
         Normalization = Norm_90_inplot
 
         if save == True:
@@ -1217,13 +1251,26 @@ def measure_spf_errors(params_mcmc_yaml,
         g3_chain = chain_flat[:, 11]
         alph2_chain = chain_flat[:, 12]
 
-        bestmodel_Norm = np.percentile(norm_chain, 50)
-        bestmodel_g1 = np.percentile(g1_chain, 50)
-        bestmodel_g2 = np.percentile(g2_chain, 50)
-        bestmodel_alpha1 = np.percentile(alph1_chain, 50)
-        bestmodel_g3 = np.percentile(g3_chain, 50)
-        bestmodel_alpha2 = np.percentile(alph2_chain, 50)
+
+        if median_or_max == 'median':
+            bestmodel_Norm = np.percentile(norm_chain, 50)
+            bestmodel_g1 = np.percentile(g1_chain, 50)
+            bestmodel_g2 = np.percentile(g2_chain, 50)
+            bestmodel_alpha1 = np.percentile(alph1_chain, 50)
+            bestmodel_g3 = np.percentile(g3_chain, 50)
+            bestmodel_alpha2 = np.percentile(alph2_chain, 50)
+
+        elif median_or_max == 'max':
+            bestmodel_Norm = norm_chain[wheremax0]
+            bestmodel_g1 = g1_chain[wheremax0]
+            bestmodel_g2 = g2_chain[wheremax0]
+            bestmodel_alpha1 = alph1_chain[wheremax0]
+            bestmodel_g3 = g3_chain[wheremax0]
+            bestmodel_alpha2 = alph2_chain[wheremax0]
+
+        
         Normalization = Norm_90_inplot
+        
 
         # we normalize the best model at 90 either by the value found
         # by the MCMC if we want to save or by the value in the
@@ -1303,7 +1350,7 @@ def measure_spf_errors(params_mcmc_yaml,
     dico_return['errorbar'] = errorbar
 
     dico_return['scattered_angles'] = scattered_angles
-    
+
     return dico_return
 
 
@@ -1324,7 +1371,7 @@ def compare_injected_spfs(params_mcmc_yaml):
     name_pdf = file_prefix + '_comparison_spf.pdf'
     plt.figure()
 
-    spf_fake_recovered = measure_spf_errors(params_mcmc_yaml, 100)
+    spf_fake_recovered = measure_spf_errors(params_mcmc_yaml, 100, median_or_max='max')
 
     scattered_angles = spf_fake_recovered['scattered_angles']
 
@@ -1383,6 +1430,7 @@ if __name__ == '__main__':
               'r') as yaml_file:
         params_mcmc_yaml = yaml.load(yaml_file)
 
+    params_mcmc_yaml['BAND_NAME'] = params_mcmc_yaml['BAND_NAME'] + ' (KL#: ' + str(params_mcmc_yaml['KLMODE_NUMBER']) +')'
     print(params_mcmc_yaml['BAND_NAME'])
     DATADIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
     klipdir = os.path.join(DATADIR, 'klip_fm_files')
@@ -1403,7 +1451,7 @@ if __name__ == '__main__':
 
     # # Plot the PDFs
     make_corner_plot(params_mcmc_yaml)
-
+    
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)
 
