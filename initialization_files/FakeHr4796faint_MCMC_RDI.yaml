@@ -19,7 +19,7 @@ RM_FILE_DISK_CROSS_SATSPOTS: False
 BAND_DIR: hd_48524_20180128_H_Spec_hr4796like_faint  # name of folder where are the data (from basedir)
 RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
                         # Carefull, this dir must also contains the data
-FILE_PREFIX: Fake_hr4796faint_rdi  #prefix for all saved files (carefull not to erase your results)
+FILE_PREFIX: Fake_hr4796faint_rdikl5  #prefix for all saved files (carefull not to erase your results)
 BAND_NAME: Injected Faint HR 4796 RDI      #for plot titles uniquely
 
 # STAR OBSERVATION PARAMETERS
