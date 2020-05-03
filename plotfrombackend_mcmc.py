@@ -8,8 +8,8 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
 
-# default_parameter_file = 'FakeHr4796bright_MCMC_RDI.yaml'
-default_parameter_file = 'FakeHr4796faint_MCMC_ADI.yaml'
+default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'
+# default_parameter_file = 'FakeHr4796faint_MCMC_RDI.yaml'
 
 
 import glob
@@ -184,6 +184,12 @@ def make_chain_plot(params_mcmc_yaml):
     name_h5 = file_prefix + '_backend_file_mcmc'
 
     reader = backends.HDFBackend(os.path.join(mcmcresultdir, name_h5 + '.h5'))
+    
+    iter = reader.iteration
+    if iter < burnin - 1:
+        burnin =0
+        params_mcmc_yaml['BURNIN'] = 0 
+
     chain = reader.get_chain(discard=0, thin=thin)
     log_prob_samples_flat = reader.get_log_prob(discard=burnin,
                                                 flat=True,
