@@ -346,8 +346,8 @@ def make_corner_plot(params_mcmc_yaml):
             params_mcmc_yaml['beta_init'], params_mcmc_yaml['inc_init'],
             params_mcmc_yaml['pa_init'], params_mcmc_yaml['dx_init'],
             params_mcmc_yaml['dy_init'], params_mcmc_yaml['N_init'],
-            params_mcmc_yaml['g1_init'], params_mcmc_yaml['g2_init'],
-            params_mcmc_yaml['alpha1_init']
+            100 *params_mcmc_yaml['g1_init'], 100 *params_mcmc_yaml['g2_init'],
+            100 *params_mcmc_yaml['alpha1_init']
         ]
 
         green_line = mlines.Line2D([], [],
