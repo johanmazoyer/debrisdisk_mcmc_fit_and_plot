@@ -9,7 +9,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # different computer without changing this).
 # basedir = '/Users/jmazoyer/Dropbox/Work/python/python_data/disk_mcmc/spie_paper/hr4796 like/'
 
-default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'
+default_parameter_file = 'FakeHr4796bright_MCMC_RDI.yaml'
 # default_parameter_file = 'FakeHr4796faint_MCMC_RDI.yaml'
 
 
