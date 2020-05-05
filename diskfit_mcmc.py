@@ -12,7 +12,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # different computer without changing this).
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
 
-default_parameter_file = 'FakeHr4796faint_MCMC_RDI.yaml'  # name of the parameter file
+default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
 # you can also call it with the python function argument -p
 
 MPI = False  ## by default the MCMC is not mpi. you can change it
@@ -1103,7 +1103,7 @@ if __name__ == '__main__':
 
     if args.mpi:  # MPI or not for parallelization.
         MPI = True
-        progress = True
+        progress = False
         mpistr = "\n In MPI mode"
     else:
         MPI = False
