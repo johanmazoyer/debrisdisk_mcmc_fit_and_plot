@@ -1103,7 +1103,7 @@ if __name__ == '__main__':
 
     if args.mpi:  # MPI or not for parallelization.
         MPI = True
-        progress = False
+        progress = True
         mpistr = "\n In MPI mode"
     else:
         MPI = False
@@ -1249,12 +1249,6 @@ if __name__ == '__main__':
 
         sampler.run_mcmc(init_walkers, N_ITER_MCMC, progress=progress)
 
-        if sampler.iteration % 50 == 1:
-            timenow = datetime.now() - startTime
-            print(mpistr +
-                  ", time for {0} iterations with {1} walkers: {3} ({4} per model)"
-                  .format(sampler.iteration, NWALKERS, timenow, timenow /
-                          (sampler.iteration * NWALKERS)))
 
     print(mpistr +
           ", time {0} iterations with {1} walkers and {2} cpus: {3}".format(
