@@ -424,14 +424,9 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
 
     ### This is the only part of the code different for GPI IFS anf SPHERE
-    # For SPHERE We load the PSF and the parangs, crop the data
-
+    # For SPHERE We load and crop the PSF and the parangs
     # For GPI, we load the raw data, emasure hte PSF from sat spots and
     # collaspe the data
-    DATA_FILES_STR: center_im.fits  #name of Input data cube of dimensions (Nfiles, Nwvs, y, x)
-    PSF_FILES_STR: median_unsat.fits  # PSF cube of dimensions (Nwvs, y, x)
-    ANGLES_STR: otnth.fits  # A fits table with parallactic angle
-    BAND_NAME: "H2H3"  #  IRDIS band name ("H2H3", "H3H4", "K1K2", etc.)
 
     if instrument == 'SPHERE':
         # only for SPHERE. This part is very dependent on the format of the data since there are
