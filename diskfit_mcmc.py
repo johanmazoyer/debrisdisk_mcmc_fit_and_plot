@@ -12,7 +12,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # different computer without changing this).
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
 
-default_parameter_file = 'FakeHr4796faint_MCMC_ADI.yaml'  # name of the parameter file
+default_parameter_file = 'FakeHr4796faint_MCMC_ADI_bis.yaml'  # name of the parameter file
 # you can also call it with the python function argument -p
 
 MPI = False  ## by default the MCMC is not mpi. you can change it
@@ -54,6 +54,7 @@ from emcee import EnsembleSampler
 from emcee import backends
 
 import pyklip.instruments.GPI as GPI
+import pyklip.instruments.SPHERE as SPHERE
 import pyklip.instruments.Instrument as Instrument
 
 import pyklip.parallelized as parallelized
@@ -404,6 +405,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     Returns:
         a dataset a pyklip instance of Instrument.Data
     """
+    instrument = params_mcmc_yaml['INSTRUMENT']
 
     # if first_time=True, all the masks, reduced data, noise map, and KL vectors
     # are recalculated. be careful, for some reason the KL vectors are slightly
@@ -426,96 +428,38 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
     # For GPI, we load the raw data, emasure hte PSF from sat spots and
     # collaspe the data
+    DATA_FILES_STR: center_im.fits  #name of Input data cube of dimensions (Nfiles, Nwvs, y, x)
+    PSF_FILES_STR: median_unsat.fits  # PSF cube of dimensions (Nwvs, y, x)
+    ANGLES_STR: otnth.fits  # A fits table with parallactic angle
+    BAND_NAME: "H2H3"  #  IRDIS band name ("H2H3", "H3H4", "K1K2", etc.)
 
-    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata':
+    if instrument == 'SPHERE':
         # only for SPHERE. This part is very dependent on the format of the data since there are
         # several pipelines to reduce the data, which have there own way of preparing the
         # frames from the raw data. A. Vigan has made a pyklip mode to treat the data
         # created from his pipeline, but I've never used it.
+        data_files_str = params_mcmc_yaml['DATA_FILES_STR']
+        psf_files_str = params_mcmc_yaml['PSF_FILES_STR']
+        angles_str = params_mcmc_yaml['ANGLES_STR']
+        band_name = params_mcmc_yaml['BAND_NAME']
+
+        dataset = SPHERE.Irdis(data_files_str, psf_files_str, angles_str, band_name, psf_cube_size=31)
 
         if first_time:
-            psf_init = fits.getdata(os.path.join(datadir,
-                                                 "psf_sphere_h2.fits"))
-            size_init = psf_init.shape[1]
-            size_small = 31
-            small_psf = psf_init[size_init // 2 -
-                                 size_small // 2:size_init // 2 +
-                                 size_small // 2 + 1, size_init // 2 -
-                                 size_small // 2:size_init // 2 +
-                                 size_small // 2 + 1]
+            
 
-            small_psf = small_psf / np.max(small_psf)
-            small_psf[np.where(small_psf < 0.005)] = 0.
-            # crop, normalize and clean the SPHERE PSF. We call is SatSpotPSF
-            # so that it's transparent in the code, but it's obviously not a sat spot PSF,
-            # because there are no sat spots in GPI data.
-
+            #collapse the data spectrally
+            dataset.spectral_collapse(align_frames=True,
+                                  aligned_center=aligned_center)
+                                  
             fits.writeto(os.path.join(klipdir,
-                                      file_prefix + '_SatSpotPSF.fits'),
-                         small_psf,
+                                      file_prefix + '_SmallPSF.fits'),
+                         dataset.psfs,
                          overwrite='True')
 
-            # load the raw data
-            datacube_sphere_init = fits.getdata(
-                os.path.join(datadir, "cube_H2.fits"))
-            parangs = fits.getdata(os.path.join(datadir, "parang.fits"))
-            parangs = parangs - 135.99 + 90  ## true north
+            
 
-            datacube_sphere_init = np.delete(datacube_sphere_init, (72, 81),
-                                             0)  ## 2 slices are bad
-            parangs = np.delete(parangs, (72, 81), 0)  ## 2 slices are bad
-
-            olddim = datacube_sphere_init.shape[1]
-
-            # we resize the SPHERE data to the same size as GPI (281)
-            # to avoid a problem of centering.
-            # Main thing to be carefull: the data and the PSFs for all instrument used
-            # must be centered on the same way (on a pixel or between pixel) and must have the
-            # same parity. We chose here, as usual in pyklip. odd number of pixel dim = 281 and
-            # centering of the PSF and data on the pixel dim//2 = 140
-            # Also be careful in the cropping, part of the code assumes square data (dimx = dimy)
-            newdim = 281
-            datacube_sphere_newdim = np.zeros(
-                (datacube_sphere_init.shape[0], newdim, newdim))
-
-            for i in range(datacube_sphere_init.shape[0]):
-                datacube_sphere_newdim[i, :, :] = datacube_sphere_init[
-                    i, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1,
-                    olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1]
-
-            # we flip the dataset (and inverse the parangs) to obtain
-            # the good PA after pyklip reduction. Once again, dependent on how raw data were produced
-            parangs = -parangs
-            nb_images = datacube_sphere_newdim.shape[0]  # pylint: disable=E1136
-            for i in range(nb_images):
-                datacube_sphere_newdim[i] = np.flip(datacube_sphere_newdim[i],
-                                                    axis=0)
-
-            datacube_sphere = datacube_sphere_newdim
-
-            fits.writeto(os.path.join(datadir,
-                                      file_prefix + '_true_parangs.fits'),
-                         parangs,
-                         overwrite='True')
-
-            fits.writeto(os.path.join(datadir,
-                                      file_prefix + '_true_dataset.fits'),
-                         datacube_sphere,
-                         overwrite='True')
-
-        datacube_sphere = fits.getdata(
-            os.path.join(datadir, file_prefix + '_true_dataset.fits'))
-        parangs_sphere = fits.getdata(
-            os.path.join(datadir, file_prefix + '_true_parangs.fits'))
-
-        size_datacube = datacube_sphere.shape
-        centers_sphere = np.zeros((size_datacube[0], 2)) + aligned_center
-        dataset = Instrument.GenericData(datacube_sphere,
-                                         centers_sphere,
-                                         parangs=parangs_sphere,
-                                         wvs=None)
-
-    else:
+    elif instrument == 'GPI':
         #only for GPI. Data reduction is simpler for GPI but PSF
         # measurement form satspot is more complicated.
 
@@ -569,7 +513,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
             #save the psf
             fits.writeto(os.path.join(klipdir,
-                                      file_prefix + '_SatSpotPSF.fits'),
+                                      file_prefix + '_SmallPSF.fits'),
                          instrument_psf,
                          header=hdr_psf,
                          overwrite=True)
@@ -578,7 +522,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
         # load the bad slices and bad files in the psf header
         hdr_psf = fits.getheader(
-            os.path.join(klipdir, file_prefix + '_SatSpotPSF.fits'))
+            os.path.join(klipdir, file_prefix + '_SmallPSF.fits'))
 
         # We can choose to remove completely from the correction
         # the angles where the disk intersect the disk (they are exlcuded
@@ -741,7 +685,7 @@ def initialize_rdi(dataset, params_mcmc_yaml):
         # H band and H band data have very little thermal noise.
 
         hdr_psf = fits.getheader(
-            os.path.join(klipdir, file_prefix + '_SatSpotPSF.fits'))
+            os.path.join(klipdir, file_prefix + '_SmallPSF.fits'))
 
         # in IFS mode, we always exclude the slices with too much noise. We
         # chose the criteria as "SNR(mean of sat spot)< 3""
@@ -1173,7 +1117,7 @@ if __name__ == '__main__':
     NOISE = fits.getdata(os.path.join(klipdir, FILE_PREFIX + '_noisemap.fits'))
 
     # load PSF and make it global
-    PSF = fits.getdata(os.path.join(klipdir, FILE_PREFIX + '_SatSpotPSF.fits'))
+    PSF = fits.getdata(os.path.join(klipdir, FILE_PREFIX + '_SmallPSF.fits'))
 
     # load initial parameter value and make them global
     THETA_INIT = from_param_to_theta_init(params_mcmc_yaml)
@@ -1249,7 +1193,6 @@ if __name__ == '__main__':
                                   backend=BACKEND)
 
         sampler.run_mcmc(init_walkers, N_ITER_MCMC, progress=progress)
-
 
     print(mpistr +
           ", time {0} iterations with {1} walkers and {2} cpus: {3}".format(

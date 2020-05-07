@@ -14,7 +14,7 @@ ALIGNED_CENTER: [140.,140.] #image center in your model, also use to center the 
 # if False: frames are not removed
 RM_FILE_DISK_CROSS_SATSPOTS: False 
 # The images where the disk is on the satspots are autonatically remove to measure the PSF
-
+INSTRUMENT: GPI  # SPHERE or GPI
 # LOCATION AND NAME PARAMETERS. Parameters used to save the outputs or plots
 BAND_DIR: hd_48524_20180128_H_Spec_hr4796like_faint  # name of folder where are the data (from basedir)
 RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
@@ -27,7 +27,7 @@ DISTANCE_STAR: 72.0   #distance of the disk in pc
 PIXSCALE_INS: 0.01414  #picscale of your data
 
 # MCMC PARAMETERS
-NEW_BACKEND: False
+NEW_BACKEND: True
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
 NWALKERS: 256 #Number of walkers (should be at least twice the # parameters)
 N_ITER_MCMC: 10000 #Number of interation

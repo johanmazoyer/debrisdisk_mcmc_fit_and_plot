@@ -14,7 +14,7 @@ ALIGNED_CENTER: [140.,140.] #image center in your model, also use to center the 
 # if False: frames are not removed
 RM_FILE_DISK_CROSS_SATSPOTS: False 
 # The images where the disk is on the satspots are autonatically remove to measure the PSF
-
+INSTRUMENT: GPI  # SPHERE or GPI
 # LOCATION AND NAME PARAMETERS. Parameters used to save the outputs or plots
 BAND_DIR: hd_48524_20180128_H_Spec_hd32297like_bright  # name of folder where are the data (from basedir)
 RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 

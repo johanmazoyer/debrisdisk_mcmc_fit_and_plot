@@ -682,7 +682,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
         # theta_ml[6] = 0.99949596
         # theta_ml[7] = -0.03397267
 
-    psf = fits.getdata(os.path.join(klipdir, file_prefix + '_SatSpotPSF.fits'))
+    psf = fits.getdata(os.path.join(klipdir, file_prefix + '_SmallPSF.fits'))
 
     mask2generatedisk = fits.getdata(
         os.path.join(klipdir, file_prefix + '_mask2generatedisk.fits'))
@@ -713,7 +713,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
         # load the bad slices and bad files in the psf header
         hdr_psf = fits.getheader(
-            os.path.join(klipdir, file_prefix + '_SatSpotPSF.fits'))
+            os.path.join(klipdir, file_prefix + '_SmallPSF.fits'))
 
         # We can choose to remove completely from the correction
         # the angles where the disk intersect the disk (they are exlcuded
