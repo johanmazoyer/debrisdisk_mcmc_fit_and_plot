@@ -55,7 +55,6 @@ from emcee import backends
 
 import pyklip.instruments.GPI as GPI
 import pyklip.instruments.SPHERE as SPHERE
-import pyklip.instruments.Instrument as Instrument
 
 import pyklip.parallelized as parallelized
 from pyklip.fmlib.diskfm import DiskFM
@@ -429,24 +428,18 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     # collaspe the data
 
     if instrument == 'SPHERE':
-        # only for SPHERE. This part is very dependent on the format of the data since there are
-        # several pipelines to reduce the data, which have there own way of preparing the
-        # frames from the raw data. A. Vigan has made a pyklip mode to treat the data
-        # created from his pipeline, but I've never used it.
+        # only for SPHERE. 
         data_files_str = params_mcmc_yaml['DATA_FILES_STR']
         psf_files_str = params_mcmc_yaml['PSF_FILES_STR']
         angles_str = params_mcmc_yaml['ANGLES_STR']
         band_name = params_mcmc_yaml['BAND_NAME']
 
         dataset = SPHERE.Irdis(data_files_str, psf_files_str, angles_str, band_name, psf_cube_size=31)
-
-        if first_time:
-            
-
-            #collapse the data spectrally
-            dataset.spectral_collapse(align_frames=True,
+        #collapse the data spectrally
+        dataset.spectral_collapse(align_frames=True,
                                   aligned_center=aligned_center)
-                                  
+        
+        if first_time:     
             fits.writeto(os.path.join(klipdir,
                                       file_prefix + '_SmallPSF.fits'),
                          dataset.psfs,

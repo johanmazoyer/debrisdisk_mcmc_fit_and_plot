@@ -9,8 +9,8 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # different computer without changing this).
 # basedir = '/Users/jmazoyer/Dropbox/Work/python/python_data/disk_mcmc/spie_paper/hr4796 like/'
 
-default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'
-default_parameter_file = 'FakeHr4796faint_MCMC_RDI.yaml'
+default_parameter_file = 'FakeHr4796faint_MCMC_ADI.yaml'
+default_parameter_file = 'FakeHr4796faint_MCMC_ADI_bis.yaml'
 
 
 import glob
@@ -37,7 +37,7 @@ import corner
 from emcee import backends
 
 import pyklip.instruments.GPI as GPI
-import pyklip.instruments.Instrument as Instrument
+import pyklip.instruments.SPHERE as SPHERE
 from pyklip.fmlib.diskfm import DiskFM
 
 from disk_models import gen_disk_dxdy_1g, gen_disk_dxdy_2g, gen_disk_dxdy_3g
@@ -689,24 +689,25 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     mask2generatedisk[np.where(mask2generatedisk == 0.)] = np.nan
     WHEREMASK2GENERATEDISK = (mask2generatedisk != mask2generatedisk)
+    
+    instrument = params_mcmc_yaml['INSTRUMENT']
 
     # load the raw data (necessary to create the DiskFM obj)
     # this is the only part different for SPHERE and GPI
 
-    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata':
-        #only for SPHERE
-        datacube_sphere = fits.getdata(
-            os.path.join(DATADIR, file_prefix + '_true_dataset.fits'))
-        parangs_sphere = fits.getdata(
-            os.path.join(DATADIR, file_prefix + '_true_parangs.fits'))
+    if instrument == 'SPHERE':
+         # only for SPHERE. 
+        data_files_str = params_mcmc_yaml['DATA_FILES_STR']
+        psf_files_str = params_mcmc_yaml['PSF_FILES_STR']
+        angles_str = params_mcmc_yaml['ANGLES_STR']
+        band_name = params_mcmc_yaml['BAND_NAME']
 
-        size_datacube = datacube_sphere.shape
-        centers_sphere = np.zeros((size_datacube[0], 2)) + aligned_center
-        dataset = Instrument.GenericData(datacube_sphere,
-                                         centers_sphere,
-                                         parangs=parangs_sphere,
-                                         wvs=None)
-    else:
+        dataset = SPHERE.Irdis(data_files_str, psf_files_str, angles_str, band_name, psf_cube_size=31)
+        #collapse the data spectrally
+        dataset.spectral_collapse(align_frames=True,
+                                  aligned_center=aligned_center)
+    elif instrument == 'GPI':
+
         #only for GPI
         filelist = sorted(glob.glob(os.path.join(DATADIR,
                                                  "*_distorcorr.fits")))
@@ -818,9 +819,6 @@ def best_model_plot(params_mcmc_yaml, hdr):
     #Set the colormap
     vmin = 0.3 * np.min(disk_ml_FM)
     vmax = 0.9 * np.max(disk_ml_FM)
-    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata':
-        vmin = -22.466
-        vmax = 102.864
 
     #The convolved model
     if file_prefix == 'Hband_hd48524_fake':
@@ -890,7 +888,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
     ax1.set_title("Residuals", fontsize=caracsize, pad=caracsize / 3.)
 
     # make the colobar ticks integer only for gpi
-    if params_mcmc_yaml['BAND_DIR'] != 'SPHERE_Hdata':
+    if instrument == 'SPHERE':
         tick_int = list(np.arange(int(np.round(vmax) // 2) + 1))
         tick_int_st = [str(i) for i in tick_int]
         cbar = fig.colorbar(cax, ticks=tick_int, fraction=0.046, pad=0.04)
@@ -917,7 +915,8 @@ def best_model_plot(params_mcmc_yaml, hdr):
     # The model
     ax1 = fig.add_subplot(231)
     vmax_model = int(np.round(np.max(disk_ml_crop) / 1.5))
-    if params_mcmc_yaml['BAND_DIR'] == 'SPHERE_Hdata':
+    if instrument == 'SPHERE':
+
         vmax_model = 433
     cax = plt.imshow(disk_ml_crop,
                      origin='lower',
