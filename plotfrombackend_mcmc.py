@@ -10,7 +10,6 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # basedir = '/Users/jmazoyer/Dropbox/Work/python/python_data/disk_mcmc/spie_paper/hr4796 like/'
 
 default_parameter_file = 'FakeHr4796faint_MCMC_ADI.yaml'
-default_parameter_file = 'FakeHr4796faint_MCMC_ADI_bis.yaml'
 
 
 import glob

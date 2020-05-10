@@ -1,5 +1,5 @@
 # PYKLIP PARAMETERS
-FIRST_TIME: False
+FIRST_TIME: True
 #if FIRST_TIME=True the masks, reduced data, noise map, PSF lib, KL vectors are (re)calculated.
 MODE: RDI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
 DO_RDI_CORRELATION: True # Measure the correlation matrix of the RDI PSF lib. Very long.
@@ -19,7 +19,7 @@ INSTRUMENT: GPI  # SPHERE or GPI
 BAND_DIR: hd_48524_20180128_H_Spec_hd32297like_faint  # name of folder where are the data (from basedir)
 RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
                         # Carefull, this dir must also contains the data
-FILE_PREFIX: Fake_hd32297bright_rdikl5  #prefix for all saved files (carefull not to erase your results)
+FILE_PREFIX: Fake_hd32297faint_rdikl5  #prefix for all saved files (carefull not to erase your results)
 BAND_NAME: Injected Bright HD 32297 RDI      #for plot titles uniquely
 
 # STAR OBSERVATION PARAMETERS
