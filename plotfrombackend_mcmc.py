@@ -210,7 +210,6 @@ def make_chain_plot(params_mcmc_yaml):
     print("Maximum Likelyhood: {0}".format(np.nanmax(log_prob_samples_flat)))
 
     print("burn-in: {0}".format(burnin))
-    print("thin: {0}".format(thin))
     print("chain shape: {0}".format(chain.shape))
 
     n_dim_mcmc = chain.shape[2]
