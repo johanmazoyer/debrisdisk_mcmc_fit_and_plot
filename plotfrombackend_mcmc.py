@@ -9,7 +9,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # different computer without changing this).
 # basedir = '/Users/jmazoyer/Dropbox/Work/python/python_data/disk_mcmc/spie_paper/hr4796 like/'
 
-default_parameter_file = 'FakeHr4796faint_MCMC_ADI.yaml'
+default_parameter_file = 'FakeHd32297faint_MCMC_ADI_bis.yaml'
 
 
 import glob
@@ -1359,7 +1359,7 @@ def measure_spf_errors(params_mcmc_yaml,
     return dico_return
 
 
-def compare_injected_spfs(params_mcmc_yaml):
+def compare_injected_spfs_plot(params_mcmc_yaml):
     ####################################################################################
     ## injected spf plot
     ####################################################################################
@@ -1417,6 +1417,16 @@ def compare_injected_spfs(params_mcmc_yaml):
 
     plt.tight_layout()
 
+    if "32297" in band_name:
+        # for HD32297 add grey parts on the plots where the disk is hidden
+        # behind the FP mask or for the back scattering part
+        plt.axvspan(0, 7, alpha=0.2, facecolor='grey')
+        plt.text(18, 0.4, 'Behind FPM', fontsize=10)
+        plt.arrow(17,0.42, -8, 0,head_width=0.03,head_length=2, fc='k', ec='k')
+
+        plt.axvspan(90, 180, alpha=0.2, facecolor='grey')
+        plt.text(110, 0.4, 'HD 32297 Back Side', fontsize=10)
+
     plt.savefig(os.path.join(mcmcresultdir, name_pdf))
 
     plt.close()
@@ -1452,7 +1462,7 @@ if __name__ == '__main__':
     make_chain_plot(params_mcmc_yaml)
 
     # compare SPF with injected
-    compare_injected_spfs(params_mcmc_yaml)
+    compare_injected_spfs_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
     make_corner_plot(params_mcmc_yaml)
