@@ -1,9 +1,9 @@
 # PYKLIP PARAMETERS
 FIRST_TIME: False
 #if FIRST_TIME=True the masks, reduced data, noise map, PSF lib, KL vectors are (re)calculated.
-MODE: ADI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
+MODE: RDI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
 DO_RDI_CORRELATION: True # Measure the correlation matrix of the RDI PSF lib. Very long.
-KLMODE_NUMBER: 3 # number of KL modes used in the reduction < nb images in the basis
+KLMODE_NUMBER: 15 # number of KL modes used in the reduction < nb images in the basis
 ANNULI: 1 # number of annuli in the KLIP reduction
 OWA: 100 # OWA of the reduction, in pixel. Reduce the zone to accelerate the code.
 MOVE_HERE: 6  #minrot in PyKLIP ADI
@@ -19,8 +19,8 @@ INSTRUMENT: GPI  # SPHERE or GPI
 BAND_DIR: hd_48524_20180128_H_Spec_hd32297like_bright  # name of folder where are the data (from basedir)
 RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
                         # Carefull, this dir must also contains the data
-FILE_PREFIX: Fake_hd32297faint_adikl3  #prefix for all saved files (carefull not to erase your results)
-BAND_NAME: Injected Bright HD 32297 ADI      #for plot titles uniquely
+FILE_PREFIX: Fake_hd32297faint_rdikl15  #prefix for all saved files (carefull not to erase your results)
+BAND_NAME: Injected Bright HD 32297 RDI      #for plot titles uniquely
 
 # STAR OBSERVATION PARAMETERS
 DISTANCE_STAR: 72.0   #distance of the disk in pc

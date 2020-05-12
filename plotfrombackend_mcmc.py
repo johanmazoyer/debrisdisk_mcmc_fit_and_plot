@@ -7,9 +7,12 @@ import os
 basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
-# basedir = '/Users/jmazoyer/Dropbox/Work/python/python_data/disk_mcmc/spie_paper/hr4796 like/'
+basedir = '/Users/jmazoyer/Dropbox/Work/python/python_data/disk_mcmc/spie_paper/hr4796 like/'
 
-default_parameter_file = 'FakeHd32297faint_MCMC_ADI_bis.yaml'
+# default_parameter_file = 'FakeHr4796faint_MCMC_RDI.yaml'
+default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'
+
+# default_parameter_file = 'FakeHd32297faint_MCMC_ADI.yaml'
 
 
 import glob
@@ -1353,6 +1356,8 @@ def measure_spf_errors(params_mcmc_yaml,
     dico_return['errorbar_inf'] = errorbar_inf
     dico_return['errorbar'] = errorbar
 
+    dico_return['all_rando_spfs'] = hg_mcmc_rand
+
     dico_return['scattered_angles'] = scattered_angles
 
     return dico_return
@@ -1362,6 +1367,9 @@ def compare_injected_spfs_plot(params_mcmc_yaml):
     ####################################################################################
     ## injected spf plot
     ####################################################################################
+
+    fill_or_all = 'all'
+    Number_rand_mcmc = 50
 
     color0 = 'black'
     color1 = '#3B73FF'
@@ -1375,7 +1383,7 @@ def compare_injected_spfs_plot(params_mcmc_yaml):
     name_pdf = file_prefix + '_comparison_spf.pdf'
     plt.figure()
 
-    spf_fake_recovered = measure_spf_errors(params_mcmc_yaml, 100, median_or_max='max')
+    spf_fake_recovered = measure_spf_errors(params_mcmc_yaml, Number_rand_mcmc, median_or_max='max')
 
     scattered_angles = spf_fake_recovered['scattered_angles']
 
@@ -1383,24 +1391,34 @@ def compare_injected_spfs_plot(params_mcmc_yaml):
                         params_mcmc_yaml['g2_init'],
                         params_mcmc_yaml['alpha1_init'], 1.0)
 
-    plt.fill_between(scattered_angles,
-                     spf_fake_recovered['errorbar_sup'],
-                     spf_fake_recovered['errorbar_inf'],
-                     facecolor=color3,
-                     alpha=0.1)
+    if fill_or_all== 'fill':
+        plt.fill_between(scattered_angles,
+                        spf_fake_recovered['errorbar_sup'],
+                        spf_fake_recovered['errorbar_inf'],
+                        facecolor=color3,
+                        alpha=0.1)
+    elif fill_or_all == 'all': 
+        
+        for num_model in range(Number_rand_mcmc): 
+            plt.plot(scattered_angles,
+                spf_fake_recovered['all_rando_spfs'][:,num_model],
+                linewidth=1,
+                color=color3,
+                alpha=0.1
+                )
 
     plt.plot(scattered_angles,
              spf_fake_recovered['best_spf'],
-             linewidth=2,
+             linewidth=3,
              color=color3,
              label="SPF Recoreved After MCMC")
 
     plt.plot(scattered_angles,
              injected_hg,
-             linewidth=1.5,
+             linewidth=2,
              linestyle='-.',
              color=color2,
-             label="SPF Injected into Empty Dataset")
+             label="Initial SPF Injected in Empty Dataset")
 
     handles, labels = plt.gca().get_legend_handles_labels()
     order = [1, 0]
@@ -1458,11 +1476,11 @@ if __name__ == '__main__':
         raise ValueError("the mcmc h5 file does not exist")
 
     # Plot the chain values
-    make_chain_plot(params_mcmc_yaml)
+    # make_chain_plot(params_mcmc_yaml)
 
     # compare SPF with injected
     compare_injected_spfs_plot(params_mcmc_yaml)
-
+    sdf
     # # Plot the PDFs
     make_corner_plot(params_mcmc_yaml)
     

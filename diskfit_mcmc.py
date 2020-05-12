@@ -12,7 +12,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # different computer without changing this).
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
 
-default_parameter_file = 'FakeHd32297faint_MCMC_ADI.yaml'  # name of the parameter file
+default_parameter_file = 'FakeHd32297bright_MCMC_RDI.yaml'  # name of the parameter file
 # you can also call it with the python function argument -p
 
 MPI = False  ## by default the MCMC is not mpi. you can change it
@@ -1150,7 +1150,7 @@ if __name__ == '__main__':
 
     print(mpistr + ", initialize walkers and start the MCMC...")
     startTime = datetime.now()
-
+    
     with MultiPool() as pool:
 
         if MPI:

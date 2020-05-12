@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=32ADI
+#SBATCH --job-name=32bA
 #SBATCH --nodes=2 --ntasks-per-node=16
 #SBATCH --time=23:59:00
 #SBATCH --partition=medium
 #SBATCH --mail-user=johan.mazoyer@obspm.fr
 
 cd /obs/jmazoyer/GitProjects/my_projects/hr4796_mcmc_run_and_read/
-mpiexec python diskfit_mcmc.py -p FakeHd32297faint_MCMC_ADI.yaml --mpi > /obs/jmazoyer/GPI_Hband_MCMC_ADI32.out
+mpiexec python diskfit_mcmc.py -p FakeHd32297bright_MCMC_ADI.yaml --mpi > /obs/jmazoyer/GPI_Hband_MCMC_ADI32b.out
 
 exit 0
