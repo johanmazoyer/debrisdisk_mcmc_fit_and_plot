@@ -7,12 +7,14 @@ import os
 basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
-basedir = '/Users/jmazoyer/Dropbox/Work/python/python_data/disk_mcmc/spie_paper/hr4796 like/'
+# basedir = '/Users/jmazoyer/Dropbox/Work/python/python_data/disk_mcmc/spie_paper/hr4796 like/'
 
 # default_parameter_file = 'FakeHr4796faint_MCMC_RDI.yaml'
-default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'
+# default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'
 
-# default_parameter_file = 'FakeHd32297faint_MCMC_ADI.yaml'
+default_parameter_file = 'FakeHd32297faint_MCMC_RDI_ter.yaml'
+# default_parameter_file = 'FakeHd32297bright_MCMC_ADI.yaml'
+
 
 
 import glob
@@ -1476,11 +1478,11 @@ if __name__ == '__main__':
         raise ValueError("the mcmc h5 file does not exist")
 
     # Plot the chain values
-    # make_chain_plot(params_mcmc_yaml)
+    make_chain_plot(params_mcmc_yaml)
 
     # compare SPF with injected
     compare_injected_spfs_plot(params_mcmc_yaml)
-    sdf
+
     # # Plot the PDFs
     make_corner_plot(params_mcmc_yaml)
     
