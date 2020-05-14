@@ -6,6 +6,6 @@
 #SBATCH --mail-user=johan.mazoyer@obspm.fr
 
 cd /obs/jmazoyer/GitProjects/my_projects/hr4796_mcmc_run_and_read/
-mpiexec python diskfit_mcmc.py -p FakeHd32297bright_MCMC_RDIb.yaml --mpi > /obs/jmazoyer/GPI_Hband_MCMC_RDI32bb.out
+mpiexec python diskfit_mcmc.py -p FakeHd32297bright_MCMC_RDI_bis.yaml --mpi > /obs/jmazoyer/GPI_Hband_MCMC_RDI32bb.out
 
 exit 0

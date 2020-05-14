@@ -1,9 +1,9 @@
 # PYKLIP PARAMETERS
-FIRST_TIME: False
+FIRST_TIME: True
 #if FIRST_TIME=True the masks, reduced data, noise map, PSF lib, KL vectors are (re)calculated.
-MODE: ADI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
+MODE: RDI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
 DO_RDI_CORRELATION: True # Measure the correlation matrix of the RDI PSF lib. Very long.
-KLMODE_NUMBER: 3 # number of KL modes used in the reduction < nb images in the basis
+KLMODE_NUMBER: 25 # number of KL modes used in the reduction < nb images in the basis
 ANNULI: 1 # number of annuli in the KLIP reduction
 OWA: 100 # OWA of the reduction, in pixel. Reduce the zone to accelerate the code.
 MOVE_HERE: 6  #minrot in PyKLIP ADI
@@ -16,18 +16,18 @@ RM_FILE_DISK_CROSS_SATSPOTS: False
 # The images where the disk is on the satspots are autonatically remove to measure the PSF
 INSTRUMENT: GPI  # SPHERE or GPI
 # LOCATION AND NAME PARAMETERS. Parameters used to save the outputs or plots
-BAND_DIR: hd_48524_20180128_H_Spec_hd32297like_bright  # name of folder where are the data (from basedir)
+BAND_DIR: hd_48524_20180128_H_Spec_hd181327like_bright  # name of folder where are the data (from basedir)
 RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
                         # Carefull, this dir must also contains the data
-FILE_PREFIX: Fake_hd32297bright_adikl3  #prefix for all saved files (carefull not to erase your results)
-BAND_NAME: Injected Bright HD 32297 ADI      #for plot titles uniquely
+FILE_PREFIX: Fake_hd32297bright_rdikl5  #prefix for all saved files (carefull not to erase your results)
+BAND_NAME: Injected Bright HD 181327 ADI      #for plot titles uniquely
 
 # STAR OBSERVATION PARAMETERS
 DISTANCE_STAR: 72.0   #distance of the disk in pc
 PIXSCALE_INS: 0.01414  #picscale of your data
 
 # MCMC PARAMETERS
-NEW_BACKEND: False
+NEW_BACKEND: True
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
 NWALKERS: 256 #Number of walkers (should be at least twice the # parameters)
 N_ITER_MCMC: 1250 #Number of interation
@@ -35,14 +35,14 @@ NOISE_MULTIPLICATION_FACTOR: 5 # multiplicative factor for the chains
 # There is no burn-in phase here, the burnin only intervened when reading the data
 
 # INITIAL MODEL PARAMETERS
-r1_init: 70
-r2_init: 90
+r1_init: 45
+r2_init: 52
 beta_init: 12.4
-inc_init: 88.3
-pa_init: 47.6
-dx_init: -2.0
-dy_init: 0.94
-N_init: 70
+inc_init: 30.
+pa_init: 101.
+dx_init: -0.9
+dy_init: 1.37
+N_init: 100
 # the parameter of the priors are still defined inside the code logp(theta) function
 
 # SPF parameters
