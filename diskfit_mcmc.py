@@ -358,10 +358,11 @@ def create_uncertainty_map(dataset, params_mcmc_yaml, psflib=None):
     # described in Sec4 of Gerard&Marois SPIE 2016 and probabaly elsewhere
 
     dataset.PAs = -dataset.PAs
-
+    maxnumbasis = dataset.input.shape[0]
+    
     parallelized.klip_dataset(dataset,
                               numbasis=numbasis,
-                              maxnumbasis=120,
+                              maxnumbasis=maxnumbasis,
                               annuli=annuli,
                               subsections=1,
                               mode=mode,
@@ -818,10 +819,12 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
                          aligned_center=aligned_center,
                          numthreads=1)
         # measure the KL basis and save it
+        
+        maxnumbasis = dataset.input.shape[0]
         fm.klip_dataset(dataset,
                         diskobj,
                         numbasis=numbasis,
-                        maxnumbasis=120,
+                        maxnumbasis=maxnumbasis,
                         annuli=annuli,
                         subsections=1,
                         mode=mode,
