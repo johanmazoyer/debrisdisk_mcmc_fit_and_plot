@@ -12,7 +12,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # different computer without changing this).
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
 
-default_parameter_file = 'FakeHd181327bright_MCMC_ADI.yaml'  # name of the parameter file
+default_parameter_file = 'FakeHd181327bright_MCMC_RDI_ter.yaml'  # name of the parameter file
 # you can also call it with the python function argument -p
 
 MPI = False  ## by default the MCMC is not mpi. you can change it
@@ -207,18 +207,18 @@ def logp(theta):
 
     prior_rout = 1.
     # define the prior values
-    if (r1 < 60 or r1 > 80):
+    if (r1 < 35 or r1 > 55):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
     # - rout = Logistic We arbitralily cut the prior at r2 = 100
     # (~25 AU large) because this parameter is very limited by the ADI
-    if ((r2 < 82) and (r2 > 102)):
+    if ((r2 < 42) and (r2 > 62)):
         return -np.inf
     else:
-        prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 100)))
-        # prior_rout = prior_rout  *1. # or we can just use a flat prior
+        # prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 100)))
+        prior_rout = prior_rout  *1. # or we can just use a flat prior
 
     if (beta < 1 or beta > 30):
         return -np.inf
@@ -230,12 +230,12 @@ def logp(theta):
     # else:
     #    prior_rout = prior_rout  *1.
 
-    if (inc < 78 or inc > 98):
+    if (inc < 20 or inc > 40):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (pa < 40 or pa > 50):
+    if (pa < 90 or pa > 110):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
@@ -566,10 +566,10 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             dataset.input.shape[1],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 69,
+            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 5,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
-            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 100,
+            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 5,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
             aligned_center=aligned_center)
@@ -586,10 +586,10 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             dataset.input.shape[1],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 69,
+            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 15,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
-            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 100,
+            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 15,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
             aligned_center=aligned_center)
