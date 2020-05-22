@@ -1,41 +1,35 @@
-# LOCATION AND NAME PARAMETERS. Parameters used to save the outputs or plots
-BAND_DIR: 160318_H_Spec_smalltest  # name of folder where are the data (from basedir)
-FILE_PREFIX: Hband_hr4796_adi  #prefix for all saved files (carefull not to erase your results)
-BAND_NAME: GPI H band ADI      #for plot titles uniquely
-
-INSTRUMENT: SPHERE-IRDIS  # SPHERE-IRDIS or GPI
-
-#SPHERE specific parameters if INSTRUMENT: SPHERE 
-DATA_FILES_STR: center_im.fits #name of Input data cube of dimensions (Nfiles, Nwvs, y, x)
-PSF_FILES_STR: median_unsat.fits # PSF cube of dimensions (Nwvs, y, x)
-ANGLES_STR: otnth.fits # A fits table with parallactic angle
-BAND_NAME: "H2H3" #  IRDIS band name ("H2H3", "H3H4", "K1K2", etc.)
-
-#GPI specific parameters if INSTRUMENT: GPI
-#  In the KLIP do you want to remove the images where the disk is on the satspots 
-# if True: frames are removed
-# if False: frames are not removed
-RM_FILE_DISK_CROSS_SATSPOTS: False 
-# The images where the disk is on the satspots are autonatically remove to measure the PSF
-
 # PYKLIP PARAMETERS
 FIRST_TIME: True
 #if FIRST_TIME=True the masks, reduced data, noise map, PSF lib, KL vectors are (re)calculated.
 MODE: ADI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
+DO_RDI_CORRELATION: False # Measure the correlation matrix of the RDI PSF lib. Very long.
 KLMODE_NUMBER: 3 # number of KL modes used in the reduction < nb images in the basis
 ANNULI: 1 # number of annuli in the KLIP reduction
 OWA: 100 # OWA of the reduction, in pixel. Reduce the zone to accelerate the code.
 MOVE_HERE: 6  #minrot in PyKLIP ADI
 ALIGNED_CENTER: [140.,140.] #image center in your model, also use to center the image before KLIP
 
+#  In the KLIP do you want to remove the images where the disk is on the satspots 
+# if True: frames are removed
+# if False: frames are not removed
+RM_FILE_DISK_CROSS_SATSPOTS: False 
+# The images where the disk is on the satspots are autonatically remove to measure the PSF
+INSTRUMENT: GPI  # SPHERE or GPI
+
+#GPI Pol mode specific parameters
+PSF_FILES_STR: K1Pol_PSF.fits # PSF cube of dimensions (y, x)
+
+# LOCATION AND NAME PARAMETERS. Parameters used to save the outputs or plots
+BAND_DIR: 140422_K1_Pol  # name of folder where are the data (from basedir)
+RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
+                        # Carefull, this dir must also contains the data
+FILE_PREFIX: Hband_Pol_hr4796_adi  #prefix for all saved files (carefull not to erase your results)
+BAND_NAME: GPI Pol H band ADI      #for plot titles uniquely
+
+
 # STAR OBSERVATION PARAMETERS
 DISTANCE_STAR: 72.0   #distance of the disk in pc
 PIXSCALE_INS: 0.01414  #picscale of your data
-
-# RDI PARAMETERS. 
-DO_RDI_CORRELATION: False # Measure the correlation matrix of the RDI PSF lib. Very long.
-RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
-                        # Carefull, this dir must also contains the data
 
 # MCMC PARAMETERS
 NEW_BACKEND: True

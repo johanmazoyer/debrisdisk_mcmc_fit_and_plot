@@ -5,14 +5,16 @@ author: Johan Mazoyer
 """
 
 import os
+import copy
 import argparse
 
 basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
 # different computer without changing this).
-# default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
 
-default_parameter_file = 'FakeHd181327bright_MCMC_RDI_ter.yaml'  # name of the parameter file
+# default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
+# default_parameter_file = 'GPI_Hband_MCMC_ADI.yaml'  # name of the parameter file
+default_parameter_file = 'GPI_Hband_MCMC_ADI_test4Justin.yaml'  # name of the parameter file
 # you can also call it with the python function argument -p
 
 MPI = False  ## by default the MCMC is not mpi. you can change it
@@ -207,18 +209,18 @@ def logp(theta):
 
     prior_rout = 1.
     # define the prior values
-    if (r1 < 35 or r1 > 55):
+    if (r1 < 0 or r1 > 80):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
     # - rout = Logistic We arbitralily cut the prior at r2 = 100
     # (~25 AU large) because this parameter is very limited by the ADI
-    if ((r2 < 42) and (r2 > 62)):
+    if ((r2 < 80) and (r2 > 100)):
         return -np.inf
     else:
         # prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 100)))
-        prior_rout = prior_rout  *1. # or we can just use a flat prior
+        prior_rout = prior_rout * 1.  # or we can just use a flat prior
 
     if (beta < 1 or beta > 30):
         return -np.inf
@@ -230,12 +232,12 @@ def logp(theta):
     # else:
     #    prior_rout = prior_rout  *1.
 
-    if (inc < 20 or inc > 40):
+    if (inc < 70 or inc > 80):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (pa < 90 or pa > 110):
+    if (pa < 20 or pa > 30):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
@@ -359,7 +361,7 @@ def create_uncertainty_map(dataset, params_mcmc_yaml, psflib=None):
 
     dataset.PAs = -dataset.PAs
     maxnumbasis = dataset.input.shape[0]
-    
+
     parallelized.klip_dataset(dataset,
                               numbasis=numbasis,
                               maxnumbasis=maxnumbasis,
@@ -428,119 +430,159 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     # For GPI, we load the raw data, emasure hte PSF from sat spots and
     # collaspe the data
 
-    if instrument == 'SPHERE':
-        # only for SPHERE. 
+    if instrument == 'SPHERE-IRDIS':
+        # only for SPHERE.
         data_files_str = params_mcmc_yaml['DATA_FILES_STR']
         psf_files_str = params_mcmc_yaml['PSF_FILES_STR']
         angles_str = params_mcmc_yaml['ANGLES_STR']
         band_name = params_mcmc_yaml['BAND_NAME']
 
-        dataset = SPHERE.Irdis(data_files_str, psf_files_str, angles_str, band_name, psf_cube_size=31)
+        dataset = SPHERE.Irdis(data_files_str,
+                               psf_files_str,
+                               angles_str,
+                               band_name,
+                               psf_cube_size=31)
         #collapse the data spectrally
         dataset.spectral_collapse(align_frames=True,
                                   aligned_center=aligned_center)
-        
-        if first_time:     
-            fits.writeto(os.path.join(klipdir,
-                                      file_prefix + '_SmallPSF.fits'),
+
+        if first_time:
+            fits.writeto(os.path.join(klipdir, file_prefix + '_SmallPSF.fits'),
                          dataset.psfs,
                          overwrite='True')
 
-            
-
     elif instrument == 'GPI':
-        #only for GPI. Data reduction is simpler for GPI but PSF
-        # measurement form satspot is more complicated.
+        # only for GPI
+
+        filelist = sorted(glob.glob(os.path.join(datadir, "*.fits")))
+
+        #check that these are GPI files
+        non_GPI_files = []
+        filetype_here = None
+        for filename in filelist:
+            headerfile = fits.getheader(filename)
+            if ('FILETYPE' in headerfile.keys()) and (
+                    headerfile['FILETYPE'] == 'Stokes Cube'
+                    or headerfile['FILETYPE'] == 'Spectral Cube'
+            ):  # This is a GPI file
+                if filetype_here is not None:
+                    if filetype_here != headerfile[
+                            'FILETYPE']:  # check if Spec of Pol
+                        raise ValueError(
+                            """ There are simultaneously Pol and Spec 
+                                            type files in this folder. Code only works 
+                                            with a single kind of obs""")
+                filetype_here = headerfile['FILETYPE']
+
+            else:  # This is not a GPI file (maybe PSF file). Ignore when loading.
+                non_GPI_files.append(filename)
+
+        for nonGPIfilename in non_GPI_files:
+            filelist.remove(nonGPIfilename)
+        
+        pol_or_spec = filetype_here
+        print(pol_or_spec)
 
         if first_time:
-            print("\n Create a PSF from the sat spots")
-            filelist4psf = sorted(glob.glob(os.path.join(datadir, "*.fits")))
+            if len(filelist) == 0:
+                raise ValueError("Could not find files in the dir") 
 
-            dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
+            if pol_or_spec == 'Spectral Cube':  # GPI spec mode
+                filelist4psf = copy.copy(filelist)
+                dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
 
-            # identify angles where the
-            # disk intersect the satspots
-            excluded_files = gpidiskpsf.check_satspots_disk_intersection(
-                dataset4psf, params_mcmc_yaml, quiet=True)
+                print("\n Create a PSF from the sat spots")
+                # identify angles where the
+                # disk intersect the satspots
+                excluded_files = gpidiskpsf.check_satspots_disk_intersection(
+                    dataset4psf, params_mcmc_yaml, quiet=True)
 
-            # exclude those angles for the PSF measurement
-            for excluded_filesi in excluded_files:
-                if excluded_filesi in filelist4psf:
-                    filelist4psf.remove(excluded_filesi)
+                # exclude those angles for the PSF measurement
+                for excluded_filesi in excluded_files:
+                    if excluded_filesi in filelist4psf:
+                        filelist4psf.remove(excluded_filesi)
 
-            # create the data this time wihtout the bad files
-            dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
+                # create the data this time wihtout the bad files
+                dataset4psf = GPI.GPIData(filelist4psf, quiet=True)
 
-            # Find the IFS slices for which the satspots are too faint
-            # if SNR time_mean(sat spot) <3 they are removed
-            # Mostly for K2 and sometime K1
-            excluded_slices = gpidiskpsf.check_satspots_snr(dataset4psf,
-                                                            params_mcmc_yaml,
-                                                            quiet=True)
+                # Find the IFS slices for which the satspots are too faint
+                # if SNR time_mean(sat spot) <3 they are removed
+                # Mostly for K2 and sometime K1
+                excluded_slices = gpidiskpsf.check_satspots_snr(
+                    dataset4psf, params_mcmc_yaml, quiet=True)
 
-            # extract the data this time wihtout the bad files nor slices
-            dataset4psf = GPI.GPIData(filelist4psf,
-                                      quiet=True,
-                                      skipslices=excluded_slices)
+                # extract the data this time wihtout the bad files nor slices
+                dataset4psf = GPI.GPIData(filelist4psf,
+                                          quiet=True,
+                                          skipslices=excluded_slices)
 
-            # finally measure the good psf
-            instrument_psf = gpidiskpsf.make_collapsed_psf(dataset4psf,
-                                                           params_mcmc_yaml,
-                                                           boxrad=15)
+                # finally measure the good psf
+                instrument_psf = gpidiskpsf.make_collapsed_psf(
+                    dataset4psf, params_mcmc_yaml, boxrad=15)
 
-            # save the excluded_slices in the psf header (SNR too low)
-            hdr_psf = fits.Header()
-            hdr_psf['N_BADSLI'] = len(excluded_slices)
-            for badslice_i, excluded_slices_num in enumerate(excluded_slices):
-                hdr_psf['BADSLI' +
-                        str(badslice_i).zfill(2)] = excluded_slices_num
+                # save the excluded_slices in the psf header (SNR too low)
+                hdr_psf = fits.Header()
+                hdr_psf['N_BADSLI'] = len(excluded_slices)
+                for badslice_i, excluded_slices_num in enumerate(
+                        excluded_slices):
+                    hdr_psf['BADSLI' +
+                            str(badslice_i).zfill(2)] = excluded_slices_num
 
-            # save the excluded_files in the psf header (disk on satspots)
-            hdr_psf['N_BADFIL'] = len(excluded_files)
-            for badfile_i, badfilestr in enumerate(excluded_files):
-                hdr_psf['BADFIL' + str(badfile_i).zfill(2)] = badfilestr
+                # save the excluded_files in the psf header (disk on satspots)
+                hdr_psf['N_BADFIL'] = len(excluded_files)
+                for badfile_i, badfilestr in enumerate(excluded_files):
+                    hdr_psf['BADFIL' + str(badfile_i).zfill(2)] = badfilestr
+            
+            else:  # GPI Pol mode
+                instrument_psf = fits.getdata(
+                    os.path.join(datadir, params_mcmc_yaml['PSF_FILES_STR']))
+                hdr_psf = fits.Header()
+                hdr_psf['N_BADSLI'] = 0
 
             #save the psf
-            fits.writeto(os.path.join(klipdir,
-                                      file_prefix + '_SmallPSF.fits'),
+            fits.writeto(os.path.join(klipdir, file_prefix + '_SmallPSF.fits'),
                          instrument_psf,
                          header=hdr_psf,
                          overwrite=True)
 
-        filelist = sorted(glob.glob(os.path.join(datadir, "*.fits")))
+        if pol_or_spec == 'Spectral Cube':  # GPI spec mode
+            # load the bad slices and bad files in the psf header
+            hdr_psf = fits.getheader(
+                os.path.join(klipdir, file_prefix + '_SmallPSF.fits'))
 
-        # load the bad slices and bad files in the psf header
-        hdr_psf = fits.getheader(
-            os.path.join(klipdir, file_prefix + '_SmallPSF.fits'))
+            # We can choose to remove completely from the correction
+            # the angles where the disk intersect the disk (they are exlcuded
+            # from the PSF measurement by defaut).
+            # We can removed those if rm_file_disk_cross_satspots=True
+            if params_mcmc_yaml['RM_FILE_DISK_CROSS_SATSPOTS']:
 
-        # We can choose to remove completely from the correction
-        # the angles where the disk intersect the disk (they are exlcuded
-        # from the PSF measurement by defaut).
-        # We can removed those if rm_file_disk_cross_satspots=True
-        if params_mcmc_yaml['RM_FILE_DISK_CROSS_SATSPOTS']:
+                excluded_files = []
+                if hdr_psf['N_BADFIL'] > 0:
+                    for badfile_i in range(hdr_psf['N_BADFIL']):
+                        excluded_files.append(hdr_psf['BADFIL' +
+                                                      str(badfile_i).zfill(2)])
 
-            excluded_files = []
-            if hdr_psf['N_BADFIL'] > 0:
-                for badfile_i in range(hdr_psf['N_BADFIL']):
-                    excluded_files.append(hdr_psf['BADFIL' +
-                                                  str(badfile_i).zfill(2)])
+                for excluded_filesi in excluded_files:
+                    if excluded_filesi in filelist:
+                        filelist.remove(excluded_filesi)
 
-            for excluded_filesi in excluded_files:
-                if excluded_filesi in filelist:
-                    filelist.remove(excluded_filesi)
+            # in IFS mode, we always exclude the IFS slices with too much noise. We
+            # chose the criteria as "SNR(mean of sat spot)< 3""
+            excluded_slices = []
+            if hdr_psf['N_BADSLI'] > 0:
+                for badslice_i in range(hdr_psf['N_BADSLI']):
+                    excluded_slices.append(hdr_psf['BADSLI' +
+                                                   str(badslice_i).zfill(2)])
 
-        # in IFS mode, we always exclude the IFS slices with too much noise. We
-        # chose the criteria as "SNR(mean of sat spot)< 3""
-        excluded_slices = []
-        if hdr_psf['N_BADSLI'] > 0:
-            for badslice_i in range(hdr_psf['N_BADSLI']):
-                excluded_slices.append(hdr_psf['BADSLI' +
-                                               str(badslice_i).zfill(2)])
+            # load the raw data without the bad slices
+            dataset = GPI.GPIData(filelist,
+                                  quiet=True,
+                                  skipslices=excluded_slices)
 
-        # load the raw data without the bad slices
-        dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
+        else:  # pol mode
+            dataset = GPI.GPIData(filelist, quiet=True)
 
-        #collapse the data spectrally
+        #collapse the data spectrally and center
         dataset.spectral_collapse(align_frames=True,
                                   aligned_center=aligned_center)
 
@@ -670,7 +712,7 @@ def initialize_rdi(dataset, params_mcmc_yaml):
     if do_rdi_correlation:
 
         # load the bad slices in the psf header (IFS slices where satspots SNR < 3).
-        # This is only for GPI. Normally this should not happen because RDI is in
+        # This is only for GPI spec mode. Normally this should not happen because RDI is in
         # H band and H band data have very little thermal noise.
 
         hdr_psf = fits.getheader(
@@ -686,6 +728,23 @@ def initialize_rdi(dataset, params_mcmc_yaml):
 
         # be carefull the librairy files must includes the data files !
         lib_files = sorted(glob.glob(os.path.join(rdidir, "*.fits")))
+
+        non_GPI_files = []
+        filetype_here = None
+        for filename in lib_files:
+            headerfile = fits.getheader(filename)
+            if 'FILETYPE' in headerfile.keys():  # This is a GPI file
+                if filetype_here is not None:
+                    if headerfile[
+                            'FILETYPE'] != 'Spectral Cube':  # check if Spec
+                        raise ValueError(
+                            """ There are non Spec type files in this 
+                                            RDI lib folder. Code only works for spec"""
+                        )
+            else:  # This is not a GPI file (maybe PSF file). Ignore whem loading.
+                non_GPI_files.append(filename)
+        for nonGPIfilename in non_GPI_files:
+            lib_files.remove(nonGPIfilename)
 
         datasetlib = GPI.GPIData(lib_files,
                                  quiet=True,
@@ -816,10 +875,9 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
                          basis_filename=os.path.join(
                              klipdir, file_prefix + '_klbasis.h5'),
                          save_basis=True,
-                         aligned_center=aligned_center,
-                         numthreads=1)
+                         aligned_center=aligned_center)
         # measure the KL basis and save it
-        
+
         maxnumbasis = dataset.input.shape[0]
         fm.klip_dataset(dataset,
                         diskobj,
@@ -1059,6 +1117,9 @@ if __name__ == '__main__':
 
     FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
     NEW_BACKEND = params_mcmc_yaml['NEW_BACKEND']
+
+    if not os.path.isdir(os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])):
+        raise ValueError("Could not find the data directory (BAND_DIR parameter)")
 
     klipdir = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'],
                            'klip_fm_files')
