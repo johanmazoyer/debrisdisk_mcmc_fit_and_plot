@@ -14,7 +14,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
 # default_parameter_file = 'GPI_Hband_MCMC_ADI.yaml'  # name of the parameter file
-default_parameter_file = 'GPI_Hband_MCMC_ADI_test4Justin.yaml'  # name of the parameter file
+default_parameter_file = 'GPI_Hband_Hd32297_ADI.yaml'  # name of the parameter file
 # you can also call it with the python function argument -p
 
 MPI = False  ## by default the MCMC is not mpi. you can change it
@@ -209,14 +209,14 @@ def logp(theta):
 
     prior_rout = 1.
     # define the prior values
-    if (r1 < 0 or r1 > 80):
+    if (r1 < 0 or r1 > 135):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    # - rout = Logistic We arbitralily cut the prior at r2 = 100
-    # (~25 AU large) because this parameter is very limited by the ADI
-    if ((r2 < 80) and (r2 > 100)):
+    # - rout = Logistic We  cut the prior at r2 = xx
+    # because this parameter is very limited by the ADI
+    if ((r2 < 135) and (r2 > 180)):
         return -np.inf
     else:
         # prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 100)))
@@ -232,22 +232,22 @@ def logp(theta):
     # else:
     #    prior_rout = prior_rout  *1.
 
-    if (inc < 70 or inc > 80):
+    if (inc < 82 or inc > 90):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (pa < 20 or pa > 30):
+    if (pa < 40 or pa > 60):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (dx < -10) or (dx > 10):  #The x offset
+    if (dx < -20) or (dx > 12):  #The x offset
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (dy < -10) or (dy > 10):  #The y offset
+    if (dy < -20) or (dy > 20):  #The y offset
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
@@ -259,13 +259,13 @@ def logp(theta):
 
     if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
             SPF_MODEL == 'hg_3g'):
-        if (g1 < 0.05 or g1 > 0.9999):
+        if (g1 < 0.001 or g1 > 0.9999):
             return -np.inf
         else:
             prior_rout = prior_rout * 1.
 
         if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
-            if (g2 < -0.9999 or g2 > -0.05):
+            if (g2 < -0.9999 or g2 > -0.001):
                 return -np.inf
             else:
                 prior_rout = prior_rout * 1.
@@ -518,7 +518,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
                 # finally measure the good psf
                 instrument_psf = gpidiskpsf.make_collapsed_psf(
-                    dataset4psf, params_mcmc_yaml, boxrad=15)
+                    dataset4psf, params_mcmc_yaml, boxrad=11)[0] 
+                # monocrhomatic here  
 
                 # save the excluded_slices in the psf header (SNR too low)
                 hdr_psf = fits.Header()
@@ -608,10 +609,10 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             dataset.input.shape[1],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 5,
+            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 125,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
-            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 5,
+            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 125,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
             aligned_center=aligned_center)
@@ -628,10 +629,10 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             dataset.input.shape[1],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 15,
+            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 125,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
-            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 15,
+            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 125,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
             aligned_center=aligned_center)
@@ -904,8 +905,7 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
                      model_here_convolved,
                      basis_filename=os.path.join(klipdir,
                                                  file_prefix + '_klbasis.h5'),
-                     load_from_basis=True,
-                     numthreads=1)
+                     load_from_basis=True)
 
     # test the diskFM object
     diskobj.update_disk(model_here_convolved)

@@ -12,7 +12,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # default_parameter_file = 'FakeHr4796faint_MCMC_RDI.yaml'
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'
 
-default_parameter_file = 'FakeHd181327bright_MCMC_ADI.yaml'
+default_parameter_file = 'FakeHd181327bright_MCMC_ADI_ter.yaml'
 
 
 
@@ -318,6 +318,15 @@ def make_corner_plot(params_mcmc_yaml):
     rcParams['xtick.labelsize'] = 13
     rcParams['ytick.labelsize'] = 13
 
+    truc = chain_flat[:, 3]
+    wherenotnan = np.where(~np.isnan(truc))
+    chainflatbis = np.zeros((len(truc[wherenotnan]),11))
+    for i in range(11):
+
+        chainflatbis[:,i] = chain_flat[wherenotnan,i]
+    chain_flat = chainflatbis
+
+
     ### cumulative percentiles
     ### value at 50% is the center of the Normal law
     ### value at 50% - value at 15.9% is -1 sigma
@@ -487,6 +496,14 @@ def create_header(params_mcmc_yaml):
             if SPF_MODEL == 'hg_3g':
                 chain_flat[:, 11] = 100 * chain_flat[:, 11]
                 chain_flat[:, 12] = 100 * chain_flat[:, 12]
+
+    truc = chain_flat[:, 3]
+    wherenotnan = np.where(~np.isnan(truc))
+    chainflatbis = np.zeros((len(truc[wherenotnan]),11))
+    for i in range(11):
+        chainflatbis[:,i] = chain_flat[wherenotnan,i]
+    chain_flat = chainflatbis
+    log_prob_samples_flat = log_prob_samples_flat[wherenotnan]
 
     samples_dict = dict()
     comments_dict = comments

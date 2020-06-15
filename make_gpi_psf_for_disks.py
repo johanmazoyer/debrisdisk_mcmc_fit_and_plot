@@ -6,6 +6,7 @@ author: Johan Mazoyer
 """
 
 import os
+import warnings
 
 import numpy as np
 import scipy.ndimage.filters as scipy_filters
@@ -239,13 +240,19 @@ def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet=True):
     return bad_sat_spots[0].tolist()
 
 
-def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=20):
+def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=10, collapse_channels = 1, smoothed = True):
     """ create a PSF from the satspots, with a smoothed box
     Args:
         dataset: a pyklip instance of Instrument.Data
         params_mcmc_yaml: dic, all the parameters of the MCMC and klip
                             read from yaml file
         boxrad: size of the PSF. Must be larger than 12 to have the box
+        collapse_channels (int): number of output channels to evenly-ish collapse the 
+                        dataset into. Default is 1 (broadband). Collapsed is done the same
+                        way as in pyklip spectral_collapse function
+        smoothed: if true, multiply by a mask to smoothed the edges to avoid artifacts when c
+                    convolving
+
 
     Returns:
         the PSF
@@ -276,22 +283,51 @@ def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=20):
     dataset.input = dataset.input * mask_triangle
 
     dataset.generate_psfs(boxrad=boxrad)
+    psfs_here = dataset.psfs
 
-    return_psf = np.nanmean(dataset.psfs, axis=0)
+    numwvs = dataset.numwvs
+    slices_per_group = numwvs // collapse_channels  # how many wavelengths per each output channel
+    leftover_slices = numwvs % collapse_channels
 
-    r_smooth = 13 / 1.6 * dataset.wvs[0]
-    # # create rho2D for the psf square
-    x_square = np.arange(2 * boxrad + 1, dtype=np.float)[None, :] - boxrad
-    y_square = np.arange(2 * boxrad + 1, dtype=np.float)[:, None] - boxrad
-    rho2d_square = np.sqrt(x_square**2 + y_square**2)
+    return_psf = np.zeros(
+        [collapse_channels, psfs_here.shape[1], psfs_here.shape[2]])
 
-    smooth_mask = np.ones((2 * boxrad + 1, 2 * boxrad + 1))
-    smooth_mask[np.where(rho2d_square > r_smooth - 1)] = 0.
-    smooth_mask = scipy_filters.gaussian_filter(smooth_mask, 2.)
-    smooth_mask[np.where(rho2d_square < r_smooth)] = 1.
-    smooth_mask[np.where(smooth_mask < 0.01)] = 0.
+    # populate the output image
+    next_start_channel = 0  # initialize which channel to start with for the input images
+    for i in range(collapse_channels):
+        # figure out which slices to pick
+        slices_this_group = slices_per_group
+        if leftover_slices > 0:
+            # take one extra slice, yummy
+            slices_this_group += 1
+            leftover_slices -= 1
 
-    return_psf = return_psf * smooth_mask
-    return_psf = return_psf / np.nanmax(return_psf)
+        i_start = next_start_channel
+        i_end = next_start_channel + slices_this_group  # this is the index after the last one in this group
+
+        psfs_this_group = psfs_here[i_start:i_end, :, :]
+
+        # Remove annoying RuntimeWarnings when input_4d is all nans
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            return_psf[i, :, :] = np.nanmean(psfs_this_group, axis=0)
+        next_start_channel = i_end
+
+    if smoothed:
+        r_smooth = boxrad - 1
+        # # create rho2D for the psf square
+        x_square = np.arange(2 * boxrad + 1, dtype=np.float)[None, :] - boxrad
+        y_square = np.arange(2 * boxrad + 1, dtype=np.float)[:, None] - boxrad
+        rho2d_square = np.sqrt(x_square**2 + y_square**2)
+
+        smooth_mask = np.ones((2 * boxrad + 1, 2 * boxrad + 1))
+        smooth_mask[np.where(rho2d_square > r_smooth - 1)] = 0.
+        smooth_mask = scipy_filters.gaussian_filter(smooth_mask, 2.)
+        smooth_mask[np.where(rho2d_square < r_smooth)] = 1.
+        smooth_mask[np.where(smooth_mask < 0.01)] = 0.
+        for i in range(collapse_channels):
+            return_psf[i, :, :] *= smooth_mask
+
+    # return_psf = return_psf / np.nanmax(return_psf)
     return_psf[np.where(return_psf < 0.)] = 0.
     return return_psf
