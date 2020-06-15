@@ -216,7 +216,7 @@ def logp(theta):
 
     # - rout = Logistic We  cut the prior at r2 = xx
     # because this parameter is very limited by the ADI
-    if ((r2 < 135) and (r2 > 180)):
+    if (r1 < 135 or r1 > 200):
         return -np.inf
     else:
         # prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 100)))
