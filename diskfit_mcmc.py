@@ -242,12 +242,12 @@ def logp(theta):
     else:
         prior_rout = prior_rout * 1.
 
-    if (dx < -20) or (dx > 12):  #The x offset
+    if (dx < -50) or (dx > 50):  #The x offset
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (dy < -20) or (dy > 20):  #The y offset
+    if (dy < -50) or (dy > 50):  #The y offset
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
