@@ -219,8 +219,8 @@ def logp(theta):
     if (r2 < 135 or r2 > 200):
         return -np.inf
     else:
-        # prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 100)))
-        prior_rout = prior_rout * 1.  # or we can just use a flat prior
+        prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 180)))
+        # prior_rout = prior_rout * 1.  # or we can just use a flat prior
 
     if (beta < 1 or beta > 30):
         return -np.inf
@@ -242,12 +242,12 @@ def logp(theta):
     else:
         prior_rout = prior_rout * 1.
 
-    if (dx < -50) or (dx > 50):  #The x offset
+    if (dx < -90) or (dx > 90):  #The x offset
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (dy < -50) or (dy > 50):  #The y offset
+    if (dy < -90) or (dy > 90):  #The y offset
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
@@ -265,12 +265,12 @@ def logp(theta):
             prior_rout = prior_rout * 1.
 
         if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
-            if (g2 < -0.9999 or g2 > -0.001):
+            if (g2 < -0.9999 or g2 > -0.0001):
                 return -np.inf
             else:
                 prior_rout = prior_rout * 1.
 
-            if (alpha1 < 0.01 or alpha1 > 0.9999):
+            if (alpha1 < 0.0001 or alpha1 > 0.9999):
                 return -np.inf
             else:
                 prior_rout = prior_rout * 1.
