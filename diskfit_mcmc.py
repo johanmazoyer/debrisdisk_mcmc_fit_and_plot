@@ -14,7 +14,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
 # default_parameter_file = 'GPI_Hband_MCMC_ADI.yaml'  # name of the parameter file
-default_parameter_file = 'GPI_Hband_Hd32297_ADI.yaml'  # name of the parameter file
+default_parameter_file = 'GPI_Hband_MCMC_ADI_test4Justin.yaml'  # name of the parameter file
 # you can also call it with the python function argument -p
 
 MPI = False  ## by default the MCMC is not mpi. you can change it
@@ -63,7 +63,9 @@ from pyklip.fmlib.diskfm import DiskFM
 import pyklip.fm as fm
 import pyklip.rdi as rdi
 
-from disk_models import gen_disk_dxdy_1g, gen_disk_dxdy_2g, gen_disk_dxdy_3g
+from anadisk_model.anadisk_sum_mask import phase_function_spline, calculate_disk, generate_disk
+
+from disk_models import hg_2g, gen_disk_dxdy_1g, gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import make_gpi_psf_for_disks as gpidiskpsf
 import astro_unit_conversion as convert
 
@@ -73,12 +75,15 @@ import astro_unit_conversion as convert
 os.environ["OMP_NUM_THREADS"] = "1"
 
 
+
+
 #######################################################
 def call_gen_disk(theta):
     """ call the disk model from a set of parameters.
         
-        use DIMENSION, PIXSCALE_INS and DISTANCE_STAR and
-        wheremask2generatedisk as global variables
+        use DIMENSION, PIXSCALE_INS, DISTANCE_STAR
+        ALIGNED_CENTER and wheremask2generatedisk 
+        as global variables
 
     Args:
         theta: list of parameters of the MCMC
@@ -103,7 +108,43 @@ def call_gen_disk(theta):
 
     param_disk['SPF_MODEL'] = SPF_MODEL
 
-    if (SPF_MODEL == 'hg_1g'):
+    if (SPF_MODEL == 'spf_fix'):
+        param_disk['r1'] = mt.exp(theta[0])
+        param_disk['r2'] = mt.exp(theta[1])
+        param_disk['beta_in'] = theta[2]
+        param_disk['beta_out'] = theta[3]
+        param_disk['a_r'] = theta[4]
+
+        param_disk['inc'] = np.degrees(np.arccos(theta[5]))
+        param_disk['PA'] = theta[6]
+        param_disk['dx'] = theta[7]
+        param_disk['dy'] = theta[8]
+        param_disk['Norm'] = mt.exp(theta[9])
+
+        #generate the model
+        #         generate_disk(scattering_function_list, scattering_function_args_list=None,
+        # R1=74.42, R2=82.45, beta_in=-7.5,beta_out=1.0, aspect_ratio=0.1, inc=76.49, pa=30, distance=72.8,
+        # psfcenx=140,psfceny=140, sampling=1, mask=None, dx=0, dy=0., los_factor = 4, dim = 281.,pixscale=0.01414):
+        model = generate_disk(scattering_function_list=[F_SPF],
+                              R1=param_disk['r1'],
+                              R2=param_disk['r2'],
+                              beta_in=param_disk['beta_in'],
+                              beta_out=param_disk['beta_out'],
+                              aspect_ratio=param_disk['a_r'],
+                              inc=param_disk['inc'],
+                              pa=param_disk['PA'],
+                              dx=param_disk['dx'],
+                              dy=param_disk['dy'],
+                              psfcenx=ALIGNED_CENTER[0],
+                              psfceny=ALIGNED_CENTER[1],
+                              sampling=1,
+                              dim=DIMENSION,
+                              mask=WHEREMASK2GENERATEDISK,
+                              pixscale=PIXSCALE_INS,
+                              distance=DISTANCE_STAR)
+        model = param_disk['Norm']*model/param_disk['a_r']
+
+    elif (SPF_MODEL == 'hg_1g'):
         param_disk['g1'] = theta[8]
 
         #generate the model
@@ -186,17 +227,20 @@ def logp(theta):
         log of priors
     """
 
-    r1 = mt.exp(theta[0])
-    r2 = mt.exp(theta[1])
-    beta = theta[2]
-    inc = np.degrees(np.arccos(theta[3]))
-    pa = theta[4]
-    dx = theta[5]
-    dy = theta[6]
-    Norm = mt.exp(theta[7])
+
 
     if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
             SPF_MODEL == 'hg_3g'):
+        
+        r1 = mt.exp(theta[0])
+        r2 = mt.exp(theta[1])
+        beta = theta[2]
+        inc = np.degrees(np.arccos(theta[3]))
+        pa = theta[4]
+        dx = theta[5]
+        dy = theta[6]
+        Norm = mt.exp(theta[7])
+        
         g1 = theta[8]
 
         if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
@@ -209,17 +253,17 @@ def logp(theta):
 
     prior_rout = 1.
     # define the prior values
-    if (r1 < 0 or r1 > 135):
+    if (r1 < 0 or r1 > 80):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
     # - rout = Logistic We  cut the prior at r2 = xx
     # because this parameter is very limited by the ADI
-    if (r2 < 135 or r2 > 200):
+    if (r2 < 85 or r2 > 100):
         return -np.inf
     else:
-        prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 180)))
+        prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 102)))
         # prior_rout = prior_rout * 1.  # or we can just use a flat prior
 
     if (beta < 1 or beta > 30):
@@ -232,12 +276,12 @@ def logp(theta):
     # else:
     #    prior_rout = prior_rout  *1.
 
-    if (inc < 82 or inc > 90):
+    if (inc < 70 or inc > 80):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (pa < 40 or pa > 60):
+    if (pa < 20 or pa > 30):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
@@ -479,13 +523,13 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
         for nonGPIfilename in non_GPI_files:
             filelist.remove(nonGPIfilename)
-        
+
         pol_or_spec = filetype_here
         print(pol_or_spec)
 
         if first_time:
             if len(filelist) == 0:
-                raise ValueError("Could not find files in the dir") 
+                raise ValueError("Could not find files in the dir")
 
             if pol_or_spec == 'Spectral Cube':  # GPI spec mode
                 filelist4psf = copy.copy(filelist)
@@ -518,8 +562,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
                 # finally measure the good psf
                 instrument_psf = gpidiskpsf.make_collapsed_psf(
-                    dataset4psf, params_mcmc_yaml, boxrad=11)[0] 
-                # monocrhomatic here  
+                    dataset4psf, params_mcmc_yaml, boxrad=11)[0]
+                # monocrhomatic here
 
                 # save the excluded_slices in the psf header (SNR too low)
                 hdr_psf = fits.Header()
@@ -533,7 +577,7 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
                 hdr_psf['N_BADFIL'] = len(excluded_files)
                 for badfile_i, badfilestr in enumerate(excluded_files):
                     hdr_psf['BADFIL' + str(badfile_i).zfill(2)] = badfilestr
-            
+
             else:  # GPI Pol mode
                 instrument_psf = fits.getdata(
                     os.path.join(datadir, params_mcmc_yaml['PSF_FILES_STR']))
@@ -1119,7 +1163,8 @@ if __name__ == '__main__':
     NEW_BACKEND = params_mcmc_yaml['NEW_BACKEND']
 
     if not os.path.isdir(os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])):
-        raise ValueError("Could not find the data directory (BAND_DIR parameter)")
+        raise ValueError(
+            "Could not find the data directory (BAND_DIR parameter)")
 
     klipdir = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'],
                            'klip_fm_files')
@@ -1131,7 +1176,19 @@ if __name__ == '__main__':
     N_ITER_MCMC = params_mcmc_yaml['N_ITER_MCMC']  #Number of interation
     SPF_MODEL = params_mcmc_yaml['SPF_MODEL']  #Type of description for the SPF
 
-    if SPF_MODEL == "hg_1g":  #1g henyey greenstein, SPF described with 1 parameter
+    if SPF_MODEL == "fix_spf":  #1g henyey greenstein, SPF described with 1 parameter
+        N_DIM_MCMC = 10  #Number of dimension of the parameter space
+
+        g1_init = params_mcmc_yaml['g1_init']
+        g2_init = params_mcmc_yaml['g2_init']
+        alpha1_init = params_mcmc_yaml['alpha1_init']
+
+        n_points = 41
+        scatt_angles = np.linspace(0, np.pi, n_points)
+        spf_norm90 = hg_2g(np.degrees(scatt_angles), g1_init, g2_init, alpha1_init,1)
+        F_SPF = phase_function_spline(scatt_angles, spf_norm90)
+
+    elif SPF_MODEL == "hg_1g":  #1g henyey greenstein, SPF described with 1 parameter
         N_DIM_MCMC = 9  #Number of dimension of the parameter space
     elif SPF_MODEL == "hg_2g":  #2g henyey greenstein, SPF described with 3 parameter
         N_DIM_MCMC = 11  #Number of dimension of the parameter space
@@ -1143,6 +1200,7 @@ if __name__ == '__main__':
     # load DISTANCE_STAR & PIXSCALE_INS and make them global
     DISTANCE_STAR = params_mcmc_yaml['DISTANCE_STAR']
     PIXSCALE_INS = params_mcmc_yaml['PIXSCALE_INS']
+    ALIGNED_CENTER = params_mcmc_yaml['ALIGNED_CENTER']
 
     if params_mcmc_yaml['FIRST_TIME'] and MPI:
         raise ValueError("""Because the way the code is set up right now, 
@@ -1214,7 +1272,7 @@ if __name__ == '__main__':
 
     print(mpistr + ", initialize walkers and start the MCMC...")
     startTime = datetime.now()
-    
+
     with MultiPool() as pool:
 
         if MPI:

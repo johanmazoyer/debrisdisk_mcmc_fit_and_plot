@@ -1435,7 +1435,7 @@ def compare_injected_spfs_plot(params_mcmc_yaml):
              linewidth=2,
              linestyle='-.',
              color=color2,
-             label="Initial SPF Injected in Empty Dataset")
+             label="Fiducial 'Zodiacal light' SPF (Hong et al. 1985)")
 
     handles, labels = plt.gca().get_legend_handles_labels()
     order = [1, 0]
