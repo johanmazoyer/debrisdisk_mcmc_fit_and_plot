@@ -39,7 +39,7 @@ r1_init: 74.3
 r2_init: 95
 beta_in_init: -12
 beta_out_init: 7
-ar_init: 0.01
+ar_init: 0.041
 inc_init: 76.44
 pa_init: 26.64
 dx_init: -1.
