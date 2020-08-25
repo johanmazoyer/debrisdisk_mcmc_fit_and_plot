@@ -14,7 +14,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
 # default_parameter_file = 'GPI_Hband_MCMC_ADI.yaml'  # name of the parameter file
-default_parameter_file = 'GPI_Hband_MCMC_ADI_test4Justin.yaml'  # name of the parameter file
+default_parameter_file = 'GPI_Hband_MCMC_ADI_test4Justin_newcode.yaml'  # name of the parameter file
 # you can also call it with the python function argument -p
 
 MPI = False  ## by default the MCMC is not mpi. you can change it
@@ -55,6 +55,8 @@ import yaml
 from emcee import EnsembleSampler
 from emcee import backends
 
+from numba.core.errors import NumbaWarning
+
 import pyklip.instruments.GPI as GPI
 import pyklip.instruments.SPHERE as SPHERE
 
@@ -63,7 +65,7 @@ from pyklip.fmlib.diskfm import DiskFM
 import pyklip.fm as fm
 import pyklip.rdi as rdi
 
-from anadisk_model.anadisk_sum_mask import phase_function_spline, calculate_disk, generate_disk
+from anadisk_model.anadisk_sum_mask import phase_function_spline, generate_disk
 
 from disk_models import hg_2g, gen_disk_dxdy_1g, gen_disk_dxdy_2g, gen_disk_dxdy_3g
 import make_gpi_psf_for_disks as gpidiskpsf
@@ -73,8 +75,6 @@ import astro_unit_conversion as convert
 # and by PyKLIPto avoid that NumPy automatically parallelizes some operations,
 # which kill the speed
 os.environ["OMP_NUM_THREADS"] = "1"
-
-
 
 
 #######################################################
@@ -94,21 +94,11 @@ def call_gen_disk(theta):
 
     param_disk = {}
 
-    param_disk['a_r'] = 0.01  # we fix the aspect ratio
     param_disk['offset'] = 0.  # no vertical offset in KLIP
-
-    param_disk['r1'] = mt.exp(theta[0])
-    param_disk['r2'] = mt.exp(theta[1])
-    param_disk['beta'] = theta[2]
-    param_disk['inc'] = np.degrees(np.arccos(theta[3]))
-    param_disk['PA'] = theta[4]
-    param_disk['dx'] = theta[5]
-    param_disk['dy'] = theta[6]
-    param_disk['Norm'] = mt.exp(theta[7])
-
     param_disk['SPF_MODEL'] = SPF_MODEL
 
     if (SPF_MODEL == 'spf_fix'):
+
         param_disk['r1'] = mt.exp(theta[0])
         param_disk['r2'] = mt.exp(theta[1])
         param_disk['beta_in'] = theta[2]
@@ -122,9 +112,6 @@ def call_gen_disk(theta):
         param_disk['Norm'] = mt.exp(theta[9])
 
         #generate the model
-        #         generate_disk(scattering_function_list, scattering_function_args_list=None,
-        # R1=74.42, R2=82.45, beta_in=-7.5,beta_out=1.0, aspect_ratio=0.1, inc=76.49, pa=30, distance=72.8,
-        # psfcenx=140,psfceny=140, sampling=1, mask=None, dx=0, dy=0., los_factor = 4, dim = 281.,pixscale=0.01414):
         model = generate_disk(scattering_function_list=[F_SPF],
                               R1=param_disk['r1'],
                               R2=param_disk['r2'],
@@ -138,13 +125,30 @@ def call_gen_disk(theta):
                               psfcenx=ALIGNED_CENTER[0],
                               psfceny=ALIGNED_CENTER[1],
                               sampling=1,
+                              los_factor=1,
                               dim=DIMENSION,
                               mask=WHEREMASK2GENERATEDISK,
                               pixscale=PIXSCALE_INS,
-                              distance=DISTANCE_STAR)
-        model = param_disk['Norm']*model/param_disk['a_r']
+                              distance=DISTANCE_STAR)[:, :, 0]
+
+        # remove the nans to avoid problems when convolving
+        model[model != model] = 0
+        # I normalize by value of a_r to avoid degenerascies between a_r and Normalization
+        model = param_disk['Norm'] * model / param_disk['a_r']
 
     elif (SPF_MODEL == 'hg_1g'):
+
+        param_disk['a_r'] = 0.01  # we fix the aspect ratio
+
+        param_disk['r1'] = mt.exp(theta[0])
+        param_disk['r2'] = mt.exp(theta[1])
+        param_disk['beta'] = theta[2]
+        param_disk['inc'] = np.degrees(np.arccos(theta[3]))
+        param_disk['PA'] = theta[4]
+        param_disk['dx'] = theta[5]
+        param_disk['dy'] = theta[6]
+        param_disk['Norm'] = mt.exp(theta[7])
+
         param_disk['g1'] = theta[8]
 
         #generate the model
@@ -155,6 +159,17 @@ def call_gen_disk(theta):
                                  distance=DISTANCE_STAR)
 
     elif SPF_MODEL == 'hg_2g':
+        param_disk['a_r'] = 0.01  # we fix the aspect ratio
+
+        param_disk['r1'] = mt.exp(theta[0])
+        param_disk['r2'] = mt.exp(theta[1])
+        param_disk['beta'] = theta[2]
+        param_disk['inc'] = np.degrees(np.arccos(theta[3]))
+        param_disk['PA'] = theta[4]
+        param_disk['dx'] = theta[5]
+        param_disk['dy'] = theta[6]
+        param_disk['Norm'] = mt.exp(theta[7])
+
         param_disk['g1'] = theta[8]
         param_disk['g2'] = theta[9]
         param_disk['alpha1'] = theta[10]
@@ -167,6 +182,17 @@ def call_gen_disk(theta):
                                  distance=DISTANCE_STAR)
 
     elif SPF_MODEL == 'hg_3g':
+        param_disk['a_r'] = 0.01  # we fix the aspect ratio
+
+        param_disk['r1'] = mt.exp(theta[0])
+        param_disk['r2'] = mt.exp(theta[1])
+        param_disk['beta'] = theta[2]
+        param_disk['inc'] = np.degrees(np.arccos(theta[3]))
+        param_disk['PA'] = theta[4]
+        param_disk['dx'] = theta[5]
+        param_disk['dy'] = theta[6]
+        param_disk['Norm'] = mt.exp(theta[7])
+
         param_disk['g1'] = theta[8]
         param_disk['g2'] = theta[9]
         param_disk['alpha1'] = theta[10]
@@ -198,7 +224,6 @@ def logl(theta):
     Returns:
         Chisquare
     """
-
     model = call_gen_disk(theta)
 
     modelconvolved = convolve(model, PSF, boundary='wrap')
@@ -227,11 +252,9 @@ def logp(theta):
         log of priors
     """
 
-
-
     if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
             SPF_MODEL == 'hg_3g'):
-        
+
         r1 = mt.exp(theta[0])
         r2 = mt.exp(theta[1])
         beta = theta[2]
@@ -240,7 +263,7 @@ def logp(theta):
         dx = theta[5]
         dy = theta[6]
         Norm = mt.exp(theta[7])
-        
+
         g1 = theta[8]
 
         if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
@@ -250,6 +273,18 @@ def logp(theta):
             if SPF_MODEL == 'hg_3g':
                 g3 = theta[11]
                 alpha2 = theta[12]
+
+    elif SPF_MODEL == 'spf_fix':
+        r1 = mt.exp(theta[0])
+        r2 = mt.exp(theta[1])
+        beta_in = theta[2]
+        beta_out = theta[3]
+        a_r = theta[4]
+        inc = np.degrees(np.arccos(theta[5]))
+        pa = theta[6]
+        dx = theta[7]
+        dy = theta[8]
+        Norm = mt.exp(theta[9])
 
     prior_rout = 1.
     # define the prior values
@@ -263,18 +298,8 @@ def logp(theta):
     if (r2 < 85 or r2 > 100):
         return -np.inf
     else:
-        prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 102)))
-        # prior_rout = prior_rout * 1.  # or we can just use a flat prior
-
-    if (beta < 1 or beta > 30):
-        return -np.inf
-    else:
-        prior_rout = prior_rout * 1.
-
-    # if (a_r < 0.0001 or a_r > 0.5 ): #The aspect ratio
-    #     return -np.inf
-    # else:
-    #    prior_rout = prior_rout  *1.
+        # prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 102)))
+        prior_rout = prior_rout * 1.  # or we can just use a flat prior
 
     if (inc < 70 or inc > 80):
         return -np.inf
@@ -303,6 +328,12 @@ def logp(theta):
 
     if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
             SPF_MODEL == 'hg_3g'):
+
+        if (beta < 1 or beta > 30):
+            return -np.inf
+        else:
+            prior_rout = prior_rout * 1.
+
         if (g1 < 0.001 or g1 > 0.9999):
             return -np.inf
         else:
@@ -330,6 +361,22 @@ def logp(theta):
                 else:
                     prior_rout = prior_rout * 1.
 
+    elif (SPF_MODEL == 'spf_fix'):
+        if (beta_in < -30 or beta_in > -1):
+            return -np.inf
+        else:
+            prior_rout = prior_rout * 1.
+
+        if (beta_out < 1 or beta_out > 30):
+            return -np.inf
+        else:
+            prior_rout = prior_rout * 1.
+
+        if (a_r < 0.0001 or a_r > 0.5):  #The aspect ratio
+            return -np.inf
+        else:
+            prior_rout = prior_rout * 1.
+
     # otherwise ...
     return np.log(prior_rout)
 
@@ -347,12 +394,12 @@ def lnpb(theta):
         log of priors + log of likelyhood
     """
     # from datetime import datetime
-    # starttime=datetime.now()
+    starttime = datetime.now()
     lp = logp(theta)
     if not np.isfinite(lp):
         return -np.inf
     ll = logl(theta)
-    # print("Running time model + FM: ", datetime.now()-starttime)
+    print("Running time model + FM: ", datetime.now() - starttime)
 
     return lp + ll
 
@@ -390,7 +437,20 @@ def make_noise_map_rings(nodisk_data,
 
 
 def create_uncertainty_map(dataset, params_mcmc_yaml, psflib=None):
+    """ measure the uncertainty map using the counter rotation trick
+    described in Sec4 of Gerard&Marois SPIE 2016 and probabaly elsewhere
 
+    Args:
+        dataset: a pyklip instance of Instrument.Data containing the data
+        params_mcmc_yaml: dic, all the parameters of the MCMC and klip
+                            read from yaml file
+        delta_raddii: pixel, widht of the small concentric rings
+        psflib: a PSF librairy if RDI
+
+    Returns:
+        a [dim,dim] array containing only speckles and the disk has been removed
+
+    """
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     move_here = params_mcmc_yaml['MOVE_HERE']
     numbasis = [params_mcmc_yaml['KLMODE_NUMBER']]
@@ -399,9 +459,6 @@ def create_uncertainty_map(dataset, params_mcmc_yaml, psflib=None):
     aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
     noise_multiplication_factor = params_mcmc_yaml[
         'NOISE_MULTIPLICATION_FACTOR']
-
-    #measure the uncertainty map using the counter rotation trick
-    # described in Sec4 of Gerard&Marois SPIE 2016 and probabaly elsewhere
 
     dataset.PAs = -dataset.PAs
     maxnumbasis = dataset.input.shape[0]
@@ -447,6 +504,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     Args:
         params_mcmc_yaml: dic, all the parameters of the MCMC and klip
                             read from yaml file
+        quietklip : if True, pyklip and DiskFM are quiet
+
 
     Returns:
         a dataset a pyklip instance of Instrument.Data
@@ -653,10 +712,10 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             dataset.input.shape[1],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 125,
+            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 60,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
-            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 125,
+            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 60,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
             aligned_center=aligned_center)
@@ -673,10 +732,10 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             dataset.input.shape[1],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 125,
+            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 60,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
-            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 125,
+            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 60,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
             aligned_center=aligned_center)
@@ -867,6 +926,8 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
         dataset: a pyklip instance of Instrument.Data
         params_mcmc_yaml: dic, all the parameters of the MCMC and klip
                             read from yaml file
+        psflib : a librairy of PSF if RDI
+        quietklip : if True, pyklip and DiskFM are quiet
 
     Returns:
         a  diskFM object
@@ -1006,74 +1067,11 @@ def initialize_walkers_backend(nwalkers,
     # +/-1% ball for the others
 
     if new_backend:
-        init_ball0 = np.random.uniform(theta_init[0] * 0.999,
-                                       theta_init[0] * 1.001,
-                                       size=(nwalkers))  #logr1
-        init_ball1 = np.random.uniform(theta_init[1] * 0.999,
-                                       theta_init[1] * 1.001,
-                                       size=(nwalkers))  #logr2
-        init_ball2 = np.random.uniform(theta_init[2] * 0.99,
-                                       theta_init[2] * 1.01,
-                                       size=(nwalkers))  #beta
-        init_ball3 = np.random.uniform(theta_init[3] * 0.99,
-                                       theta_init[3] * 1.01,
-                                       size=(nwalkers))  #cosinc
-        init_ball4 = np.random.uniform(theta_init[4] * 0.99,
-                                       theta_init[4] * 1.01,
-                                       size=(nwalkers))  #pa
-        init_ball5 = np.random.uniform(theta_init[5] * 0.99,
-                                       theta_init[5] * 1.01,
-                                       size=(nwalkers))  #dx
-        init_ball6 = np.random.uniform(theta_init[6] * 0.99,
-                                       theta_init[6] * 1.01,
-                                       size=(nwalkers))  #dy
-        init_ball7 = np.random.uniform(theta_init[7] * 0.999,
-                                       theta_init[7] * 1.001,
-                                       size=(nwalkers))  #logNorm
-
-        if (SPF_MODEL == 'hg_1g'):
-            init_ball8 = np.random.uniform(theta_init[8] * 0.99,
-                                           theta_init[8] * 1.01,
-                                           size=(nwalkers))  #g1
-            p0 = np.dstack(
-                (init_ball0, init_ball1, init_ball2, init_ball3, init_ball4,
-                 init_ball5, init_ball6, init_ball7, init_ball8))
-
-        elif (SPF_MODEL == 'hg_2g'):
-            init_ball8 = np.random.uniform(theta_init[8] * 0.99,
-                                           theta_init[8] * 1.01,
-                                           size=(nwalkers))  #g1
-            init_ball9 = np.random.uniform(theta_init[9] * 0.99,
-                                           theta_init[9] * 1.01,
-                                           size=(nwalkers))  #g2
-            init_ball10 = np.random.uniform(theta_init[10] * 0.99,
-                                            theta_init[10] * 1.01,
-                                            size=(nwalkers))  #alpha1
-            p0 = np.dstack((init_ball0, init_ball1, init_ball2, init_ball3,
-                            init_ball4, init_ball5, init_ball6, init_ball7,
-                            init_ball8, init_ball9, init_ball10))
-
-        elif (SPF_MODEL == 'hg_3g'):
-            init_ball8 = np.random.uniform(theta_init[8] * 0.99,
-                                           theta_init[8] * 1.01,
-                                           size=(nwalkers))  #g1
-            init_ball9 = np.random.uniform(theta_init[9] * 0.99,
-                                           theta_init[9] * 1.01,
-                                           size=(nwalkers))  #g2
-            init_ball10 = np.random.uniform(theta_init[10] * 0.99,
-                                            theta_init[10] * 1.01,
-                                            size=(nwalkers))  #alpha1
-            init_ball11 = np.random.uniform(theta_init[11] * 0.99,
-                                            theta_init[11] * 1.01,
-                                            size=(nwalkers))  #g3
-            init_ball12 = np.random.uniform(theta_init[12] * 0.99,
-                                            theta_init[12] * 1.01,
-                                            size=(nwalkers))  #alpha2
-
-            p0 = np.dstack(
-                (init_ball0, init_ball1, init_ball2, init_ball3, init_ball4,
-                 init_ball5, init_ball6, init_ball7, init_ball8, init_ball9,
-                 init_ball10, init_ball11, init_ball12))
+        p0 = np.zeros((1, nwalkers, n_dim_mcmc))
+        for i in range(n_dim_mcmc):
+            p0[:, :, i] = np.random.uniform(theta_init[i] * 0.999,
+                                            theta_init[i] * 1.001,
+                                            size=(nwalkers))
 
         backend_ini.reset(nwalkers, n_dim_mcmc)
         return p0[0], backend_ini
@@ -1095,20 +1093,29 @@ def from_param_to_theta_init(params_mcmc_yaml):
 
     logr1_init = np.log(params_mcmc_yaml['r1_init'])
     logr2_init = np.log(params_mcmc_yaml['r2_init'])
-    beta_init = params_mcmc_yaml['beta_init']
     cosinc_init = np.cos(np.radians(params_mcmc_yaml['inc_init']))
     pa_init = params_mcmc_yaml['pa_init']
     dx_init = params_mcmc_yaml['dx_init']
     dy_init = params_mcmc_yaml['dy_init']
     logN_init = np.log(params_mcmc_yaml['N_init'])
 
-    if (SPF_MODEL == 'hg_1g'):
+    if (SPF_MODEL == 'spf_fix'):
+        beta_in_init = params_mcmc_yaml['beta_in_init']
+        beta_out_init = params_mcmc_yaml['beta_out_init']
+        ar_init = params_mcmc_yaml['ar_init']
+        theta_init = (logr1_init, logr2_init, beta_in_init, beta_out_init,
+                      ar_init, cosinc_init, pa_init, dx_init, dy_init,
+                      logN_init)
+
+    elif (SPF_MODEL == 'hg_1g'):
+        beta_init = params_mcmc_yaml['beta_init']
         g1_init = params_mcmc_yaml['g1_init']
 
         theta_init = (logr1_init, logr2_init, beta_init, cosinc_init, pa_init,
                       dx_init, dy_init, logN_init, g1_init)
 
     elif (SPF_MODEL == 'hg_2g'):
+        beta_init = params_mcmc_yaml['beta_init']
         g1_init = params_mcmc_yaml['g1_init']
         g2_init = params_mcmc_yaml['g2_init']
         alpha1_init = params_mcmc_yaml['alpha1_init']
@@ -1118,6 +1125,7 @@ def from_param_to_theta_init(params_mcmc_yaml):
                       alpha1_init)
 
     elif (SPF_MODEL == 'hg_3g'):
+        beta_init = params_mcmc_yaml['beta_init']
         g1_init = params_mcmc_yaml['g1_init']
         g2_init = params_mcmc_yaml['g2_init']
         alpha1_init = params_mcmc_yaml['alpha1_init']
@@ -1135,6 +1143,7 @@ if __name__ == '__main__':
 
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     warnings.simplefilter('ignore', FITSFixedWarning)
+    warnings.simplefilter('ignore', NumbaWarning)
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
 
@@ -1147,7 +1156,7 @@ if __name__ == '__main__':
         progress = True
         mpistr = "\n In non MPI mode"
 
-    if args.param_file == None:
+    if args.param_file is None:
         str_yalm = default_parameter_file
     else:
         str_yalm = args.param_file
@@ -1176,16 +1185,19 @@ if __name__ == '__main__':
     N_ITER_MCMC = params_mcmc_yaml['N_ITER_MCMC']  #Number of interation
     SPF_MODEL = params_mcmc_yaml['SPF_MODEL']  #Type of description for the SPF
 
-    if SPF_MODEL == "fix_spf":  #1g henyey greenstein, SPF described with 1 parameter
+    if SPF_MODEL == "spf_fix":  #1g henyey greenstein, SPF described with 1 parameter
         N_DIM_MCMC = 10  #Number of dimension of the parameter space
 
-        g1_init = params_mcmc_yaml['g1_init']
-        g2_init = params_mcmc_yaml['g2_init']
-        alpha1_init = params_mcmc_yaml['alpha1_init']
+        # we fix the SPF using a HG parametrization with parameters in the init file
+        n_points = 21  # odd number to ensure that scattangl=pi/2 is in the list for normalization
+        scatt_angles = np.linspace(0, np.pi, n_points) 
 
-        n_points = 41
-        scatt_angles = np.linspace(0, np.pi, n_points)
-        spf_norm90 = hg_2g(np.degrees(scatt_angles), g1_init, g2_init, alpha1_init,1)
+        # 2g henyey greenstein, normalized at 1 at 90 degrees
+        spf_norm90 = hg_2g(np.degrees(scatt_angles),
+                           params_mcmc_yaml['g1_init'],
+                           params_mcmc_yaml['g2_init'],
+                           params_mcmc_yaml['alpha1_init'], 1)
+        #measure fo the spline and save as global value
         F_SPF = phase_function_spline(scatt_angles, spf_norm90)
 
     elif SPF_MODEL == "hg_1g":  #1g henyey greenstein, SPF described with 1 parameter

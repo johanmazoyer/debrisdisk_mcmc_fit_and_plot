@@ -80,7 +80,7 @@ def hg_2g(scatt_angles, g1, g2, alpha, Norm):
     hg1 = k * alpha * (1. - g1_2) / (1. + g1_2 - (2 * g1 * cos_phi))**1.5
     hg2 = k * (1 - alpha) * (1. - g2_2) / (1. + g2_2 - (2 * g2 * cos_phi))**1.5
     hg = hg1 + hg2
-    hg_norm = hg / hg[np.where(int(scatt_angles) == 90)] * Norm
+    hg_norm = hg / hg[np.where(np.rint(scatt_angles) == 90)] * Norm
     return hg_norm
 
 
