@@ -1,5 +1,5 @@
 # PYKLIP PARAMETERS
-FIRST_TIME: True
+FIRST_TIME: False
 #if FIRST_TIME=True the masks, reduced data, noise map, PSF lib, KL vectors are (re)calculated.
 MODE: ADI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
 DO_RDI_CORRELATION: True # Measure the correlation matrix of the RDI PSF lib. Very long.
