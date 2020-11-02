@@ -288,25 +288,25 @@ def logp(theta):
 
     prior_rout = 1.
     # define the prior values
-    if (r1 < 0 or r1 > 80):
+    if (r1 < 35 or r1 > 55):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
     # - rout = Logistic We  cut the prior at r2 = xx
     # because this parameter is very limited by the ADI
-    if (r2 < 85 or r2 > 100):
+    if (r2 < 42 or r2 > 62):
         return -np.inf
     else:
         # prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 102)))
         prior_rout = prior_rout * 1.  # or we can just use a flat prior
 
-    if (inc < 70 or inc > 80):
+    if (inc < 20 or inc > 40):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (pa < 20 or pa > 30):
+    if (pa < 90 or pa > 110):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
@@ -712,10 +712,10 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             dataset.input.shape[1],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 60,
+            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 5,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
-            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 60,
+            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 5,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
             aligned_center=aligned_center)
@@ -732,10 +732,10 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             dataset.input.shape[1],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 60,
+            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 15,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
-            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 60,
+            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 15,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
             aligned_center=aligned_center)
