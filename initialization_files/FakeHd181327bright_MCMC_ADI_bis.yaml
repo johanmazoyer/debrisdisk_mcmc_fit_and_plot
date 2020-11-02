@@ -1,5 +1,5 @@
 # PYKLIP PARAMETERS
-FIRST_TIME: False
+FIRST_TIME: True
 #if FIRST_TIME=True the masks, reduced data, noise map, PSF lib, KL vectors are (re)calculated.
 MODE: ADI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
 DO_RDI_CORRELATION: True # Measure the correlation matrix of the RDI PSF lib. Very long.
@@ -19,7 +19,7 @@ INSTRUMENT: GPI  # SPHERE or GPI
 BAND_DIR: hd_48524_20180128_H_Spec_hd181327like_bright  # name of folder where are the data (from basedir)
 RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
                         # Carefull, this dir must also contains the data
-FILE_PREFIX: Fake_hd32297bright_adikl3  #prefix for all saved files (carefull not to erase your results)
+FILE_PREFIX: Fake_hd181327bright_adikl3  #prefix for all saved files (carefull not to erase your results)
 BAND_NAME: Injected Bright HD 181327 ADI      #for plot titles uniquely
 
 # STAR OBSERVATION PARAMETERS
@@ -27,10 +27,10 @@ DISTANCE_STAR: 72.0   #distance of the disk in pc
 PIXSCALE_INS: 0.01414  #picscale of your data
 
 # MCMC PARAMETERS
-NEW_BACKEND: False
+NEW_BACKEND: True
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
 NWALKERS: 256 #Number of walkers (should be at least twice the # parameters)
-N_ITER_MCMC: 200 #Number of interation
+N_ITER_MCMC: 1300 #Number of interation
 NOISE_MULTIPLICATION_FACTOR: 5 # multiplicative factor for the chains
 # There is no burn-in phase here, the burnin only intervened when reading the data
 
