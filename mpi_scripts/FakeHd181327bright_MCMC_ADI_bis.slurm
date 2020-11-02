@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=181Ab
-#SBATCH --nodes=2 --ntasks-per-node=16
+#SBATCH --nodes=3 --ntasks-per-node=16
 #SBATCH --time=23:59:00
 #SBATCH --partition=medium
 #SBATCH --mail-user=johan.mazoyer@obspm.fr
