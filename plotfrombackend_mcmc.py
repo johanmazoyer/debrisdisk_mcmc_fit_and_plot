@@ -12,7 +12,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # default_parameter_file = 'FakeHr4796faint_MCMC_RDI.yaml'
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'
 
-default_parameter_file = 'GPI_Hband_MCMC_ADI_test4Justin.yaml'
+default_parameter_file = 'FakeHd181327bright_MCMC_ADI_bis.yaml'
 
 
 
