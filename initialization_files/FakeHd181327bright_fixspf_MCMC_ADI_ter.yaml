@@ -1,0 +1,141 @@
+# PYKLIP PARAMETERS
+FIRST_TIME: False
+#if FIRST_TIME=True the masks, reduced data, noise map, PSF lib, KL vectors are (re)calculated.
+MODE: ADI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
+DO_RDI_CORRELATION: False # Measure the correlation matrix of the RDI PSF lib. Very long.
+KLMODE_NUMBER: 5 # number of KL modes used in the reduction < nb images in the basis
+ANNULI: 1 # number of annuli in the KLIP reduction
+OWA: 100 # OWA of the reduction, in pixel. Reduce the zone to accelerate the code.
+MOVE_HERE: 6  #minrot in PyKLIP ADI
+ALIGNED_CENTER: [140.,140.] #image center in your model, also use to center the image before KLIP
+
+#  In the KLIP do you want to remove the images where the disk is on the satspots 
+# if True: frames are removed
+# if False: frames are not removed
+RM_FILE_DISK_CROSS_SATSPOTS: False 
+# The images where the disk is on the satspots are autonatically remove to measure the PSF
+INSTRUMENT: GPI  # SPHERE or GPI
+# LOCATION AND NAME PARAMETERS. Parameters used to save the outputs or plots
+BAND_DIR: hd_48524_20180128_H_Spec_hd181327like_bright  # name of folder where are the data (from basedir)
+RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
+                        # Carefull, this dir must also contains the data
+FILE_PREFIX: Fake_hd181327bright_fixspf_adikl5  #prefix for all saved files (carefull not to erase your results)
+BAND_NAME: GPI H band ADI      #for plot titles uniquely
+
+# STAR OBSERVATION PARAMETERS
+DISTANCE_STAR: 72.0   #distance of the disk in pc
+PIXSCALE_INS: 0.01414  #picscale of your data
+
+# MCMC PARAMETERS
+NEW_BACKEND: True
+#if NEW_BACKEND=0, reset the backend, if not, start where you stopped
+NWALKERS: 256 #Number of walkers (should be at least twice the # parameters)
+N_ITER_MCMC: 1300 #Number of interation
+NOISE_MULTIPLICATION_FACTOR: 5 # multiplicative factor for the chains
+# There is no burn-in phase here, the burnin only intervened when reading the data
+
+# INITIAL MODEL PARAMETERS
+r1_init: 45
+r2_init: 52
+beta_in_init: -7
+beta_out_init: 12.3
+inc_init: 30.
+pa_init: 101.
+dx_init: -0.9
+dy_init: 1.37
+N_init: 100
+# the parameter of the priors are still defined inside the code logp(theta) function
+
+# SPF parameters
+SPF_MODEL: 'spf_fix' # Heyniey greenstein ('hg_1g', 'hg_2g', 'hg_3g') or 
+
+# for 1g SPF (N_DIM_MCMC = 9) and more
+g1_init: 0.70
+
+# for 2g SPF (N_DIM_MCMC = 11) and 3g SPF (N_DIM_MCMC = 13) only
+g2_init: -0.20
+alpha1_init: 0.66
+
+# for 3g SPF (N_DIM_MCMC = 13) only
+g3_init: 0.
+alpha2_init: 0.
+
+# MCMC PLOTTING PARAMETERS
+BURNIN: 250   #We remove the first BURNIN iteration
+THIN: 1       #thin (bin) the chains
+QUALITY_PLOT: 2 # usefull because corner plots can be huge. When paper, QUALITY_PLOT: 4
+sigma: 1 # the number of sigma used to measure the error bars.
+
+# MCMC PLOTTING PARAMETERS. 
+# NAME and descirption THAT WILL APPEARS IN THE CORNER PLOTS
+# and printed analysis 
+NAMES:
+- R1
+- R2
+- Beta_in
+- Beta_out
+- a_r
+- inc
+- PA
+- dx
+- dy
+- Norm
+- Argpe
+- R1mas
+- ecc
+# - Omega
+# - ekowa
+# - ikowa
+# - RA
+# - Decl
+# - RAp
+# - Declp
+# - Rkowa
+
+
+LABELS:
+  Alph1: $\alpha$1[%]
+  Alph2: $\alpha$2[%]
+  Beta_in: $\beta_i$
+  Beta_out: $\beta_o$
+  a_r: $A.R.$
+  Norm: N[ADU]
+  PA: $pa[^{\circ}]$
+  R1: R1[AU]
+  R2: R2[AU]
+  dx: dx[AU]
+  dy: dy[AU]
+  g1: g1[%]
+  g2: g2[%]
+  g3: g3[%]
+  inc: $i[^{\circ}]$
+
+COMMENTS:
+  Argpe: ' deg, argument of pericentre'
+  Alph1: ' %, first relative HG weight'
+  Alph2: ' %, second relative HG weight'
+  Beta_in: ' inner radial power law'
+  Beta_out: ' outer radial power law'
+  a_r: ' aspect ratio'
+  Norm: ' ADU, normalisation'
+  PA: ' degree, principal angle'
+  R1: ' AU, inner radius'
+  R2: ' AU, outer radius'
+  dx: ' au, + -> NW offset disk plane Minor Axis'
+  dy: ' au, + -> SW offset disk plane Major Axis'
+  g1: ' %, 1st HG param'
+  g2: ' %, 2nd HG param'
+  g3: ' %, 3rd HG param'
+  inc: ' degree, inclination'
+  R1mas: ' mas, inner radius'
+  ecc: ' eccentricity (deprojected, or disk plane)'
+
+  # R2mas: 'mas, outer radius'
+  # ekowa: deproj. (true) eccentricity (Kowalsky)
+  # ikowa: degree, deproj. (true) inclination (Kowalsky)
+  #RA: mas, ->E right ascension
+  # RAp: pix, ->E right ascension
+  # Rkowa: mas, deproj. (true) semi major axis (Kowalsky)
+  # Decl: mas, ->N declination
+  # Declp: pix, -> N declination
+  # Omega: deg, longitude of the ascending node

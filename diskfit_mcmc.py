@@ -14,7 +14,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
 # default_parameter_file = 'GPI_Hband_MCMC_ADI.yaml'  # name of the parameter file
-default_parameter_file = 'FakeHd32297faint_MCMC_ADI_ter.yaml'  # name of the parameter file
+default_parameter_file = 'FakeHd181327bright_fixspf_MCMC_ADI_ter.yaml'  # name of the parameter file
 # you can also call it with the python function argument -p
 
 MPI = False  ## by default the MCMC is not mpi. you can change it
@@ -98,18 +98,19 @@ def call_gen_disk(theta):
     param_disk['SPF_MODEL'] = SPF_MODEL
 
     if (SPF_MODEL == 'spf_fix'):
+        param_disk['a_r'] = 0.01 # we fix the aspect ratio
 
         param_disk['r1'] = mt.exp(theta[0])
         param_disk['r2'] = mt.exp(theta[1])
         param_disk['beta_in'] = theta[2]
         param_disk['beta_out'] = theta[3]
-        param_disk['a_r'] = theta[4]
+        # param_disk['a_r'] = theta[4]
 
-        param_disk['inc'] = np.degrees(np.arccos(theta[5]))
-        param_disk['PA'] = theta[6]
-        param_disk['dx'] = theta[7]
-        param_disk['dy'] = theta[8]
-        param_disk['Norm'] = mt.exp(theta[9])
+        param_disk['inc'] = np.degrees(np.arccos(theta[4]))
+        param_disk['PA'] = theta[5]
+        param_disk['dx'] = theta[6]
+        param_disk['dy'] = theta[7]
+        param_disk['Norm'] = mt.exp(theta[8])
 
         #generate the model
         model = generate_disk(scattering_function_list=[F_SPF],
@@ -117,7 +118,7 @@ def call_gen_disk(theta):
                               R2=param_disk['r2'],
                               beta_in=param_disk['beta_in'],
                               beta_out=param_disk['beta_out'],
-                              aspect_ratio=param_disk['a_r'],
+                              aspect_ratio=param_disk['a_r'],  
                               inc=param_disk['inc'],
                               pa=param_disk['PA'],
                               dx=param_disk['dx'],
@@ -279,34 +280,34 @@ def logp(theta):
         r2 = mt.exp(theta[1])
         beta_in = theta[2]
         beta_out = theta[3]
-        a_r = theta[4]
-        inc = np.degrees(np.arccos(theta[5]))
-        pa = theta[6]
-        dx = theta[7]
-        dy = theta[8]
-        Norm = mt.exp(theta[9])
+        a_r = 0.01 #theta[4]
+        inc = np.degrees(np.arccos(theta[4]))
+        pa = theta[5]
+        dx = theta[6]
+        dy = theta[7]
+        Norm = mt.exp(theta[8])
 
     prior_rout = 1.
     # define the prior values
-    if (r1 < 60 or r1 > 80):
+    if (r1 < 35 or r1 > 55):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
     # - rout = Logistic We  cut the prior at r2 = xx
     # because this parameter is very limited by the ADI
-    if (r2 < 82 or r2 > 102):
+    if (r2 < 42 or r2 > 62):
         return -np.inf
     else:
-        prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 102)))
-        # prior_rout = prior_rout * 1.  # or we can just use a flat prior
+        # prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 102)))
+        prior_rout = prior_rout * 1.  # or we can just use a flat prior
 
-    if (inc < 78 or inc > 98):
+    if (inc < 20 or inc > 40):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (pa < 40 or pa > 50):
+    if (pa < 90 or pa > 110):
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
@@ -372,10 +373,10 @@ def logp(theta):
         else:
             prior_rout = prior_rout * 1.
 
-        if (a_r < 0.0001 or a_r > 0.5):  #The aspect ratio
-            return -np.inf
-        else:
-            prior_rout = prior_rout * 1.
+        # if (a_r < 0.0001 or a_r > 0.5):  #The aspect ratio
+        #     return -np.inf
+        # else:
+        #     prior_rout = prior_rout * 1.
 
     # otherwise ...
     return np.log(prior_rout)
@@ -712,10 +713,10 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             dataset.input.shape[1],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 69,
+            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 30,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
-            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 100,
+            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 10,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
             aligned_center=aligned_center)
@@ -732,10 +733,10 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             dataset.input.shape[1],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 69,
+            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 35,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
-            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 100,
+            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 20,
                               params_mcmc_yaml['PIXSCALE_INS'],
                               params_mcmc_yaml['DISTANCE_STAR']),
             aligned_center=aligned_center)
@@ -1102,9 +1103,7 @@ def from_param_to_theta_init(params_mcmc_yaml):
     if (SPF_MODEL == 'spf_fix'):
         beta_in_init = params_mcmc_yaml['beta_in_init']
         beta_out_init = params_mcmc_yaml['beta_out_init']
-        ar_init = params_mcmc_yaml['ar_init']
-        theta_init = (logr1_init, logr2_init, beta_in_init, beta_out_init,
-                      ar_init, cosinc_init, pa_init, dx_init, dy_init,
+        theta_init = (logr1_init, logr2_init, beta_in_init, beta_out_init, cosinc_init, pa_init, dx_init, dy_init,
                       logN_init)
 
     elif (SPF_MODEL == 'hg_1g'):
@@ -1186,7 +1185,7 @@ if __name__ == '__main__':
     SPF_MODEL = params_mcmc_yaml['SPF_MODEL']  #Type of description for the SPF
 
     if SPF_MODEL == "spf_fix":  #1g henyey greenstein, SPF described with 1 parameter
-        N_DIM_MCMC = 10  #Number of dimension of the parameter space
+        N_DIM_MCMC = 9  #Number of dimension of the parameter space
 
         # we fix the SPF using a HG parametrization with parameters in the init file
         n_points = 21  # odd number to ensure that scattangl=pi/2 is in the list for normalization
