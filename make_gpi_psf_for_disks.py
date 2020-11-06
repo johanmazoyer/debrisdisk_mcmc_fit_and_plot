@@ -40,7 +40,8 @@ def make_disk_mask(dim,
     """
     #TODO: Maybe one day think carefully on make it work for non-square mask,
     # but honneslty not urgent
-
+    if estimminr < 0:
+        estimminr = 0
     PA_rad = np.radians(90 + estimPA)
     x = np.arange(dim, dtype=np.float)[None, :] - aligned_center[0]
     y = np.arange(dim, dtype=np.float)[:, None] - aligned_center[1]
@@ -50,7 +51,7 @@ def make_disk_mask(dim,
     x = x1
     y = y1 / np.cos(np.radians(estiminclin))
     rho2dellip = np.sqrt(x**2 + y**2)
-
+    
     mask_object_astro_zeros = np.ones((dim, dim))
     mask_object_astro_zeros[np.where((rho2dellip > estimminr)
                                      & (rho2dellip < estimmaxr))] = 0.
@@ -92,8 +93,8 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
     mask_object_astro_ones = 1 - make_disk_mask(dimx,
                                                 estimPA,
                                                 estiminclin,
-                                                estimminr - 3,
-                                                estimmaxr + 3,
+                                                estimminr - 3/np.cos(np.radians(params_mcmc_yaml['inc_init'])),
+                                                estimmaxr + 3/np.cos(np.radians(params_mcmc_yaml['inc_init'])),
                                                 aligned_center=aligned_center)
 
     # fits.writeto("/Users/jmazoyer/Desktop/initial_model.fits",

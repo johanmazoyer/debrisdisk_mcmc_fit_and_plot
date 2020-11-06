@@ -20,7 +20,7 @@ BAND_DIR: hd_48524_20180128_H_Spec_hd181327like_bright  # name of folder where a
 RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
                         # Carefull, this dir must also contains the data
 FILE_PREFIX: Fake_hd181327bright_fixspf_rdikl25  #prefix for all saved files (carefull not to erase your results)
-BAND_NAME: GPI H band ADI      #for plot titles uniquely
+BAND_NAME: GPI H band RDI      #for plot titles uniquely
 
 # STAR OBSERVATION PARAMETERS
 DISTANCE_STAR: 72.0   #distance of the disk in pc
@@ -74,7 +74,6 @@ NAMES:
 - R2
 - Beta_in
 - Beta_out
-- a_r
 - inc
 - PA
 - dx
@@ -83,6 +82,7 @@ NAMES:
 - Argpe
 - R1mas
 - ecc
+# - a_r
 # - Omega
 # - ekowa
 # - ikowa

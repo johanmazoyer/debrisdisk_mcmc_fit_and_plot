@@ -12,7 +12,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # default_parameter_file = 'FakeHr4796faint_MCMC_RDI.yaml'
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'
 
-default_parameter_file = 'FakeHd32297faint_MCMC_ADI_ter.yaml'
+default_parameter_file = 'FakeHd181327bright_fixspf_MCMC_RDI.yaml'
 
 
 
@@ -43,6 +43,9 @@ import pyklip.instruments.GPI as GPI
 import pyklip.instruments.SPHERE as SPHERE
 from pyklip.fmlib.diskfm import DiskFM
 
+from anadisk_model.anadisk_sum_mask import phase_function_spline, generate_disk
+
+
 from disk_models import gen_disk_dxdy_1g, gen_disk_dxdy_2g, gen_disk_dxdy_3g
 from disk_models import hg_1g, hg_2g, hg_3g, log_hg_2g, log_hg_3g
 
@@ -50,79 +53,13 @@ import astro_unit_conversion as convert
 from kowalsky import kowalsky
 import make_gpi_psf_for_disks as gpidiskpsf
 
+from diskfit_mcmc import call_gen_disk
+
 plt.switch_backend('agg')
 
 # There is a conflict when I import
 # matplotlib with pyklip if I don't use this line
 
-
-#######################################################
-def call_gen_disk(theta):
-    """ call the disk model from a set of parameters.
-        
-        use DIMENSION, PIXSCALE_INS and DISTANCE_STAR and
-        wheremask2generatedisk as global variables
-
-    Args:
-        theta: list of parameters of the MCMC
-
-    Returns:
-        a 2d model
-    """
-
-    param_disk = {}
-
-    param_disk['a_r'] = 0.01  # we fix the aspect ratio
-    param_disk['offset'] = 0.  # no vertical offset in KLIP
-
-    param_disk['r1'] = mt.exp(theta[0])
-    param_disk['r2'] = mt.exp(theta[1])
-    param_disk['beta'] = theta[2]
-    param_disk['inc'] = np.degrees(np.arccos(theta[3]))
-    param_disk['PA'] = theta[4]
-    param_disk['dx'] = theta[5]
-    param_disk['dy'] = theta[6]
-    param_disk['Norm'] = mt.exp(theta[7])
-
-    param_disk['SPF_MODEL'] = SPF_MODEL
-
-    if (SPF_MODEL == 'hg_1g'):
-        param_disk['g1'] = theta[8]
-
-        #generate the model
-        model = gen_disk_dxdy_1g(DIMENSION,
-                                 param_disk,
-                                 mask=WHEREMASK2GENERATEDISK,
-                                 pixscale=PIXSCALE_INS,
-                                 distance=DISTANCE_STAR)
-
-    elif SPF_MODEL == 'hg_2g':
-        param_disk['g1'] = theta[8]
-        param_disk['g2'] = theta[9]
-        param_disk['alpha1'] = theta[10]
-
-        #generate the model
-        model = gen_disk_dxdy_2g(DIMENSION,
-                                 param_disk,
-                                 mask=WHEREMASK2GENERATEDISK,
-                                 pixscale=PIXSCALE_INS,
-                                 distance=DISTANCE_STAR)
-
-    elif SPF_MODEL == 'hg_3g':
-        param_disk['g1'] = theta[8]
-        param_disk['g2'] = theta[9]
-        param_disk['alpha1'] = theta[10]
-        param_disk['g3'] = theta[11]
-        param_disk['alpha2'] = theta[12]
-
-        #generate the model
-        model = gen_disk_dxdy_3g(DIMENSION,
-                                 param_disk,
-                                 mask=WHEREMASK2GENERATEDISK,
-                                 pixscale=PIXSCALE_INS,
-                                 distance=DISTANCE_STAR)
-
-    return model
 
 
 ########################################################
@@ -221,15 +158,23 @@ def make_chain_plot(params_mcmc_yaml):
 
     SPF_MODEL = params_mcmc_yaml['SPF_MODEL']  #Type of description for the SPF
 
-    ## change log and arccos values to physical
-    chain[:, :, 0] = np.exp(chain[:, :, 0])
-    chain[:, :, 1] = np.exp(chain[:, :, 1])
-    chain[:, :, 3] = np.degrees(np.arccos(chain[:, :, 3]))
-    chain[:, :, 7] = np.exp(chain[:, :, 7])
+    if SPF_MODEL == 'spf_fix':
+        ## change log and arccos values to physical
+        chain[:, :, 0] = np.exp(chain[:, :, 0])
+        chain[:, :, 1] = np.exp(chain[:, :, 1])
+        chain[:, :, 5] = np.degrees(np.arccos(chain[:, :, 5]))
+        chain[:, :, 9] = np.exp(chain[:, :, 9])
+
+
 
     ## change g1, g2, g3 and alpha 1 and alpha 2 and alpha to percentage
     if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
             SPF_MODEL == 'hg_3g'):
+        ## change log and arccos values to physical
+        chain[:, :, 0] = np.exp(chain[:, :, 0])
+        chain[:, :, 1] = np.exp(chain[:, :, 1])
+        chain[:, :, 3] = np.degrees(np.arccos(chain[:, :, 3]))
+        chain[:, :, 7] = np.exp(chain[:, :, 7])
         chain[:, :, 8] = 100 * chain[:, :, 8]
 
         if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
@@ -239,6 +184,8 @@ def make_chain_plot(params_mcmc_yaml):
             if SPF_MODEL == 'hg_3g':
                 chain[:, :, 11] = 100 * chain[:, :, 11]
                 chain[:, :, 12] = 100 * chain[:, :, 12]
+
+
 
     _, axarr = plt.subplots(n_dim_mcmc,
                             sharex=True,
@@ -259,6 +206,13 @@ def make_chain_plot(params_mcmc_yaml):
     plt.savefig(os.path.join(mcmcresultdir, name_h5 + '_chains.jpg'))
     plt.close()
 
+
+
+# def params2_physics_units(chain, SPF_MODEL):
+    
+
+
+    
 
 ########################################################
 def make_corner_plot(params_mcmc_yaml):
@@ -293,15 +247,24 @@ def make_corner_plot(params_mcmc_yaml):
 
     SPF_MODEL = params_mcmc_yaml['SPF_MODEL']  #Type of description for the SPF
 
-    ## change log and arccos values to physical
-    chain_flat[:, 0] = np.exp(chain_flat[:, 0])
-    chain_flat[:, 1] = np.exp(chain_flat[:, 1])
-    chain_flat[:, 3] = np.degrees(np.arccos(chain_flat[:, 3]))
-    chain_flat[:, 7] = np.exp(chain_flat[:, 7])
+    if SPF_MODEL == 'spf_fix':
+        ## change log and arccos values to physical
+        chain_flat[:,  0] = np.exp(chain_flat[:,  0])
+        chain_flat[:,  1] = np.exp(chain_flat[:,  1])
+        chain_flat[:,  5] = np.degrees(np.arccos(chain_flat[:, 5]))
+        chain_flat[:,  9] = np.exp(chain_flat[:, 9])
+
+
 
     ## change g1, g2, g3 and alpha 1 and alpha 2 and alpha to percentage
     if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
             SPF_MODEL == 'hg_3g'):
+        ## change log and arccos values to physical
+        chain_flat[:,  0] = np.exp(chain_flat[:, 0])
+        chain_flat[:,  1] = np.exp(chain_flat[:,  1])
+        chain_flat[:,  3] = np.degrees(np.arccos(chain_flat[:,  3]))
+        chain_flat[:,  7] = np.exp(chain_flat[:,  7])
+
         chain_flat[:, 8] = 100 * chain_flat[:, 8]
 
         if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
@@ -312,20 +275,21 @@ def make_corner_plot(params_mcmc_yaml):
                 chain_flat[:, 11] = 100 * chain_flat[:, 11]
                 chain_flat[:, 12] = 100 * chain_flat[:, 12]
 
+
+
+    for j in range(n_dim_mcmc):
+        chain4thatparam = chain_flat[:, j]
+        wherenotnan = np.where(~np.isnan(chain4thatparam))
+        chainflatnonan = np.zeros((len(chain4thatparam[wherenotnan]),n_dim_mcmc))
+        for i in range(n_dim_mcmc):
+            chainflatnonan[:,i] = chain_flat[wherenotnan,i]
+        chain_flat = chainflatnonan
+
     rcParams['axes.labelsize'] = 19
     rcParams['axes.titlesize'] = 14
 
     rcParams['xtick.labelsize'] = 13
     rcParams['ytick.labelsize'] = 13
-
-    truc = chain_flat[:, 3]
-    wherenotnan = np.where(~np.isnan(truc))
-    chainflatbis = np.zeros((len(truc[wherenotnan]),11))
-    for i in range(11):
-
-        chainflatbis[:,i] = chain_flat[wherenotnan,i]
-    chain_flat = chainflatbis
-
 
     ### cumulative percentiles
     ### value at 50% is the center of the Normal law
@@ -344,6 +308,8 @@ def make_corner_plot(params_mcmc_yaml):
         shouldweplotalldatapoints = True
     else:
         shouldweplotalldatapoints = False
+    
+    
     labels_hash = [labels[names[i]] for i in range(n_dim_mcmc)]
     fig = corner.corner(chain_flat,
                         labels=labels_hash,
@@ -353,13 +319,20 @@ def make_corner_plot(params_mcmc_yaml):
                         verbose=False)
 
     if 'Fake' in file_prefix:
+        # initial_values = [
+        #     params_mcmc_yaml['r1_init'], params_mcmc_yaml['r2_init'],
+        #     params_mcmc_yaml['beta_init'], params_mcmc_yaml['inc_init'],
+        #     params_mcmc_yaml['pa_init'], params_mcmc_yaml['dx_init'],
+        #     params_mcmc_yaml['dy_init'], params_mcmc_yaml['N_init'],
+        #     100 *params_mcmc_yaml['g1_init'], 100 *params_mcmc_yaml['g2_init'],
+        #     100 *params_mcmc_yaml['alpha1_init']
+        # ]
         initial_values = [
             params_mcmc_yaml['r1_init'], params_mcmc_yaml['r2_init'],
-            params_mcmc_yaml['beta_init'], params_mcmc_yaml['inc_init'],
+            params_mcmc_yaml['beta_in_init'], params_mcmc_yaml['beta_out_init'],
+            params_mcmc_yaml['inc_init'],
             params_mcmc_yaml['pa_init'], params_mcmc_yaml['dx_init'],
-            params_mcmc_yaml['dy_init'], params_mcmc_yaml['N_init'],
-            100 *params_mcmc_yaml['g1_init'], 100 *params_mcmc_yaml['g2_init'],
-            100 *params_mcmc_yaml['alpha1_init']
+            params_mcmc_yaml['dy_init'], params_mcmc_yaml['N_init']
         ]
 
         green_line = mlines.Line2D([], [],
@@ -477,16 +450,25 @@ def create_header(params_mcmc_yaml):
     n_dim_mcmc = chain_flat.shape[1]
 
     SPF_MODEL = params_mcmc_yaml['SPF_MODEL']  #Type of description for the SPF
+    
+    if SPF_MODEL == 'spf_fix':
+        ## change log and arccos values to physical
+        chain_flat[:,  0] = np.exp(chain_flat[:,  0])
+        chain_flat[:,  1] = np.exp(chain_flat[:,  1])
+        chain_flat[:,  5] = np.degrees(np.arccos(chain_flat[:, 5]))
+        chain_flat[:,  9] = np.exp(chain_flat[:, 9])
 
-    ## change log and arccos values to physical
-    chain_flat[:, 0] = np.exp(chain_flat[:, 0])
-    chain_flat[:, 1] = np.exp(chain_flat[:, 1])
-    chain_flat[:, 3] = np.degrees(np.arccos(chain_flat[:, 3]))
-    chain_flat[:, 7] = np.exp(chain_flat[:, 7])
+
 
     ## change g1, g2, g3 and alpha 1 and alpha 2 and alpha to percentage
     if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
             SPF_MODEL == 'hg_3g'):
+        ## change log and arccos values to physical
+        chain_flat[:,  0] = np.exp(chain_flat[:, 0])
+        chain_flat[:,  1] = np.exp(chain_flat[:,  1])
+        chain_flat[:,  3] = np.degrees(np.arccos(chain_flat[:,  3]))
+        chain_flat[:,  7] = np.exp(chain_flat[:,  7])
+
         chain_flat[:, 8] = 100 * chain_flat[:, 8]
 
         if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
@@ -497,13 +479,14 @@ def create_header(params_mcmc_yaml):
                 chain_flat[:, 11] = 100 * chain_flat[:, 11]
                 chain_flat[:, 12] = 100 * chain_flat[:, 12]
 
-    truc = chain_flat[:, 3]
-    wherenotnan = np.where(~np.isnan(truc))
-    chainflatbis = np.zeros((len(truc[wherenotnan]),11))
-    for i in range(11):
-        chainflatbis[:,i] = chain_flat[wherenotnan,i]
-    chain_flat = chainflatbis
-    log_prob_samples_flat = log_prob_samples_flat[wherenotnan]
+    for j in range(n_dim_mcmc):
+        chain4thatparam = chain_flat[:, j]
+        wherenotnan = np.where(~np.isnan(chain4thatparam))
+        chainflatnonan = np.zeros((len(chain4thatparam[wherenotnan]),n_dim_mcmc))
+        for i in range(n_dim_mcmc):
+            chainflatnonan[:,i] = chain_flat[wherenotnan,i]
+        chain_flat = chainflatnonan
+        log_prob_samples_flat = log_prob_samples_flat[wherenotnan]
 
     samples_dict = dict()
     comments_dict = comments
@@ -593,13 +576,15 @@ def create_header(params_mcmc_yaml):
     # print(" ")
 
     print(" ")
-    just_these_params = ['g1', 'g2', 'Alph1']
-    for key in just_these_params:
-        print(key + ' MCMC {0:.3f}, -/+1sig: {1:.3f}/+{2:.3f}'.format(
-            MLval_mcmc_val_mcmc_err_dict[key][1],
-            MLval_mcmc_val_mcmc_err_dict[key][2],
-            MLval_mcmc_val_mcmc_err_dict[key][3]))
-    print(" ")
+    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
+            SPF_MODEL == 'hg_3g'):
+        just_these_params = ['g1', 'g2', 'Alph1']
+        for key in just_these_params:
+            print(key + ' MCMC {0:.3f}, -/+1sig: {1:.3f}/+{2:.3f}'.format(
+                MLval_mcmc_val_mcmc_err_dict[key][1],
+                MLval_mcmc_val_mcmc_err_dict[key][2],
+                MLval_mcmc_val_mcmc_err_dict[key][3]))
+        print(" ")
 
     hdr = fits.Header()
     hdr['COMMENT'] = 'Best model of the MCMC reduction'
@@ -693,6 +678,27 @@ def best_model_plot(params_mcmc_yaml, hdr):
             1 / 100. * hdr['g2_ML'], 1 / 100. * hdr['Alph1_ML'],
             1 / 100. * hdr['g3_ML'], 1 / 100. * hdr['Alph2_ML']
         ]
+    
+    elif (SPF_MODEL == 'spf_fix'):
+        theta_ml = [
+            np.log(hdr['R1_ML']),
+            np.log(hdr['R2_ML']), hdr['Beta_in_ML'],hdr['Beta_out_ML'],hdr['a_r_ML'],
+            np.cos(np.radians(hdr['inc_ML'])), hdr['PA_ML'], hdr['dx_ML'],
+            hdr['dy_ML'],
+            np.log(hdr['Norm_ML'])
+        ]
+
+        # we fix the SPF using a HG parametrization with parameters in the init file
+        n_points = 21  # odd number to ensure that scattangl=pi/2 is in the list for normalization
+        scatt_angles = np.linspace(0, np.pi, n_points) 
+
+        # 2g henyey greenstein, normalized at 1 at 90 degrees
+        spf_norm90 = hg_2g(np.degrees(scatt_angles),
+                           params_mcmc_yaml['g1_init'],
+                           params_mcmc_yaml['g2_init'],
+                           params_mcmc_yaml['alpha1_init'], 1)
+        #measure fo the spline and save as global value
+        F_SPF = phase_function_spline(scatt_angles, spf_norm90)
 
         #initial poinr (3g spf fitted to Julien's)
         # theta_ml[3] = 0.99997991
@@ -832,7 +838,7 @@ def best_model_plot(params_mcmc_yaml, hdr):
                  overwrite=True)
 
     #Mesaure the residuals
-    residuals = np.abs(reduced_data - disk_ml_FM)
+    residuals = reduced_data - disk_ml_FM
     snr_residuals = np.abs(reduced_data - disk_ml_FM) / noise
 
     #Set the colormap
@@ -840,29 +846,29 @@ def best_model_plot(params_mcmc_yaml, hdr):
     vmax = 0.9 * np.max(disk_ml_FM)
 
     #The convolved model
-    if file_prefix == 'Hband_hd48524_fake':
-        # We are showing only here a white line the extension of the minimization line
+    # if file_prefix == 'Hband_hd48524_fake':
+    #     # We are showing only here a white line the extension of the minimization line
 
-        mask_disk_int = gpidiskpsf.make_disk_mask(
-            disk_ml_FM.shape[0],
-            params_mcmc_yaml['pa_init'],
-            params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(40, PIXSCALE_INS, DISTANCE_STAR),
-            convert.au_to_pix(41, PIXSCALE_INS, DISTANCE_STAR),
-            aligned_center=[140., 140.])
+    #     mask_disk_int = gpidiskpsf.make_disk_mask(
+    #         disk_ml_FM.shape[0],
+    #         params_mcmc_yaml['pa_init'],
+    #         params_mcmc_yaml['inc_init'],
+    #         convert.au_to_pix(40, PIXSCALE_INS, DISTANCE_STAR),
+    #         convert.au_to_pix(41, PIXSCALE_INS, DISTANCE_STAR),
+    #         aligned_center=[140., 140.])
 
-        mask_disk_ext = gpidiskpsf.make_disk_mask(
-            disk_ml_FM.shape[0],
-            params_mcmc_yaml['pa_init'],
-            params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(129, PIXSCALE_INS, DISTANCE_STAR),
-            convert.au_to_pix(130, PIXSCALE_INS, DISTANCE_STAR),
-            aligned_center=[140., 140.])
+    #     mask_disk_ext = gpidiskpsf.make_disk_mask(
+    #         disk_ml_FM.shape[0],
+    #         params_mcmc_yaml['pa_init'],
+    #         params_mcmc_yaml['inc_init'],
+    #         convert.au_to_pix(129, PIXSCALE_INS, DISTANCE_STAR),
+    #         convert.au_to_pix(130, PIXSCALE_INS, DISTANCE_STAR),
+    #         aligned_center=[140., 140.])
 
-        mask_disk_int[np.where(mask_disk_int == 0.)] = np.nan
-        mask_disk_ext[np.where(mask_disk_ext == 0.)] = np.nan
+    #     mask_disk_int[np.where(mask_disk_int == 0.)] = np.nan
+    #     mask_disk_ext[np.where(mask_disk_ext == 0.)] = np.nan
 
-        disk_ml_FM = disk_ml_FM * mask_disk_int * mask_disk_ext
+    #     disk_ml_FM = disk_ml_FM * mask_disk_int * mask_disk_ext
 
     dim_crop_image = int(4 * params_mcmc_yaml['OWA'] // 2) + 1
 
@@ -1485,6 +1491,8 @@ if __name__ == '__main__':
     klipdir = os.path.join(DATADIR, 'klip_fm_files')
     mcmcresultdir = os.path.join(DATADIR, 'results_MCMC')
     SPF_MODEL = params_mcmc_yaml['SPF_MODEL']  #Type of description for the SPF
+    
+    
 
     file_prefix = params_mcmc_yaml['FILE_PREFIX']
     name_h5 = file_prefix + '_backend_file_mcmc'
@@ -1496,7 +1504,7 @@ if __name__ == '__main__':
     make_chain_plot(params_mcmc_yaml)
 
     # compare SPF with injected
-    compare_injected_spfs_plot(params_mcmc_yaml)
+    # compare_injected_spfs_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
     make_corner_plot(params_mcmc_yaml)

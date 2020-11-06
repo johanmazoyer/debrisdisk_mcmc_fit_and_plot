@@ -14,7 +14,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
 # default_parameter_file = 'GPI_Hband_MCMC_ADI.yaml'  # name of the parameter file
-default_parameter_file = 'FakeHd181327bright_fixspf_MCMC_ADI_ter.yaml'  # name of the parameter file
+default_parameter_file = 'FakeHd181327bright_fixspf_MCMC_ADI.yaml'  # name of the parameter file
 # you can also call it with the python function argument -p
 
 MPI = False  ## by default the MCMC is not mpi. you can change it
@@ -98,19 +98,18 @@ def call_gen_disk(theta):
     param_disk['SPF_MODEL'] = SPF_MODEL
 
     if (SPF_MODEL == 'spf_fix'):
-        param_disk['a_r'] = 0.01 # we fix the aspect ratio
+        # param_disk['a_r'] = 0.01  # we fix the aspect ratio
 
         param_disk['r1'] = mt.exp(theta[0])
         param_disk['r2'] = mt.exp(theta[1])
         param_disk['beta_in'] = theta[2]
         param_disk['beta_out'] = theta[3]
-        # param_disk['a_r'] = theta[4]
-
-        param_disk['inc'] = np.degrees(np.arccos(theta[4]))
-        param_disk['PA'] = theta[5]
-        param_disk['dx'] = theta[6]
-        param_disk['dy'] = theta[7]
-        param_disk['Norm'] = mt.exp(theta[8])
+        param_disk['a_r'] = theta[4]
+        param_disk['inc'] = np.degrees(np.arccos(theta[5]))
+        param_disk['PA'] = theta[6]
+        param_disk['dx'] = theta[7]
+        param_disk['dy'] = theta[8]
+        param_disk['Norm'] = mt.exp(theta[9])
 
         #generate the model
         model = generate_disk(scattering_function_list=[F_SPF],
@@ -118,7 +117,7 @@ def call_gen_disk(theta):
                               R2=param_disk['r2'],
                               beta_in=param_disk['beta_in'],
                               beta_out=param_disk['beta_out'],
-                              aspect_ratio=param_disk['a_r'],  
+                              aspect_ratio=param_disk['a_r'],
                               inc=param_disk['inc'],
                               pa=param_disk['PA'],
                               dx=param_disk['dx'],
@@ -253,8 +252,8 @@ def logp(theta):
         log of priors
     """
 
-    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
-            SPF_MODEL == 'hg_3g'):
+    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (SPF_MODEL
+                                                            == 'hg_3g'):
 
         r1 = mt.exp(theta[0])
         r2 = mt.exp(theta[1])
@@ -280,12 +279,12 @@ def logp(theta):
         r2 = mt.exp(theta[1])
         beta_in = theta[2]
         beta_out = theta[3]
-        a_r = 0.01 #theta[4]
-        inc = np.degrees(np.arccos(theta[4]))
-        pa = theta[5]
-        dx = theta[6]
-        dy = theta[7]
-        Norm = mt.exp(theta[8])
+        a_r = theta[4]
+        inc = np.degrees(np.arccos(theta[5]))
+        pa = theta[6]
+        dx = theta[7]
+        dy = theta[8]
+        Norm = mt.exp(theta[9])
 
     prior_rout = 1.
     # define the prior values
@@ -327,8 +326,8 @@ def logp(theta):
     else:
         prior_rout = prior_rout * 1.
 
-    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (
-            SPF_MODEL == 'hg_3g'):
+    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (SPF_MODEL
+                                                            == 'hg_3g'):
 
         if (beta < 1 or beta > 30):
             return -np.inf
@@ -373,10 +372,10 @@ def logp(theta):
         else:
             prior_rout = prior_rout * 1.
 
-        # if (a_r < 0.0001 or a_r > 0.5):  #The aspect ratio
-        #     return -np.inf
-        # else:
-        #     prior_rout = prior_rout * 1.
+        if (a_r < 0.0001 or a_r > 0.5):  #The aspect ratio
+            return -np.inf
+        else:
+            prior_rout = prior_rout * 1.
 
     # otherwise ...
     return np.log(prior_rout)
@@ -567,8 +566,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             headerfile = fits.getheader(filename)
             if ('FILETYPE' in headerfile.keys()) and (
                     headerfile['FILETYPE'] == 'Stokes Cube'
-                    or headerfile['FILETYPE'] == 'Spectral Cube'
-            ):  # This is a GPI file
+                    or headerfile['FILETYPE']
+                    == 'Spectral Cube'):  # This is a GPI file
                 if filetype_here is not None:
                     if filetype_here != headerfile[
                             'FILETYPE']:  # check if Spec of Pol
@@ -703,22 +702,24 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     print("\n Create the binary masks to define model zone and chisquare zone")
     if first_time:
         #create the mask where the non convoluted disk is going to be generated.
-        # To gain time, it is tightely adjusted to the expected models BEFORE
+        # To gain time, it is ~tightely adjusted to the expected models BEFORE
         # convolution. Inded, the models are generated pixel by pixels. 0.1 s
         # gained on every model is a day of calculation gain on one million model,
-        # so adjust your mask tightly to your model. Carefull somes mask paramters are
-        # hardcoded here
+        # so adjust your mask tightly to your model. You can change the harcoded parameter
+        # here if you neet to go faster (reduced it) or it the slope beta is very slow (increase it)
 
         mask_disk_zeros = gpidiskpsf.make_disk_mask(
             dataset.input.shape[1],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 30,
+            convert.au_to_pix(params_mcmc_yaml['r1_init'],
                               params_mcmc_yaml['PIXSCALE_INS'],
-                              params_mcmc_yaml['DISTANCE_STAR']),
-            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 10,
+                              params_mcmc_yaml['DISTANCE_STAR']) -
+            18 / np.cos(np.radians(params_mcmc_yaml['inc_init'])),
+            convert.au_to_pix(params_mcmc_yaml['r2_init'],
                               params_mcmc_yaml['PIXSCALE_INS'],
-                              params_mcmc_yaml['DISTANCE_STAR']),
+                              params_mcmc_yaml['DISTANCE_STAR']) +
+            18 / np.cos(np.radians(params_mcmc_yaml['inc_init'])),
             aligned_center=aligned_center)
         mask2generatedisk = 1 - mask_disk_zeros
         fits.writeto(os.path.join(klipdir,
@@ -733,12 +734,14 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             dataset.input.shape[1],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
-            convert.au_to_pix(params_mcmc_yaml['r1_init'] - 35,
+            convert.au_to_pix(params_mcmc_yaml['r1_init'],
                               params_mcmc_yaml['PIXSCALE_INS'],
-                              params_mcmc_yaml['DISTANCE_STAR']),
-            convert.au_to_pix(params_mcmc_yaml['r2_init'] + 20,
+                              params_mcmc_yaml['DISTANCE_STAR']) -
+            20 / np.cos(np.radians(params_mcmc_yaml['inc_init'])),
+            convert.au_to_pix(params_mcmc_yaml['r2_init'],
                               params_mcmc_yaml['PIXSCALE_INS'],
-                              params_mcmc_yaml['DISTANCE_STAR']),
+                              params_mcmc_yaml['DISTANCE_STAR']) +
+            20 / np.cos(np.radians(params_mcmc_yaml['inc_init'])),
             aligned_center=aligned_center)
 
         mask2minimize = (1 - mask_disk_zeros)
@@ -756,6 +759,11 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
                                   file_prefix + '_mask2minimize.fits'),
                      mask2minimize,
                      overwrite='True')
+        print(
+            'convert',
+            convert.au_to_pix(params_mcmc_yaml['r1_init'],
+                              params_mcmc_yaml['PIXSCALE_INS'],
+                              params_mcmc_yaml['DISTANCE_STAR']))
 
     mask2generatedisk = fits.getdata(
         os.path.join(klipdir, file_prefix + '_mask2generatedisk.fits'))
@@ -1103,7 +1111,10 @@ def from_param_to_theta_init(params_mcmc_yaml):
     if (SPF_MODEL == 'spf_fix'):
         beta_in_init = params_mcmc_yaml['beta_in_init']
         beta_out_init = params_mcmc_yaml['beta_out_init']
-        theta_init = (logr1_init, logr2_init, beta_in_init, beta_out_init, cosinc_init, pa_init, dx_init, dy_init,
+        a_r_init = params_mcmc_yaml['a_r_init']
+
+        theta_init = (logr1_init, logr2_init, beta_in_init, beta_out_init,
+                      a_r_init, cosinc_init, pa_init, dx_init, dy_init,
                       logN_init)
 
     elif (SPF_MODEL == 'hg_1g'):
@@ -1189,7 +1200,7 @@ if __name__ == '__main__':
 
         # we fix the SPF using a HG parametrization with parameters in the init file
         n_points = 21  # odd number to ensure that scattangl=pi/2 is in the list for normalization
-        scatt_angles = np.linspace(0, np.pi, n_points) 
+        scatt_angles = np.linspace(0, np.pi, n_points)
 
         # 2g henyey greenstein, normalized at 1 at 90 degrees
         spf_norm90 = hg_2g(np.degrees(scatt_angles),
