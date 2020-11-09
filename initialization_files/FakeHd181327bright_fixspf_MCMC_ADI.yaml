@@ -29,8 +29,8 @@ PIXSCALE_INS: 0.01414  #picscale of your data
 # MCMC PARAMETERS
 NEW_BACKEND: True
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
-NWALKERS: 256 #Number of walkers (should be at least twice the # parameters)
-N_ITER_MCMC: 1300 #Number of interation
+NWALKERS: 25 #Number of walkers (should be at least twice the # parameters)
+N_ITER_MCMC: 3 #Number of interation
 NOISE_MULTIPLICATION_FACTOR: 5 # multiplicative factor for the chains
 # There is no burn-in phase here, the burnin only intervened when reading the data
 
@@ -61,7 +61,7 @@ g3_init: 0.
 alpha2_init: 0.
 
 # MCMC PLOTTING PARAMETERS
-BURNIN: 250   #We remove the first BURNIN iteration
+BURNIN: 0   #We remove the first BURNIN iteration
 THIN: 1       #thin (bin) the chains
 QUALITY_PLOT: 2 # usefull because corner plots can be huge. When paper, QUALITY_PLOT: 4
 sigma: 1 # the number of sigma used to measure the error bars.

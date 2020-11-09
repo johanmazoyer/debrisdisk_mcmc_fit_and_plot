@@ -14,7 +14,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
 # default_parameter_file = 'GPI_Hband_MCMC_ADI.yaml'  # name of the parameter file
-default_parameter_file = 'FakeHd181327bright_fixspf_MCMC_ADI.yaml'  # name of the parameter file
+default_parameter_file = 'FakeHd32297faint_MCMC_ADI_bis.yaml'  # name of the parameter file
 # you can also call it with the python function argument -p
 
 MPI = False  ## by default the MCMC is not mpi. you can change it
@@ -67,9 +67,11 @@ import pyklip.rdi as rdi
 
 from anadisk_model.anadisk_sum_mask import phase_function_spline, generate_disk
 
-from disk_models import hg_2g, gen_disk_dxdy_1g, gen_disk_dxdy_2g, gen_disk_dxdy_3g
+from disk_models import hg_1g, hg_2g, hg_3g
+
 import make_gpi_psf_for_disks as gpidiskpsf
 import astro_unit_conversion as convert
+
 
 # recommended by emcee https://emcee.readthedocs.io/en/stable/tutorials/parallel/
 # and by PyKLIPto avoid that NumPy automatically parallelizes some operations,
@@ -77,28 +79,12 @@ import astro_unit_conversion as convert
 os.environ["OMP_NUM_THREADS"] = "1"
 
 
-#######################################################
-def call_gen_disk(theta):
-    """ call the disk model from a set of parameters.
-        
-        use DIMENSION, PIXSCALE_INS, DISTANCE_STAR
-        ALIGNED_CENTER and wheremask2generatedisk 
-        as global variables
-
-    Args:
-        theta: list of parameters of the MCMC
-
-    Returns:
-        a 2d model
-    """
-
+def from_theta_to_params(theta):
     param_disk = {}
 
-    param_disk['offset'] = 0.  # no vertical offset in KLIP
-    param_disk['SPF_MODEL'] = SPF_MODEL
-
     if (SPF_MODEL == 'spf_fix'):
-        # param_disk['a_r'] = 0.01  # we fix the aspect ratio
+        # param_disk['a_r'] = 0.01  # we can fix the aspect ratio
+        param_disk['offset'] = 0.  # no vertical offset in KLIP
 
         param_disk['r1'] = mt.exp(theta[0])
         param_disk['r2'] = mt.exp(theta[1])
@@ -111,100 +97,134 @@ def call_gen_disk(theta):
         param_disk['dy'] = theta[8]
         param_disk['Norm'] = mt.exp(theta[9])
 
-        #generate the model
-        model = generate_disk(scattering_function_list=[F_SPF],
-                              R1=param_disk['r1'],
-                              R2=param_disk['r2'],
-                              beta_in=param_disk['beta_in'],
-                              beta_out=param_disk['beta_out'],
-                              aspect_ratio=param_disk['a_r'],
-                              inc=param_disk['inc'],
-                              pa=param_disk['PA'],
-                              dx=param_disk['dx'],
-                              dy=param_disk['dy'],
-                              psfcenx=ALIGNED_CENTER[0],
-                              psfceny=ALIGNED_CENTER[1],
-                              sampling=1,
-                              los_factor=1,
-                              dim=DIMENSION,
-                              mask=WHEREMASK2GENERATEDISK,
-                              pixscale=PIXSCALE_INS,
-                              distance=DISTANCE_STAR)[:, :, 0]
+        vector_param = [
+            param_disk['r1'], param_disk['r2'], param_disk['beta_in'],
+            param_disk['beta_out'], param_disk['a_r'], param_disk['inc'],
+            param_disk['PA'], param_disk['dx'], param_disk['dy'],
+            param_disk['Norm']
+        ]
 
-        # remove the nans to avoid problems when convolving
-        model[model != model] = 0
-        # I normalize by value of a_r to avoid degenerascies between a_r and Normalization
-        model = param_disk['Norm'] * model / param_disk['a_r']
+    elif (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (SPF_MODEL
+                                                              == 'hg_3g'):
 
+        param_disk['a_r'] = 0.01  # we fix the aspect ratio
+        param_disk['offset'] = 0.  # no vertical offset in KLIP
+
+        param_disk['beta_in'] = -10  # we fix the inner power law
+
+        param_disk['r1'] = mt.exp(theta[0])
+        param_disk['r2'] = mt.exp(theta[1])
+        param_disk['beta_out'] = theta[2]
+        param_disk['inc'] = np.degrees(np.arccos(theta[3]))
+        param_disk['PA'] = theta[4]
+        param_disk['dx'] = theta[5]
+        param_disk['dy'] = theta[6]
+        param_disk['Norm'] = mt.exp(theta[7])
+
+        param_disk['g1'] = theta[8]
+
+        vector_param = [
+            param_disk['r1'], param_disk['r2'],
+            param_disk['beta_out'], param_disk['inc'],
+            param_disk['PA'], param_disk['dx'], param_disk['dy'],
+            param_disk['Norm'], param_disk['g1']
+        ]
+
+        if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
+            param_disk['g2'] = theta[9]
+            param_disk['alpha1'] = theta[10]
+            vector_param = np.concatenate((vector_param, (param_disk['g2'], param_disk['alpha1']) ))
+
+            if SPF_MODEL == 'hg_3g':
+                param_disk['g3'] = theta[11]
+                param_disk['alpha2'] = theta[12]
+                vector_param = np.concatenate((vector_param, (param_disk['g3'], param_disk['alpha2']) ))
+
+    return param_disk, vector_param
+
+
+#######################################################
+def call_gen_disk(theta):
+    """ call the disk model from a set of parameters.
+        
+        use SPF_MODEL, DIMENSION, PIXSCALE_INS, DISTANCE_STAR
+        ALIGNED_CENTER and WHEREMASK2GENERATEDISK 
+        as global variables
+
+    Args:
+        theta: list of parameters of the MCMC
+
+    Returns:
+        a 2d model
+    """
+    param_disk, _ = from_theta_to_params(theta)
+
+    if (SPF_MODEL == 'spf_fix'):
+        spf = F_SPF
+    
     elif (SPF_MODEL == 'hg_1g'):
 
-        param_disk['a_r'] = 0.01  # we fix the aspect ratio
+        # we fix the SPF using a HG parametrization with parameters in the init file
+        n_points = 21  # odd number to ensure that scattangl=pi/2 is in the list for normalization
+        scatt_angles = np.linspace(0, np.pi, n_points)
 
-        param_disk['r1'] = mt.exp(theta[0])
-        param_disk['r2'] = mt.exp(theta[1])
-        param_disk['beta'] = theta[2]
-        param_disk['inc'] = np.degrees(np.arccos(theta[3]))
-        param_disk['PA'] = theta[4]
-        param_disk['dx'] = theta[5]
-        param_disk['dy'] = theta[6]
-        param_disk['Norm'] = mt.exp(theta[7])
-
-        param_disk['g1'] = theta[8]
-
-        #generate the model
-        model = gen_disk_dxdy_1g(DIMENSION,
-                                 param_disk,
-                                 mask=WHEREMASK2GENERATEDISK,
-                                 pixscale=PIXSCALE_INS,
-                                 distance=DISTANCE_STAR)
+        # 1g henyey greenstein, normalized at 1 at 90 degrees
+        spf_norm90 = hg_1g(np.degrees(scatt_angles), param_disk['g1'], 1)
+        #measure fo the spline and param_disk
+        spf = phase_function_spline(scatt_angles, spf_norm90)
 
     elif SPF_MODEL == 'hg_2g':
-        param_disk['a_r'] = 0.01  # we fix the aspect ratio
+        # we fix the SPF using a HG parametrization with parameters in the init file
+        
+        # starttime = datetime.now()
+        n_points = 21  # odd number to ensure that scattangl=pi/2 is in the list for normalization
+        scatt_angles = np.linspace(0, np.pi, n_points)
 
-        param_disk['r1'] = mt.exp(theta[0])
-        param_disk['r2'] = mt.exp(theta[1])
-        param_disk['beta'] = theta[2]
-        param_disk['inc'] = np.degrees(np.arccos(theta[3]))
-        param_disk['PA'] = theta[4]
-        param_disk['dx'] = theta[5]
-        param_disk['dy'] = theta[6]
-        param_disk['Norm'] = mt.exp(theta[7])
-
-        param_disk['g1'] = theta[8]
-        param_disk['g2'] = theta[9]
-        param_disk['alpha1'] = theta[10]
-
-        #generate the model
-        model = gen_disk_dxdy_2g(DIMENSION,
-                                 param_disk,
-                                 mask=WHEREMASK2GENERATEDISK,
-                                 pixscale=PIXSCALE_INS,
-                                 distance=DISTANCE_STAR)
+        # 2g henyey greenstein, normalized at 1 at 90 degrees
+        spf_norm90 = hg_2g(np.degrees(scatt_angles), param_disk['g1'],
+                           param_disk['g2'], param_disk['alpha1'], 1)
+        #measure fo the spline and param_disk
+        spf = phase_function_spline(scatt_angles, spf_norm90)
+        # print("spf_time: ", datetime.now() - starttime)
 
     elif SPF_MODEL == 'hg_3g':
-        param_disk['a_r'] = 0.01  # we fix the aspect ratio
 
-        param_disk['r1'] = mt.exp(theta[0])
-        param_disk['r2'] = mt.exp(theta[1])
-        param_disk['beta'] = theta[2]
-        param_disk['inc'] = np.degrees(np.arccos(theta[3]))
-        param_disk['PA'] = theta[4]
-        param_disk['dx'] = theta[5]
-        param_disk['dy'] = theta[6]
-        param_disk['Norm'] = mt.exp(theta[7])
+        # we fix the SPF using a HG parametrization with parameters in the init file
+        n_points = 21  # odd number to ensure that scattangl=pi/2 is in the list for normalization
+        scatt_angles = np.linspace(0, np.pi, n_points)
 
-        param_disk['g1'] = theta[8]
-        param_disk['g2'] = theta[9]
-        param_disk['alpha1'] = theta[10]
-        param_disk['g3'] = theta[11]
-        param_disk['alpha2'] = theta[12]
+        # 3g henyey greenstein, normalized at 1 at 90 degrees
+        spf_norm90 = hg_3g(np.degrees(scatt_angles), param_disk['g1'],
+                           param_disk['g2'], param_disk['g3'],
+                           param_disk['alpha1'],
+                           param_disk['alpha2'], 1)
+        #measure fo the spline and param_disk
+        spf = phase_function_spline(scatt_angles, spf_norm90)
 
-        #generate the model
-        model = gen_disk_dxdy_3g(DIMENSION,
-                                 param_disk,
-                                 mask=WHEREMASK2GENERATEDISK,
-                                 pixscale=PIXSCALE_INS,
-                                 distance=DISTANCE_STAR)
+    #generate the model
+    model = generate_disk(scattering_function_list=[spf],
+                          R1=param_disk['r1'],
+                          R2=param_disk['r2'],
+                          beta_in=param_disk['beta_in'],
+                          beta_out=param_disk['beta_out'],
+                          aspect_ratio=param_disk['a_r'],
+                          inc=param_disk['inc'],
+                          pa=param_disk['PA'],
+                          dx=param_disk['dx'],
+                          dy=param_disk['dy'],
+                          psfcenx=ALIGNED_CENTER[0],
+                          psfceny=ALIGNED_CENTER[1],
+                          sampling=1,
+                          los_factor=1,
+                          dim=DIMENSION,
+                          mask=WHEREMASK2GENERATEDISK,
+                          pixscale=PIXSCALE_INS,
+                          distance=DISTANCE_STAR)[:, :, 0]
+
+    # remove the nans to avoid problems when convolving
+    model[model != model] = 0
+    # I normalize by value of a_r to avoid degenerascies between a_r and Normalization
+    model = param_disk['Norm'] * model / param_disk['a_r']
 
     return model
 
@@ -251,77 +271,57 @@ def logp(theta):
     Returns:
         log of priors
     """
-
-    if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (SPF_MODEL
-                                                            == 'hg_3g'):
-
-        r1 = mt.exp(theta[0])
-        r2 = mt.exp(theta[1])
-        beta = theta[2]
-        inc = np.degrees(np.arccos(theta[3]))
-        pa = theta[4]
-        dx = theta[5]
-        dy = theta[6]
-        Norm = mt.exp(theta[7])
-
-        g1 = theta[8]
-
-        if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
-            g2 = theta[9]
-            alpha1 = theta[10]
-
-            if SPF_MODEL == 'hg_3g':
-                g3 = theta[11]
-                alpha2 = theta[12]
-
-    elif SPF_MODEL == 'spf_fix':
-        r1 = mt.exp(theta[0])
-        r2 = mt.exp(theta[1])
-        beta_in = theta[2]
-        beta_out = theta[3]
-        a_r = theta[4]
-        inc = np.degrees(np.arccos(theta[5]))
-        pa = theta[6]
-        dx = theta[7]
-        dy = theta[8]
-        Norm = mt.exp(theta[9])
+    param_disk, _ = from_theta_to_params(theta)
 
     prior_rout = 1.
     # define the prior values
-    if (r1 < 35 or r1 > 55):
+    if (param_disk['r1'] < 60 or param_disk['r1'] > 80):
+        print('r1 out of prior')
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
     # - rout = Logistic We  cut the prior at r2 = xx
     # because this parameter is very limited by the ADI
-    if (r2 < 42 or r2 > 62):
+    if (param_disk['r2'] < 80 or param_disk['r2'] > 100):
+        print('r2 out of prior')
         return -np.inf
     else:
         # prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 102)))
         prior_rout = prior_rout * 1.  # or we can just use a flat prior
 
-    if (inc < 20 or inc > 40):
+    if (param_disk['inc'] < 10 or param_disk['inc'] > 90):
+        print('inc out of prior')
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (pa < 90 or pa > 110):
+    if (param_disk['PA'] < 10 or param_disk['PA'] > 90):
+        print('PA out of prior')
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (dx < -90) or (dx > 90):  #The x offset
+    if (param_disk['dx'] < -90) or (param_disk['dx'] > 90):  #The x offset
+        print('dx out of prior')
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (dy < -90) or (dy > 90):  #The y offset
+    if (param_disk['dy'] < -90) or (param_disk['dy'] > 90):  #The y offset
+        print('dy out of prior')
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
 
-    if (Norm < 0.5 or Norm > 50000):
+    if (param_disk['Norm'] < 0.5 or param_disk['Norm'] > 50000):
+        print('Norm out of prior')
+        return -np.inf
+    else:
+        prior_rout = prior_rout * 1.
+
+    if (param_disk['beta_out'] < 1 or param_disk['beta_out'] > 30):
+        print('beta_out out of prior')
         return -np.inf
     else:
         prior_rout = prior_rout * 1.
@@ -329,50 +329,50 @@ def logp(theta):
     if (SPF_MODEL == 'hg_1g') or (SPF_MODEL == 'hg_2g') or (SPF_MODEL
                                                             == 'hg_3g'):
 
-        if (beta < 1 or beta > 30):
-            return -np.inf
-        else:
-            prior_rout = prior_rout * 1.
-
-        if (g1 < 0.001 or g1 > 0.9999):
+        if (param_disk['g1'] < 0.001 or param_disk['g1'] > 0.9999):
+            print('g1 out of prior')
             return -np.inf
         else:
             prior_rout = prior_rout * 1.
 
         if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
-            if (g2 < -0.9999 or g2 > -0.0001):
+            if (param_disk['g2'] < -0.9999 or param_disk['g2'] > -0.0001):
+                print('g2 out of prior')
                 return -np.inf
             else:
                 prior_rout = prior_rout * 1.
 
-            if (alpha1 < 0.0001 or alpha1 > 0.9999):
+            if (param_disk['alpha1'] < 0.0001
+                    or param_disk['alpha1'] > 0.9999):
+                print('alpha1 out of prior')
                 return -np.inf
             else:
                 prior_rout = prior_rout * 1.
 
             if SPF_MODEL == 'hg_3g':
-                if (g3 < -1 or g3 > 1):
+                
+                if (param_disk['g3'] < -1 or param_disk['g3'] > 1):
+                    print('g3 out of prior')
                     return -np.inf
                 else:
                     prior_rout = prior_rout * 1.
 
-                if (alpha2 < -1 or alpha2 > 1):
+                if (param_disk['alpha2'] < -1 or param_disk['alpha2'] > 1):
+                    print('alpha2 out of prior')
                     return -np.inf
                 else:
                     prior_rout = prior_rout * 1.
 
     elif (SPF_MODEL == 'spf_fix'):
-        if (beta_in < -30 or beta_in > -1):
+        if (param_disk['beta_in'] < -30 or param_disk['beta_in'] > -1):
+            print('beta_in out of prior')
             return -np.inf
         else:
             prior_rout = prior_rout * 1.
 
-        if (beta_out < 1 or beta_out > 30):
-            return -np.inf
-        else:
-            prior_rout = prior_rout * 1.
-
-        if (a_r < 0.0001 or a_r > 0.5):  #The aspect ratio
+        if (param_disk['a_r'] < 0.0001
+                or param_disk['a_r'] > 0.5):  #The aspect ratio
+            print('a_r out of prior')
             return -np.inf
         else:
             prior_rout = prior_rout * 1.
@@ -759,11 +759,6 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
                                   file_prefix + '_mask2minimize.fits'),
                      mask2minimize,
                      overwrite='True')
-        print(
-            'convert',
-            convert.au_to_pix(params_mcmc_yaml['r1_init'],
-                              params_mcmc_yaml['PIXSCALE_INS'],
-                              params_mcmc_yaml['DISTANCE_STAR']))
 
     mask2generatedisk = fits.getdata(
         os.path.join(klipdir, file_prefix + '_mask2generatedisk.fits'))
@@ -1156,7 +1151,7 @@ if __name__ == '__main__':
     warnings.simplefilter('ignore', NumbaWarning)
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
-
+    
     if args.mpi:  # MPI or not for parallelization.
         MPI = True
         progress = False
@@ -1196,7 +1191,7 @@ if __name__ == '__main__':
     SPF_MODEL = params_mcmc_yaml['SPF_MODEL']  #Type of description for the SPF
 
     if SPF_MODEL == "spf_fix":  #1g henyey greenstein, SPF described with 1 parameter
-        N_DIM_MCMC = 9  #Number of dimension of the parameter space
+        N_DIM_MCMC = 10  #Number of dimension of the parameter space
 
         # we fix the SPF using a HG parametrization with parameters in the init file
         n_points = 21  # odd number to ensure that scattangl=pi/2 is in the list for normalization
@@ -1208,7 +1203,10 @@ if __name__ == '__main__':
                            params_mcmc_yaml['g2_init'],
                            params_mcmc_yaml['alpha1_init'], 1)
         #measure fo the spline and save as global value
+        global F_SPF
         F_SPF = phase_function_spline(scatt_angles, spf_norm90)
+
+        print(F_SPF)
 
     elif SPF_MODEL == "hg_1g":  #1g henyey greenstein, SPF described with 1 parameter
         N_DIM_MCMC = 9  #Number of dimension of the parameter space
