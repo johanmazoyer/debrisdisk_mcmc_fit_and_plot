@@ -72,7 +72,6 @@ from disk_models import hg_1g, hg_2g, hg_3g
 import make_gpi_psf_for_disks as gpidiskpsf
 import astro_unit_conversion as convert
 
-
 # recommended by emcee https://emcee.readthedocs.io/en/stable/tutorials/parallel/
 # and by PyKLIPto avoid that NumPy automatically parallelizes some operations,
 # which kill the speed
@@ -124,21 +123,22 @@ def from_theta_to_params(theta):
         param_disk['g1'] = theta[8]
 
         vector_param = [
-            param_disk['r1'], param_disk['r2'],
-            param_disk['beta_out'], param_disk['inc'],
-            param_disk['PA'], param_disk['dx'], param_disk['dy'],
-            param_disk['Norm'], param_disk['g1']
+            param_disk['r1'], param_disk['r2'], param_disk['beta_out'],
+            param_disk['inc'], param_disk['PA'], param_disk['dx'],
+            param_disk['dy'], param_disk['Norm'], param_disk['g1']
         ]
 
         if (SPF_MODEL == 'hg_2g') or (SPF_MODEL == 'hg_3g'):
             param_disk['g2'] = theta[9]
             param_disk['alpha1'] = theta[10]
-            vector_param = np.concatenate((vector_param, (param_disk['g2'], param_disk['alpha1']) ))
+            vector_param = np.concatenate(
+                (vector_param, (param_disk['g2'], param_disk['alpha1'])))
 
             if SPF_MODEL == 'hg_3g':
                 param_disk['g3'] = theta[11]
                 param_disk['alpha2'] = theta[12]
-                vector_param = np.concatenate((vector_param, (param_disk['g3'], param_disk['alpha2']) ))
+                vector_param = np.concatenate(
+                    (vector_param, (param_disk['g3'], param_disk['alpha2'])))
 
     return param_disk, vector_param
 
@@ -161,7 +161,7 @@ def call_gen_disk(theta):
 
     if (SPF_MODEL == 'spf_fix'):
         spf = F_SPF
-    
+
     elif (SPF_MODEL == 'hg_1g'):
 
         # we fix the SPF using a HG parametrization with parameters in the init file
@@ -175,7 +175,7 @@ def call_gen_disk(theta):
 
     elif SPF_MODEL == 'hg_2g':
         # we fix the SPF using a HG parametrization with parameters in the init file
-        
+
         # starttime = datetime.now()
         n_points = 21  # odd number to ensure that scattangl=pi/2 is in the list for normalization
         scatt_angles = np.linspace(0, np.pi, n_points)
@@ -196,8 +196,7 @@ def call_gen_disk(theta):
         # 3g henyey greenstein, normalized at 1 at 90 degrees
         spf_norm90 = hg_3g(np.degrees(scatt_angles), param_disk['g1'],
                            param_disk['g2'], param_disk['g3'],
-                           param_disk['alpha1'],
-                           param_disk['alpha2'], 1)
+                           param_disk['alpha1'], param_disk['alpha2'], 1)
         #measure fo the spline and param_disk
         spf = phase_function_spline(scatt_angles, spf_norm90)
 
@@ -350,7 +349,7 @@ def logp(theta):
                 prior_rout = prior_rout * 1.
 
             if SPF_MODEL == 'hg_3g':
-                
+
                 if (param_disk['g3'] < -1 or param_disk['g3'] > 1):
                     print('g3 out of prior')
                     return -np.inf
@@ -1151,7 +1150,7 @@ if __name__ == '__main__':
     warnings.simplefilter('ignore', NumbaWarning)
     # warnings.filterwarnings("ignore", category=UserWarning)
     # warnings.simplefilter('ignore', category=AstropyWarning)
-    
+
     if args.mpi:  # MPI or not for parallelization.
         MPI = True
         progress = False
