@@ -633,65 +633,6 @@ def best_model_plot(params_mcmc_yaml, hdr):
 
     instrument = params_mcmc_yaml['INSTRUMENT']
 
-    # load the raw data (necessary to create the DiskFM obj)
-    # this is the only part different for SPHERE and GPI
-
-    # if instrument == 'SPHERE':
-    #     # only for SPHERE.
-    #     data_files_str = params_mcmc_yaml['DATA_FILES_STR']
-    #     psf_files_str = params_mcmc_yaml['PSF_FILES_STR']
-    #     angles_str = params_mcmc_yaml['ANGLES_STR']
-    #     band_name = params_mcmc_yaml['BAND_NAME']
-
-    #     dataset = SPHERE.Irdis(data_files_str,
-    #                            psf_files_str,
-    #                            angles_str,
-    #                            band_name,
-    #                            psf_cube_size=31)
-    #     #collapse the data spectrally
-    #     dataset.spectral_collapse(align_frames=True,
-    #                               aligned_center=diskfit_mcmc.ALIGNED_CENTER)
-    # elif instrument == 'GPI':
-
-    #     #only for GPI
-    #     filelist = sorted(glob.glob(os.path.join(DATADIR,
-    #                                              "*_distorcorr.fits")))
-
-    #     # load the bad slices and bad files in the psf header
-    #     hdr_psf = fits.getheader(
-    #         os.path.join(klipdir, file_prefix + '_SmallPSF.fits'))
-
-    #     # We can choose to remove completely from the correction
-    #     # the angles where the disk intersect the disk (they are exlcuded
-    #     # from the PSF measurement by defaut).
-    #     # We can removed those if rm_file_disk_cross_satspots=True
-    #     if params_mcmc_yaml['RM_FILE_DISK_CROSS_SATSPOTS']:
-
-    #         excluded_files = []
-    #         if hdr_psf['N_BADFIL'] > 0:
-    #             for badfile_i in range(hdr_psf['N_BADFIL']):
-    #                 excluded_files.append(hdr_psf['BADFIL' +
-    #                                               str(badfile_i).zfill(2)])
-
-    #         for excluded_filesi in excluded_files:
-    #             if excluded_filesi in filelist:
-    #                 filelist.remove(excluded_filesi)
-
-    #     # in IFS mode, we always exclude the slices with too much noise. We
-    #     # chose the criteria as "SNR(mean of sat spot)< 3""
-    #     excluded_slices = []
-    #     if hdr_psf['N_BADSLI'] > 0:
-    #         for badslice_i in range(hdr_psf['N_BADSLI']):
-    #             excluded_slices.append(hdr_psf['BADSLI' +
-    #                                            str(badslice_i).zfill(2)])
-
-    #     # load the raw data without the bad slices
-    #     dataset = GPI.GPIData(filelist, quiet=True, skipslices=excluded_slices)
-
-    #     #collapse the data spectrally
-    #     dataset.spectral_collapse(align_frames=True, numthreads=1)
-
-
     # load the data
     reduced_data = fits.getdata(
         os.path.join(klipdir, file_prefix + '-klipped-KLmodes-all.fits'))[

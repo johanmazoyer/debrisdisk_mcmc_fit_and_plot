@@ -540,18 +540,17 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             band_name = params_mcmc_yaml['BAND_NAME']
 
             dataset = SPHERE.Irdis(data_files_str,
-                                psf_files_str,
-                                angles_str,
-                                band_name,
-                                psf_cube_size=31)
+                                   psf_files_str,
+                                   angles_str,
+                                   band_name,
+                                   psf_cube_size=31)
             #collapse the data spectrally
             dataset.spectral_collapse(align_frames=True,
-                                    aligned_center=aligned_center)
+                                      aligned_center=aligned_center)
 
-            
             fits.writeto(os.path.join(klipdir, file_prefix + '_SmallPSF.fits'),
-                            dataset.psfs,
-                            overwrite='True')
+                         dataset.psfs,
+                         overwrite='True')
 
         elif instrument == 'GPI':
             # only for GPI
@@ -585,7 +584,6 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             pol_or_spec = filetype_here
             print(pol_or_spec)
 
-            
             if len(filelist) == 0:
                 raise ValueError("Could not find files in the dir")
 
@@ -615,8 +613,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
                 # extract the data this time wihtout the bad files nor slices
                 dataset4psf = GPI.GPIData(filelist4psf,
-                                            quiet=True,
-                                            skipslices=excluded_slices)
+                                          quiet=True,
+                                          skipslices=excluded_slices)
 
                 # finally measure the good psf
                 instrument_psf = gpidiskpsf.make_collapsed_psf(
@@ -644,9 +642,9 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
 
             #save the psf
             fits.writeto(os.path.join(klipdir, file_prefix + '_SmallPSF.fits'),
-                            instrument_psf,
-                            header=hdr_psf,
-                            overwrite=True)
+                         instrument_psf,
+                         header=hdr_psf,
+                         overwrite=True)
 
             if pol_or_spec == 'Spectral Cube':  # GPI spec mode
                 # load the bad slices and bad files in the psf header
@@ -662,8 +660,8 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
                     excluded_files = []
                     if hdr_psf['N_BADFIL'] > 0:
                         for badfile_i in range(hdr_psf['N_BADFIL']):
-                            excluded_files.append(hdr_psf['BADFIL' +
-                                                        str(badfile_i).zfill(2)])
+                            excluded_files.append(
+                                hdr_psf['BADFIL' + str(badfile_i).zfill(2)])
 
                     for excluded_filesi in excluded_files:
                         if excluded_filesi in filelist:
@@ -674,20 +672,20 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
                 excluded_slices = []
                 if hdr_psf['N_BADSLI'] > 0:
                     for badslice_i in range(hdr_psf['N_BADSLI']):
-                        excluded_slices.append(hdr_psf['BADSLI' +
-                                                    str(badslice_i).zfill(2)])
+                        excluded_slices.append(
+                            hdr_psf['BADSLI' + str(badslice_i).zfill(2)])
 
                 # load the raw data without the bad slices
                 dataset = GPI.GPIData(filelist,
-                                    quiet=True,
-                                    skipslices=excluded_slices)
+                                      quiet=True,
+                                      skipslices=excluded_slices)
 
             else:  # pol mode
                 dataset = GPI.GPIData(filelist, quiet=True)
 
             #collapse the data spectrally and center
             dataset.spectral_collapse(align_frames=True,
-                                    aligned_center=aligned_center)
+                                      aligned_center=aligned_center)
 
         #After this, this is for both GPI and SPHERE
         #define the outer working angle
@@ -704,26 +702,28 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
         # gained on every model is a day of calculation gain on one million model,
         # so adjust your mask tightly to your model. You can change the harcoded parameter
         # here if you neet to go faster (reduced it) or it the slope beta is very slow (increase it)
-        print("\n Create the binary masks to define model zone and chisquare zone")
+        print(
+            "\n Create the binary masks to define model zone and chisquare zone"
+        )
 
         mask_disk_zeros = gpidiskpsf.make_disk_mask(
             dataset.input.shape[1],
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
             convert.au_to_pix(params_mcmc_yaml['r1_init'],
-                                params_mcmc_yaml['PIXSCALE_INS'],
-                                params_mcmc_yaml['DISTANCE_STAR']) -
+                              params_mcmc_yaml['PIXSCALE_INS'],
+                              params_mcmc_yaml['DISTANCE_STAR']) -
             18 / np.cos(np.radians(params_mcmc_yaml['inc_init'])),
             convert.au_to_pix(params_mcmc_yaml['r2_init'],
-                                params_mcmc_yaml['PIXSCALE_INS'],
-                                params_mcmc_yaml['DISTANCE_STAR']) +
+                              params_mcmc_yaml['PIXSCALE_INS'],
+                              params_mcmc_yaml['DISTANCE_STAR']) +
             18 / np.cos(np.radians(params_mcmc_yaml['inc_init'])),
             aligned_center=aligned_center)
         mask2generatedisk = 1 - mask_disk_zeros
         fits.writeto(os.path.join(klipdir,
-                                    file_prefix + '_mask2generatedisk.fits'),
-                        mask2generatedisk,
-                        overwrite='True')
+                                  file_prefix + '_mask2generatedisk.fits'),
+                     mask2generatedisk,
+                     overwrite='True')
 
         # we create a second mask for the minimization a little bit larger
         # (because model expect to grow with the PSF convolution and the FM)
@@ -733,12 +733,12 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             params_mcmc_yaml['pa_init'],
             params_mcmc_yaml['inc_init'],
             convert.au_to_pix(params_mcmc_yaml['r1_init'],
-                                params_mcmc_yaml['PIXSCALE_INS'],
-                                params_mcmc_yaml['DISTANCE_STAR']) -
+                              params_mcmc_yaml['PIXSCALE_INS'],
+                              params_mcmc_yaml['DISTANCE_STAR']) -
             20 / np.cos(np.radians(params_mcmc_yaml['inc_init'])),
             convert.au_to_pix(params_mcmc_yaml['r2_init'],
-                                params_mcmc_yaml['PIXSCALE_INS'],
-                                params_mcmc_yaml['DISTANCE_STAR']) +
+                              params_mcmc_yaml['PIXSCALE_INS'],
+                              params_mcmc_yaml['DISTANCE_STAR']) +
             20 / np.cos(np.radians(params_mcmc_yaml['inc_init'])),
             aligned_center=aligned_center)
 
@@ -754,10 +754,9 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
         # mask2minimize = mask2minimize*mask_speckle_region
 
         fits.writeto(os.path.join(klipdir,
-                                    file_prefix + '_mask2minimize.fits'),
-                        mask2minimize,
-                        overwrite='True')
-
+                                  file_prefix + '_mask2minimize.fits'),
+                     mask2minimize,
+                     overwrite='True')
 
         # RDI case, if it's not the first time, we do not even need to load the correlation
         # psflib, all needed information is already loaded in the KL modes
@@ -773,11 +772,11 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
             sys.stdout = open(os.devnull, 'w')
 
         noise = create_uncertainty_map(dataset,
-                                        params_mcmc_yaml,
-                                        psflib=psflib)
+                                       params_mcmc_yaml,
+                                       psflib=psflib)
         fits.writeto(os.path.join(klipdir, file_prefix + '_noisemap.fits'),
-                        noise,
-                        overwrite='True')
+                     noise,
+                     overwrite='True')
 
         sys.stdout = sys.__stdout__
 
@@ -1003,7 +1002,6 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
                         numthreads=1,
                         psf_library=psflib)
         sys.stdout = sys.__stdout__
-        
 
     # load the the KL basis and define the diskFM object
     diskobj = DiskFM(None,
@@ -1261,7 +1259,6 @@ if __name__ == '__main__':
                                 psflib=psflib,
                                 quietklip=True)
 
-    
     # we multiply the reduced_data by the nan mask2minimize to avoid having
     # to pass mask2minimize as a global variable
     mask2minimize = fits.getdata(
