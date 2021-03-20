@@ -64,7 +64,7 @@ import pyklip.instruments.GPI as GPI
 import pyklip.instruments.SPHERE as SPHERE
 
 import pyklip.parallelized as parallelized
-from pyklip.fmlib.diskfm import DiskFM
+from pyklip.fmlib.diskfm import DiskFM, _load_dict_from_hdf5
 import pyklip.fm as fm
 import pyklip.rdi as rdi
 
@@ -249,6 +249,22 @@ def logl(theta):
     model = call_gen_disk(theta)
 
     modelconvolved = convolve(model, PSF, boundary='wrap')
+    
+    # DISKOBJ = DiskFM(None,
+    #                  None,
+    #                  None,
+    #                  modelconvolved,
+    #                  kl_basis_file = KL_BASIS_FILE,
+    #                  load_from_basis=True)
+
+    DISKOBJ = DiskFM(None,
+                     None,
+                     None,
+                     modelconvolved,
+                     basis_filename=os.path.join(KLIPDIR,
+                                                 FILE_PREFIX + '_klbasis.h5'),
+                     load_from_basis=True)
+
     DISKOBJ.update_disk(modelconvolved)
     model_fm = DISKOBJ.fm_parallelized()[0]
 
@@ -425,8 +441,8 @@ def make_noise_map_rings(nodisk_data,
 
     dim = nodisk_data.shape[1]
     # create rho2D for the rings
-    x = np.arange(dim, dtype=np.float)[None, :] - aligned_center[0]
-    y = np.arange(dim, dtype=np.float)[:, None] - aligned_center[1]
+    x = np.arange(dim, dtype=np.float64)[None, :] - aligned_center[0]
+    y = np.arange(dim, dtype=np.float64)[:, None] - aligned_center[1]
     rho2d = np.sqrt(x**2 + y**2)
 
     noise_map = np.zeros((dim, dim))
@@ -461,6 +477,9 @@ def create_uncertainty_map(dataset, params_mcmc_yaml, psflib=None):
     aligned_center = params_mcmc_yaml['ALIGNED_CENTER']
     noise_multiplication_factor = params_mcmc_yaml[
         'NOISE_MULTIPLICATION_FACTOR']
+    
+    datadir = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
+    klipdir = os.path.join(datadir, 'klip_fm_files')
 
     dataset.PAs = -dataset.PAs
     maxnumbasis = dataset.input.shape[0]
@@ -973,8 +992,8 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
 
     if first_time:
         # Disable print for pyklip
-        if quietklip:
-            sys.stdout = open(os.devnull, 'w')
+        # if quietklip:
+        #     sys.stdout = open(os.devnull, 'w')
 
         # initialize the DiskFM object
         diskobj = DiskFM(dataset.input.shape,
@@ -1008,18 +1027,28 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
 
     # load the the KL basis and define the diskFM object
     diskobj = DiskFM(None,
-                     numbasis,
+                     None,
                      None,
                      model_here_convolved,
                      basis_filename=os.path.join(klipdir,
                                                  file_prefix + '_klbasis.h5'),
                      load_from_basis=True)
 
+    kl_basis_file = _load_dict_from_hdf5(os.path.join(klipdir,
+                                                  file_prefix + '_klbasis.h5'))
+    diskobj = DiskFM(None,
+                     None,
+                     None,
+                     model_here_convolved,
+                     kl_basis_file = kl_basis_file,
+                     load_from_basis=True)
+    
+
     # test the diskFM object
     diskobj.update_disk(model_here_convolved)
-    ### we take only the first KL modemode
 
     if first_time:
+        ### we take only the first KL modemode
         modelfm_here = diskobj.fm_parallelized()[0]
         fits.writeto(os.path.join(klipdir,
                                   file_prefix + '_FirstModel_FM.fits'),
@@ -1179,7 +1208,7 @@ if __name__ == '__main__':
         raise ValueError(
             "Could not find the data directory (BAND_DIR parameter)")
 
-    klipdir = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'],
+    KLIPDIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'],
                            'klip_fm_files')
     MCMCRESULTDIR = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'],
                                  'results_MCMC')
@@ -1236,42 +1265,48 @@ if __name__ == '__main__':
     ## Load all variables necessary for the MCMC and make them global
     ## to avoid very long transfert time at each iteration
 
-    # load reduced_data and make it a global variable
-    REDUCED_DATA = fits.getdata(
-        os.path.join(klipdir, FILE_PREFIX + '-klipped-KLmodes-all.fits'))[
-            0]  ### we take only the first KL mode
-
-    # measure the size of images DIMENSION and make it global
-    DIMENSION = REDUCED_DATA.shape[1]
     # load wheremask2generatedisk and make it global
     WHEREMASK2GENERATEDISK = (fits.getdata(
-        os.path.join(klipdir, FILE_PREFIX + '_mask2generatedisk.fits')) == 0)
+        os.path.join(KLIPDIR, FILE_PREFIX + '_mask2generatedisk.fits')) == 0)
 
     # load noise and make it global
-    NOISE = fits.getdata(os.path.join(klipdir, FILE_PREFIX + '_noisemap.fits'))
+    NOISE = fits.getdata(os.path.join(KLIPDIR, FILE_PREFIX + '_noisemap.fits'))
 
     # load PSF and make it global
-    PSF = fits.getdata(os.path.join(klipdir, FILE_PREFIX + '_SmallPSF.fits'))
+    PSF = fits.getdata(os.path.join(KLIPDIR, FILE_PREFIX + '_SmallPSF.fits'))
 
     # load initial parameter value and make them global
     THETA_INIT = from_param_to_theta_init(params_mcmc_yaml)
 
+    # measure the size of images DIMENSION and make it global
+    DIMENSION = NOISE.shape[0]
+    
     # initialize_diskfm and make diskobj global
     DISKOBJ = initialize_diskfm(dataset,
                                 params_mcmc_yaml,
                                 psflib=psflib,
                                 quietklip=True)
+    
+    # Modification for Justin to save memory, slightly slower
+    del DISKOBJ
+    # KL_BASIS_FILE = _load_dict_from_hdf5(os.path.join(KLIPDIR,
+    #                                               FILE_PREFIX + '_klbasis.h5'))
+    
+    # load reduced_data and make it a global variable
+    REDUCED_DATA = fits.getdata(
+        os.path.join(KLIPDIR, FILE_PREFIX + '-klipped-KLmodes-all.fits'))[
+            0]  ### we take only the first KL mode
 
     # we multiply the reduced_data by the nan mask2minimize to avoid having
     # to pass mask2minimize as a global variable
     mask2minimize = fits.getdata(
-        os.path.join(klipdir, FILE_PREFIX + '_mask2minimize.fits'))
+        os.path.join(KLIPDIR, FILE_PREFIX + '_mask2minimize.fits'))
     mask2minimize[np.where(mask2minimize == 0.)] = np.nan
     REDUCED_DATA *= mask2minimize
 
     #last chance to delete useless big variables to avoid sending them
     # to every CPUs when paralelizing
-    del mask2minimize, dataset, psflib, params_mcmc_yaml, klipdir
+    del mask2minimize, dataset, psflib, params_mcmc_yaml
     # print(globals())
 
     # Before launching th parallel MCMC
