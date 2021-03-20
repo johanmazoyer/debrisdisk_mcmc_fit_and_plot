@@ -7,6 +7,7 @@ author: Johan Mazoyer
 import os
 import copy
 import argparse
+# careful on Python 3.8 mac multiprocessing switched to spawn so the global varialbe do not work
 
 basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # your data (using OS environnement variable allow to use same code on
@@ -37,7 +38,9 @@ import warnings
 if args.mpi:  # MPI or not for parallelization.
     from schwimmbad import MPIPool as MultiPool
 else:
-    from multiprocessing import Pool as MultiPool
+    import multiprocessing as mp
+    MultiPool = mp.get_context('fork').Pool
+    # from multiprocessing import Pool as MultiPool
 
 from multiprocessing import cpu_count
 
@@ -1137,7 +1140,7 @@ def from_param_to_theta_init(params_mcmc_yaml):
                       dx_init, dy_init, logN_init, g1_init, g2_init,
                       alpha1_init, g3_init, alpha2_init)
 
-    return theta_init
+    return np.asarray(theta_init)
 
 
 if __name__ == '__main__':
