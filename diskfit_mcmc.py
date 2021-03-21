@@ -265,7 +265,7 @@ def logl(theta):
                                                  FILE_PREFIX + '_klbasis.h5'),
                      load_from_basis=True)
 
-    DISKOBJ.update_disk(modelconvolved)
+    # DISKOBJ.update_disk(modelconvolved)
     model_fm = DISKOBJ.fm_parallelized()[0]
 
     # reduced data have already been naned outside of the minimization
