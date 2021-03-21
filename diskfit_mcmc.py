@@ -1034,14 +1034,14 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
                                                  file_prefix + '_klbasis.h5'),
                      load_from_basis=True)
 
-    kl_basis_file = _load_dict_from_hdf5(os.path.join(klipdir,
-                                                  file_prefix + '_klbasis.h5'))
-    diskobj = DiskFM(None,
-                     None,
-                     None,
-                     model_here_convolved,
-                     kl_basis_file = kl_basis_file,
-                     load_from_basis=True)
+    # kl_basis_file = _load_dict_from_hdf5(os.path.join(klipdir,
+    #                                               file_prefix + '_klbasis.h5'))
+    # diskobj = DiskFM(None,
+    #                  None,
+    #                  None,
+    #                  model_here_convolved,
+    #                  kl_basis_file = kl_basis_file,
+    #                  load_from_basis=True)
     
 
     # test the diskFM object
