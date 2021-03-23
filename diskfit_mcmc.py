@@ -249,23 +249,16 @@ def logl(theta):
     model = call_gen_disk(theta)
 
     modelconvolved = convolve(model, PSF, boundary='wrap')
-    
+
     # DISKOBJ = DiskFM(None,
     #                  None,
     #                  None,
     #                  modelconvolved,
-    #                  kl_basis_file = KL_BASIS_FILE,
+    #                  basis_filename=os.path.join(KLIPDIR,
+    #                                              FILE_PREFIX + '_klbasis.h5'),
     #                  load_from_basis=True)
 
-    DISKOBJ = DiskFM(None,
-                     None,
-                     None,
-                     modelconvolved,
-                     basis_filename=os.path.join(KLIPDIR,
-                                                 FILE_PREFIX + '_klbasis.h5'),
-                     load_from_basis=True)
-
-    # DISKOBJ.update_disk(modelconvolved)
+    DISKOBJ.update_disk(modelconvolved)
     model_fm = DISKOBJ.fm_parallelized()[0]
 
     # reduced data have already been naned outside of the minimization
@@ -992,8 +985,8 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
 
     if first_time:
         # Disable print for pyklip
-        # if quietklip:
-        #     sys.stdout = open(os.devnull, 'w')
+        if quietklip:
+            sys.stdout = open(os.devnull, 'w')
 
         # initialize the DiskFM object
         diskobj = DiskFM(dataset.input.shape,
@@ -1034,8 +1027,9 @@ def initialize_diskfm(dataset, params_mcmc_yaml, psflib=None, quietklip=True):
                                                  file_prefix + '_klbasis.h5'),
                      load_from_basis=True)
 
-    # kl_basis_file = _load_dict_from_hdf5(os.path.join(klipdir,
-    #                                               file_prefix + '_klbasis.h5'))
+    # manager = mp.Manager()
+    # kl_basis_file = manager.dict(_load_dict_from_hdf5(os.path.join(klipdir,
+    #                                               file_prefix + '_klbasis.h5')))
     # diskobj = DiskFM(None,
     #                  None,
     #                  None,
@@ -1288,9 +1282,12 @@ if __name__ == '__main__':
                                 quietklip=True)
     
     # Modification for Justin to save memory, slightly slower
-    del DISKOBJ
-    # KL_BASIS_FILE = _load_dict_from_hdf5(os.path.join(KLIPDIR,
-    #                                               FILE_PREFIX + '_klbasis.h5'))
+    # del DISKOBJ
+
+    # manager = mp.Manager()
+    # KL_BASIS_FILE = manager.dict(_load_dict_from_hdf5(os.path.join(KLIPDIR,
+    #                                               FILE_PREFIX + '_klbasis.h5')))
+
     
     # load reduced_data and make it a global variable
     REDUCED_DATA = fits.getdata(
