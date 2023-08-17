@@ -43,8 +43,8 @@ def make_disk_mask(dim,
     if estimminr < 0:
         estimminr = 0
     PA_rad = np.radians(90 + estimPA)
-    x = np.arange(dim, dtype=np.float)[None, :] - aligned_center[0]
-    y = np.arange(dim, dtype=np.float)[:, None] - aligned_center[1]
+    x = np.arange(dim, dtype=float)[None, :] - aligned_center[0]
+    y = np.arange(dim, dtype=float)[:, None] - aligned_center[1]
 
     x1 = x * np.cos(PA_rad) + y * np.sin(PA_rad)
     y1 = -x * np.sin(PA_rad) + y * np.cos(PA_rad)
@@ -135,8 +135,8 @@ def check_satspots_disk_intersection(dataset, params_mcmc_yaml, quiet=True):
             posx = float(spot[0])
             posy = float(spot[1])
 
-            x_sat = np.arange(dimx, dtype=np.float)[None, :] - posx
-            y_sat = np.arange(dimy, dtype=np.float)[:, None] - posy
+            x_sat = np.arange(dimx, dtype=float)[None, :] - posx
+            y_sat = np.arange(dimy, dtype=float)[:, None] - posy
             rho2d_sat = np.sqrt(x_sat**2 + y_sat**2)
             wh_sat_spot = np.where((rho2d_sat < 3 / 1.6 * wls))
 
@@ -194,8 +194,8 @@ def check_satspots_snr(dataset_multi_wl, params_mcmc_yaml, quiet=True):
     # create a triangle nan mask for the bright regions in 2015 in some data probably due
     # to the malfunctionning diode (I don't think this has described in an article before)
     if (file_prefix == 'K2band_hr4796') or (file_prefix == 'K1band_hr4796'):
-        x_image = np.arange(dimx, dtype=np.float)[None, :] - aligned_center[0]
-        y_image = np.arange(dimy, dtype=np.float)[:, None] - aligned_center[1]
+        x_image = np.arange(dimx, dtype=float)[None, :] - aligned_center[0]
+        y_image = np.arange(dimy, dtype=float)[:, None] - aligned_center[1]
         triangle1 = 0.67 * x_image + y_image - 114.5
         triangle2 = -3.2 * x_image + y_image - 330
 
@@ -267,8 +267,8 @@ def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=10, collapse_channels =
     # create a traingle nan mask for the bright regions in 2015 probably due
     # to the malfunctionning diode
     if (file_prefix == 'K2band_hr4796') or (file_prefix == 'K1band_hr4796'):
-        x_image = np.arange(dimx, dtype=np.float)[None, :] - aligned_center[0]
-        y_image = np.arange(dimy, dtype=np.float)[:, None] - aligned_center[1]
+        x_image = np.arange(dimx, dtype=float)[None, :] - aligned_center[0]
+        y_image = np.arange(dimy, dtype=float)[:, None] - aligned_center[1]
         triangle1 = 0.67 * x_image + y_image - 114.5
         triangle2 = -3.2 * x_image + y_image - 330
 
@@ -317,8 +317,8 @@ def make_collapsed_psf(dataset, params_mcmc_yaml, boxrad=10, collapse_channels =
     if smoothed:
         r_smooth = boxrad - 1
         # # create rho2D for the psf square
-        x_square = np.arange(2 * boxrad + 1, dtype=np.float)[None, :] - boxrad
-        y_square = np.arange(2 * boxrad + 1, dtype=np.float)[:, None] - boxrad
+        x_square = np.arange(2 * boxrad + 1, dtype=float)[None, :] - boxrad
+        y_square = np.arange(2 * boxrad + 1, dtype=float)[:, None] - boxrad
         rho2d_square = np.sqrt(x_square**2 + y_square**2)
 
         smooth_mask = np.ones((2 * boxrad + 1, 2 * boxrad + 1))
