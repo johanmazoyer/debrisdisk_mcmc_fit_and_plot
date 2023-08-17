@@ -824,6 +824,7 @@ def initialize_rdi(dataset, params_mcmc_yaml):
 
     datadir = os.path.join(basedir, params_mcmc_yaml['BAND_DIR'])
 
+    klipdir = os.path.join(datadir, 'klip_fm_files')
     rdidir = os.path.join(datadir, params_mcmc_yaml['RDI_DIR'])
     rdi_matrix_dir = os.path.join(rdidir, 'rdi_matrix')
     distutils.dir_util.mkpath(rdi_matrix_dir)
