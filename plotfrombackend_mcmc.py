@@ -12,7 +12,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 # default_parameter_file = 'FakeHr4796faint_MCMC_RDI.yaml'
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'
 
-default_parameter_file = 'GPI_Hband_MCMC_ADI_test4Justin.yaml'
+default_parameter_file = 'SPHERE_Hband_MCMC_ADI.yaml'
 
 import glob
 import socket
@@ -1302,7 +1302,7 @@ if __name__ == '__main__':
 
     with open(os.path.join('initialization_files', str_yalm),
               'r') as yaml_file:
-        params_mcmc_yaml = yaml.load(yaml_file)
+        params_mcmc_yaml = yaml.safe_load(yaml_file)
 
     params_mcmc_yaml['BAND_NAME'] = params_mcmc_yaml[
         'BAND_NAME'] + ' (KL#: ' + str(params_mcmc_yaml['KLMODE_NUMBER']) + ')'
@@ -1324,7 +1324,7 @@ if __name__ == '__main__':
     # compare_injected_spfs_plot(params_mcmc_yaml)
 
     # # Plot the PDFs
-    # make_corner_plot(params_mcmc_yaml)
+    make_corner_plot(params_mcmc_yaml)
 
     # measure the best likelyhood model and excract MCMC errors
     hdr = create_header(params_mcmc_yaml)

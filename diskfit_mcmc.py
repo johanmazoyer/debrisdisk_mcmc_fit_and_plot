@@ -15,7 +15,7 @@ basedir = os.environ["EXCHANGE_PATH"]  # the base directory where is
 
 # default_parameter_file = 'FakeHr4796bright_MCMC_ADI.yaml'  # name of the parameter file
 # default_parameter_file = 'GPI_Hband_MCMC_ADI.yaml'  # name of the parameter file
-default_parameter_file = 'GPI_Hband_MCMC_ADI_test4Justin.yaml'  # name of the parameter file
+default_parameter_file = 'SPHERE_Hband_MCMC_ADI.yaml'  # name of the parameter file
 # you can also call it with the python function argument -p
 
 MPI = False  ## by default the MCMC is not mpi. you can change it
@@ -48,6 +48,7 @@ from datetime import datetime
 
 import math as mt
 import numpy as np
+import scipy.ndimage as snd
 
 import astropy.io.fits as fits
 from astropy.convolution import convolve
@@ -62,6 +63,7 @@ from numba.core.errors import NumbaWarning
 
 import pyklip.instruments.GPI as GPI
 import pyklip.instruments.SPHERE as SPHERE
+import pyklip.instruments.Instrument as Instrument
 
 import pyklip.parallelized as parallelized
 from pyklip.fmlib.diskfm import DiskFM, _load_dict_from_hdf5
@@ -80,6 +82,98 @@ import astro_unit_conversion as convert
 # which kill the speed
 os.environ["OMP_NUM_THREADS"] = "1"
 
+
+
+def sigma_filter(image, box_width, n_sigma=3, ignore_edges=False, monitor=False):
+
+    # NAME:
+    #	SIGMA_FILTER
+    # PURPOSE:
+    #	Replace pixels more than a specified pixels deviant from its neighbors
+    # EXPLANATION:
+    #	Computes the mean and standard deviation of pixels in a box centered at
+    #	each pixel of the image, but excluding the center pixel. If the center
+    #	pixel value exceeds some # of standard deviations from the mean, it is
+    #	replaced by the mean in box. Note option to process pixels on the edges.
+    # CALLING SEQUENCE:
+    #	Result = sigma_filter( image, box_width, n_sigma=(#), /ALL,/MON )
+    # INPUTS:
+    #	image = 2-D image (matrix)
+    #	box_width = width of square filter box, in # pixels (default = 3)
+    #	n_sigma = # standard deviations to define outliers, floating point,
+    #			recommend > 2, default = 3. For gaussian statistics:
+    #			n_sigma = 1 smooths 35% of pixels, 2 = 5%, 3 = 1%.
+    #   ignore_edges: if False, we also apply the sigma filter to the edges. 
+    #               If true, they're left untouched.
+    #   monitor: prints information about % pixels replaced.
+    #   
+    # CALLS:
+    #	function filter_image( )
+    # PROCEDURE:
+    #	Compute mean over moving box-cars using smooth, subtract center values,
+    #	compute variance using smooth on deviations from mean,
+    #	check where pixel deviation from mean is within variance of box,
+    #	replace those pixels in smoothed image (mean) with orignal values,
+    #	return the resulting partial mean image.
+    # MODIFICATION HISTORY:
+    #	Written, 1991, Frank Varosi and Dan Gezari NASA/GSFC
+    #	F.V.1992, added optional keywords /ITER,/MON,VAR=,DEV=,N_CHANGE=.
+    #	Converted to IDL V5.0   W. Landsman   September 1997
+    #   Translated to python with chat GPT by Johan
+    #-
+
+    if box_width <3:
+        raise ValueError("box_width must be an odd integer > 2")
+    
+    if box_width % 2 == 0:
+         raise ValueError("box_width must be an odd integer > 2")
+    
+    bw2 = box_width**2
+
+    smooth = np.ones((box_width, box_width))
+    smooth[1:-1, 1:-1] = 0
+
+    if ignore_edges:
+        mean = (snd.generic_filter(image, np.mean, footprint=smooth, mode='constant', cval=np.nan) * bw2 - image) / (bw2 - 1)
+        wh_nan = np.isnan(mean)
+        mean[wh_nan] = 0
+    else:
+        mean = (snd.generic_filter(image, np.mean, footprint=smooth, mode='mirror') * bw2 - image) / (bw2 -1)
+        # mean = (generic_filter(image, np.nanmean, footprint=smooth, mode='constant', cval=np.nan) * bw2 - image) / (bw2 -1)
+
+    imdev = (image - mean)**2
+    fact = float(n_sigma**2) / (bw2 - 2)
+
+    if ignore_edges:
+        imvar = fact * (snd.generic_filter(imdev, np.mean, footprint=smooth, mode='constant', cval=np.nan) * bw2 - imdev)
+        imdev[np.isnan(imvar)] = 0
+        imvar[np.isnan(imvar)] = 0
+    else:
+        imvar = fact * (snd.generic_filter(imdev, np.nanmean, footprint=smooth, mode='mirror') * bw2 - imdev)
+        # imvar = fact * (generic_filter(imdev, np.nanmean, footprint=smooth, mode='constant', cval=np.nan) * bw2 - imdev)
+
+    # chek which pixels are ok
+    wok = np.where(imdev <= imvar)
+    nok = wok[0].size
+
+    npix = image.size
+    nchange = npix - nok
+
+    if monitor:
+        if ignore_edges:
+            print(f"{(nchange)*100./npix:.2f}% of pixels replaced (edges ignored), n_sigma={n_sigma:.1f}")
+        else:
+            print(f"{nchange*100./npix:.2f}% of pixels replaced, n_sigma={n_sigma:.1f}")
+
+    if nok == npix:
+        return image
+    if nok > 0:
+        mean[wok] = image[wok]
+
+    if ignore_edges:
+        mean[wh_nan] = image[wh_nan]
+
+    return mean
 
 def from_theta_to_params(theta):
     param_disk = {}
@@ -112,7 +206,7 @@ def from_theta_to_params(theta):
         param_disk['a_r'] = 0.01  # we fix the aspect ratio
         param_disk['offset'] = 0.  # no vertical offset in KLIP
 
-        param_disk['beta_in'] = -10  # we fix the inner power law
+        param_disk['beta_in'] = -100  # we fix the inner power law
 
         param_disk['r1'] = mt.exp(theta[0])
         param_disk['r2'] = mt.exp(theta[1])
@@ -217,7 +311,7 @@ def call_gen_disk(theta):
                           psfcenx=ALIGNED_CENTER[0],
                           psfceny=ALIGNED_CENTER[1],
                           sampling=1,
-                          los_factor=1,
+                          los_factor=2,
                           dim=DIMENSION,
                           mask=WHEREMASK2GENERATEDISK,
                           pixscale=PIXSCALE_INS,
@@ -294,12 +388,12 @@ def logp(theta):
 
     # - rout = Logistic We  cut the prior at r2 = xx
     # because this parameter is very limited by the ADI
-    if (param_disk['r2'] < 80 or param_disk['r2'] > 100):
+    if (param_disk['r2'] < 82 or param_disk['r2'] > 102):
         print('r2 out of prior')
         return -np.inf
     else:
-        # prior_rout = prior_rout / (1. + np.exp(40. * (r2 - 102)))
-        prior_rout = prior_rout * 1.  # or we can just use a flat prior
+        prior_rout = prior_rout / (1. + np.exp(40. * (param_disk['r2'] - 100)))
+        # prior_rout = prior_rout * 1.  # or we can just use a flat prior
 
     if (param_disk['inc'] < 10 or param_disk['inc'] > 90):
         print('inc out of prior')
@@ -549,23 +643,107 @@ def initialize_mask_psf_noise(params_mcmc_yaml, quietklip=True):
     if first_time:
         if instrument == 'SPHERE-IRDIS':
             # only for SPHERE.
-            data_files_str = params_mcmc_yaml['DATA_FILES_STR']
-            psf_files_str = params_mcmc_yaml['PSF_FILES_STR']
-            angles_str = params_mcmc_yaml['ANGLES_STR']
-            band_name = params_mcmc_yaml['BAND_NAME']
 
-            dataset = SPHERE.Irdis(data_files_str,
-                                   psf_files_str,
-                                   angles_str,
-                                   band_name,
-                                   psf_cube_size=31)
-            #collapse the data spectrally
-            dataset.spectral_collapse(align_frames=True,
-                                      aligned_center=aligned_center)
+            # using the SPHERE data frame developed by Vigan in pyklip
+            # data_files_str = params_mcmc_yaml['DATA_FILES_STR']
+            # psf_files_str = params_mcmc_yaml['PSF_FILES_STR']
+            # angles_str = params_mcmc_yaml['ANGLES_STR']
+            # band_name = params_mcmc_yaml['BAND_NAME']
 
-            fits.writeto(os.path.join(klipdir, file_prefix + '_SmallPSF.fits'),
-                         dataset.psfs,
-                         overwrite='True')
+            # dataset = SPHERE.Irdis(data_files_str,
+            #                        psf_files_str,
+            #                        angles_str,
+            #                        band_name,
+            #                        psf_cube_size=31)
+            # #collapse the data spectrally
+            # dataset.spectral_collapse(align_frames=True,
+            #                           aligned_center=aligned_center)
+
+            # fits.writeto(os.path.join(klipdir, file_prefix + '_SmallPSF.fits'),
+            #              dataset.psfs,
+            #              overwrite='True')
+
+            psf_init = fits.getdata(os.path.join(datadir, "psf_sphere_h2.fits"))
+            size_init = psf_init.shape[1]
+            size_small = 31
+            small_psf = psf_init[size_init // 2 - size_small // 2:size_init // 2 +
+                                size_small // 2 + 1,
+                                size_init // 2 - size_small // 2:size_init // 2 +
+                                size_small // 2 + 1]
+
+            small_psf = small_psf / np.max(small_psf)
+            small_psf[np.where(small_psf < 0.005)] = 0.
+
+            fits.writeto(os.path.join(klipdir,
+                                    file_prefix + '_SmallPSF.fits'),
+                        small_psf,
+                        overwrite='True')
+
+            # load the raw data
+            datacube_sphere_init = fits.getdata(
+                os.path.join(datadir, "cube_H2.fits")
+            )  
+            parangs = fits.getdata(os.path.join(datadir, "parang.fits"))
+            parangs = parangs - 135.99 + 90  ## true north Maire et al. 2016
+
+            datacube_sphere_init = np.delete(datacube_sphere_init, (72, 81),
+                                            0)  ## 2 slices are bad
+            parangs = np.delete(parangs, (72, 81), 0)  ## 2 slices are bad
+
+            # we keep only 1 slide out of N to run test on my laptop
+            datacube_sphere_init = datacube_sphere_init[0::2]
+             # we keep only 1 slide out of N to run test on my laptop
+            parangs = parangs[0::2] 
+
+            olddim = datacube_sphere_init.shape[1]
+
+            # we resize the SPHERE data to the same size as GPI (281)
+            # to avoid a problem of centering
+            newdim = 241
+            datacube_sphere_newdim = np.zeros(
+                (datacube_sphere_init.shape[0], newdim, newdim))
+
+            for i in range(datacube_sphere_init.shape[0]):
+                # datacube_sphere_newdim[i, :, :] = sigma_filter(datacube_sphere_init[
+                #     i, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1,
+                #     olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1],3,n_sigma=5, monitor=True)
+
+                datacube_sphere_newdim[i, :, :] = datacube_sphere_init[
+                    i, olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1,
+                    olddim // 2 - newdim // 2:olddim // 2 + newdim // 2 + 1]
+
+
+            # we flip the dataset (and therefore inverse the parangs) to obtain
+            # the good PA after pyklip reduction
+            parangs = -parangs
+
+            for i in range(datacube_sphere_newdim.shape[0]):
+                datacube_sphere_newdim[i] = np.flip(datacube_sphere_newdim[i],
+                                                    axis=0)
+
+            datacube_sphere = datacube_sphere_newdim
+
+            fits.writeto(os.path.join(datadir, file_prefix + '_true_parangs.fits'),
+                        parangs,
+                        overwrite='True')
+
+            fits.writeto(os.path.join(datadir, file_prefix + '_true_dataset.fits'),
+                        datacube_sphere,
+                        overwrite='True')
+
+            datacube_sphere = fits.getdata(
+                os.path.join(datadir, file_prefix + '_true_dataset.fits'))
+            parangs_sphere = fits.getdata(
+                os.path.join(datadir, file_prefix + '_true_parangs.fits'))
+
+            size_datacube = datacube_sphere.shape
+            centers_sphere = np.zeros((size_datacube[0], 2)) + [aligned_center[0], aligned_center[1]]
+            dataset = Instrument.GenericData(datacube_sphere,
+                                            centers_sphere,
+                                            parangs=parangs_sphere,
+                                            flipx=True,
+                                            wvs=None)
+
 
         elif instrument == 'GPI':
             # only for GPI
@@ -836,7 +1014,7 @@ def initialize_rdi(dataset, params_mcmc_yaml):
         # H band and H band data have very little thermal noise.
 
         hdr_psf = fits.getheader(
-            os.path.join(klipdir, file_prefix + '_SmallPSF.fits'))
+            os.path.join(KLIPDIR, file_prefix + '_SmallPSF.fits'))
 
         # in IFS mode, we always exclude the slices with too much noise. We
         # chose the criteria as "SNR(mean of sat spot)< 3""
@@ -1194,7 +1372,7 @@ if __name__ == '__main__':
     yaml_path_file = os.path.join(os.getcwd(), 'initialization_files',
                                   str_yalm)
     with open(yaml_path_file, 'r') as yaml_file:
-        params_mcmc_yaml = yaml.load(yaml_file)
+        params_mcmc_yaml = yaml.safe_load(yaml_file)
 
     FILE_PREFIX = params_mcmc_yaml['FILE_PREFIX']
     NEW_BACKEND = params_mcmc_yaml['NEW_BACKEND']

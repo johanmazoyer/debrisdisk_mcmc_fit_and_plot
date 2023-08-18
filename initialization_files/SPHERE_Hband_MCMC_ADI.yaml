@@ -1,6 +1,6 @@
 # LOCATION AND NAME PARAMETERS. Parameters used to save the outputs or plots
-BAND_DIR: 160318_H_Spec_smalltest  # name of folder where are the data (from basedir)
-FILE_PREFIX: Hband_hr4796_adi  #prefix for all saved files (carefull not to erase your results)
+BAND_DIR: SPHERE_Hdata  # name of folder where are the data (from basedir)
+FILE_PREFIX: Hband_hr4796_half  #prefix for all saved files (carefull not to erase your results)
 BAND_NAME: GPI H band ADI      #for plot titles uniquely
 
 INSTRUMENT: SPHERE-IRDIS  # SPHERE-IRDIS or GPI
@@ -24,54 +24,54 @@ FIRST_TIME: True
 MODE: ADI  #ADI or  RDI (probably also work for SDI and ADI + SDI but too slow to be usefull)
 KLMODE_NUMBER: 3 # number of KL modes used in the reduction < nb images in the basis
 ANNULI: 1 # number of annuli in the KLIP reduction
-OWA: 100 # OWA of the reduction, in pixel. Reduce the zone to accelerate the code.
+OWA: 116 # OWA of the reduction, in pixel. Reduce the zone to accelerate the code.
 MOVE_HERE: 6  #minrot in PyKLIP ADI
-ALIGNED_CENTER: [140.,140.] #image center in your model, also use to center the image before KLIP
+ALIGNED_CENTER: [120.,120.] #image center in your model, also use to center the image before KLIP
 
 # STAR OBSERVATION PARAMETERS
 DISTANCE_STAR: 72.0   #distance of the disk in pc
-PIXSCALE_INS: 0.01414  #picscale of your data
+PIXSCALE_INS: 0.012255  #picscale of your data
 
 # RDI PARAMETERS. 
 DO_RDI_CORRELATION: False # Measure the correlation matrix of the RDI PSF lib. Very long.
 RDI_DIR: RDI_lib        # name of folder where are the RDI lib (starting from BAND_DIR). 
                         # Carefull, this dir must also contains the data
 
-# MCMC PARAMETERS
+# MCMC False
 NEW_BACKEND: True
 #if NEW_BACKEND=0, reset the backend, if not, start where you stopped
-NWALKERS: 25 #Number of walkers (should be at least twice the # parameters)
-N_ITER_MCMC: 3 #Number of interation
-NOISE_MULTIPLICATION_FACTOR: 3 # multiplicative factor for the chains
+NWALKERS: 32 #Number of walkers (should be at least twice the # parameters)
+N_ITER_MCMC: 2 #Number of interation
+NOISE_MULTIPLICATION_FACTOR: 5 # multiplicative factor for the chains
 # There is no burn-in phase here, the burnin only intervened when reading the data
 
 # INITIAL MODEL PARAMETERS
-r1_init: 74.3
-r2_init: 95
-beta_init: 12
-inc_init: 76.44
-pa_init: 26.64
-dx_init: -1.
-dy_init: 1.8
-N_init: 220
+r1_init: 74.64
+r2_init: 99.87
+beta_init: 13.69
+inc_init: 76.77
+pa_init: 26.95
+dx_init: -3.05
+dy_init: 1.19
+N_init: 531
 # the parameter of the priors are still defined inside the code logp(theta) function
 
 # SPF parameters
 SPF_MODEL: 'hg_2g' # Heyniey greenstein ('hg_1g', 'hg_2g', 'hg_3g') or 
 
 # for 1g SPF (N_DIM_MCMC = 9) and more
-g1_init: 0.90
+g1_init: 0.88
 
 # for 2g SPF (N_DIM_MCMC = 11) and 3g SPF (N_DIM_MCMC = 13) only
-g2_init: -0.24
-alpha1_init: 0.45
+g2_init: -0.17
+alpha1_init: 0.28
 
 # for 3g SPF (N_DIM_MCMC = 13) only
 g3_init: 0.
 alpha2_init: 0.
 
 # MCMC PLOTTING PARAMETERS
-BURNIN: 1   #We remove the first BURNIN iteration
+BURNIN: 1000   #We remove the first BURNIN iteration
 THIN: 1       #thin (bin) the chains
 QUALITY_PLOT: 2 # usefull because corner plots can be huge. When paper, QUALITY_PLOT: 4
 sigma: 1 # the number of sigma used to measure the error bars.
