@@ -1,5 +1,5 @@
 # LOCATION AND NAME PARAMETERS. Parameters used to save the outputs or plots
-BAND_DIR: SPHERE_Hdata  # name of folder where are the data (from basedir)
+BAND_DIR: SPHERE_Hdata_half_final  # name of folder where are the data (from basedir)
 FILE_PREFIX: Hband_hr4796_half  #prefix for all saved files (carefull not to erase your results)
 BAND_NAME: GPI H band ADI      #for plot titles uniquely
 
